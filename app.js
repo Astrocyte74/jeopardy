@@ -347,7 +347,6 @@ const app = {
   gameId: null,
   game: null,
   state: null,
-  selectedTeamCount: 2,
   onGameStart: null,
   openClueFunc: null,
 };
@@ -1071,9 +1070,16 @@ let menuSelectedTheme = currentTheme;
 async function initMainMenu() {
   const gameList = document.getElementById("menuGameList");
   const themeGrid = document.getElementById("menuThemeGrid");
-  const teamSelector = document.getElementById("teamSelector");
+  const teamsSetup = document.getElementById("teamsSetup");
+  const addTeamBtn = document.getElementById("addTeamBtn");
   const startBtn = document.getElementById("startGameBtn");
   const jsonInput = document.getElementById("menu-json-input");
+
+  // Teams data - start with 2 teams
+  let menuTeams = [
+    { name: "Team 1" },
+    { name: "Team 2" }
+  ];
 
   // Load games
   const { games } = await getAvailableGames();
@@ -1116,22 +1122,50 @@ async function initMainMenu() {
     }
   }
 
-  // Team selector
-  teamSelector.addEventListener("click", (e) => {
-    const option = e.target.closest(".team-option");
-    if (option) {
-      document.querySelectorAll(".team-option").forEach(o => o.classList.remove("selected"));
-      option.classList.add("selected");
-      app.selectedTeamCount = parseInt(option.dataset.teams);
-    }
+  // Render team inputs
+  function renderTeamInputs() {
+    teamsSetup.innerHTML = "";
+    menuTeams.forEach((team, index) => {
+      const row = document.createElement("div");
+      row.className = "team-input-row";
+      row.innerHTML = `
+        <span class="team-number">${index + 1}</span>
+        <input type="text" value="${team.name}" placeholder="Team name" data-index="${index}">
+        <button class="remove-team-btn" data-index="${index}" ${menuTeams.length <= 1 ? 'disabled' : ''}>✕</button>
+      `;
+
+      // Update team name on input
+      const input = row.querySelector("input");
+      input.addEventListener("input", () => {
+        menuTeams[index].name = input.value || `Team ${index + 1}`;
+      });
+
+      // Remove team button
+      const removeBtn = row.querySelector(".remove-team-btn");
+      removeBtn.addEventListener("click", () => {
+        if (menuTeams.length > 1) {
+          menuTeams.splice(index, 1);
+          renderTeamInputs();
+        }
+      });
+
+      teamsSetup.appendChild(row);
+    });
+  }
+
+  // Add team button
+  addTeamBtn.addEventListener("click", () => {
+    const newIndex = menuTeams.length + 1;
+    menuTeams.push({ name: `Team ${newIndex}` });
+    renderTeamInputs();
   });
 
-  // Set default
-  document.querySelector(`.team-option[data-teams="2"]`).classList.add("selected");
+  // Initial render
+  renderTeamInputs();
 
-  // Start button
+  // Start button - pass the team names to startGame
   startBtn.addEventListener("click", () => {
-    startGame(menuSelectedGame);
+    startGame(menuSelectedGame, menuTeams);
   });
 
   // JSON import
@@ -1178,7 +1212,7 @@ function hideMainMenu() {
   document.getElementById("gameContainer").classList.remove("hidden");
 }
 
-async function startGame(gameRef) {
+async function startGame(gameRef, teamNames = null) {
   hideMainMenu();
 
   const gameId = gameRef.id;
@@ -1192,8 +1226,18 @@ async function startGame(gameRef) {
 
   validateGameShape(rawGame);
   const game = normalizeGame(rawGame);
-  const loaded = loadState(game, gameId, app.selectedTeamCount);
+  const loaded = loadState(game, gameId, teamNames ? teamNames.length : 2);
   const state = loaded.state;
+
+  // If team names were provided, use them
+  if (teamNames && teamNames.length > 0) {
+    state.teams.forEach((team, index) => {
+      if (teamNames[index]) {
+        team.name = teamNames[index].name || team.name;
+      }
+    });
+    saveState(state);
+  }
 
   app.gameId = gameId;
   app.game = game;
@@ -1225,7 +1269,9 @@ async function setCurrentGame(gameRef) {
   validateGameShape(rawGame);
 
   const game = normalizeGame(rawGame);
-  const loaded = loadState(game, gameId, app.selectedTeamCount);
+  // Use current number of teams if available, otherwise default to 2
+  const numTeams = app.state?.teams?.length || 2;
+  const loaded = loadState(game, gameId, numTeams);
   const state = loaded.state;
 
   app.gameId = gameId;
@@ -1324,10 +1370,6 @@ function main() {
     closeTopMenu();
 
     switch (action) {
-      case "games":
-        gamesDialog.refresh();
-        document.getElementById("gamesDialog").showModal();
-        break;
       case "settings":
         // Trigger the settings dialog setup
         if (!app.state || !app.game) return;

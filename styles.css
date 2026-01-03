@@ -286,6 +286,66 @@ body {
   font-weight: 600;
 }
 
+/* Teams setup section */
+.teams-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.team-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.team-input-row input:focus {
+  outline: none;
+  border-color: var(--theme-accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.team-input-row .team-number {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.remove-team-btn {
+  padding: 8px 12px;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 6px;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.remove-team-btn:hover {
+  background: rgba(220, 53, 69, 0.25);
+  transform: scale(1.1);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
 .custom-upload {
   margin-top: 6px;
 }

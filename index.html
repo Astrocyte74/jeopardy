@@ -44,23 +44,13 @@
           </div>
         </div>
 
-        <!-- Number of Teams -->
+        <!-- Teams Setup -->
         <div class="menu-section">
-          <h3 class="section-title">👥 Number of Teams</h3>
-          <div class="team-selector" id="teamSelector">
-            <div class="team-option" data-teams="1">
-              <span class="team-icon">👤</span>
-              <span class="team-label">1 Team</span>
-            </div>
-            <div class="team-option" data-teams="2">
-              <span class="team-icon">👥</span>
-              <span class="team-label">2 Teams</span>
-            </div>
-            <div class="team-option" data-teams="3">
-              <span class="team-icon">👥👥</span>
-              <span class="team-label">3 Teams</span>
-            </div>
+          <h3 class="section-title">👥 Teams</h3>
+          <div class="teams-setup" id="teamsSetup">
+            <!-- Team inputs will be populated by JS -->
           </div>
+          <button id="addTeamBtn" class="btn btn-secondary btn-sm">+ Add Team</button>
         </div>
 
         <!-- Start Button -->
@@ -80,7 +70,6 @@
           <div class="menu-dropdown" id="topMenuDropdown">
             <button id="topMenuBtn" class="btn btnSecondary" type="button" title="Menu">☰</button>
             <div class="menu-dropdown-content">
-              <button class="menu-dropdown-item" data-action="games">🎮 Switch Game</button>
               <button class="menu-dropdown-item" data-action="settings">⚙️ Game Settings</button>
               <button class="menu-dropdown-item menu-dropdown-danger" data-action="reset">🔄 Reset Game</button>
               <div class="menu-dropdown-divider"></div>
