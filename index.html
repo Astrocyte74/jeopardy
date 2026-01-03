@@ -77,13 +77,17 @@
         </div>
 
         <div class="topbarActions">
-          <button id="menuBtn" class="btn btnSecondary" type="button" title="Back to menu">☰ Menu</button>
-          <button id="themeBtn" class="btn btnSecondary" type="button" title="Change theme">
-            <span class="themeIcon">🎨</span>
-          </button>
-          <button id="gamesBtn" class="btn btnSecondary" type="button">Games</button>
-          <button id="settingsBtn" class="btn btnSecondary" type="button">Settings</button>
-          <button id="resetBtn" class="btn btnDanger" type="button">Reset</button>
+          <div class="menu-dropdown" id="topMenuDropdown">
+            <button id="topMenuBtn" class="btn btnSecondary" type="button" title="Menu">☰</button>
+            <div class="menu-dropdown-content">
+              <button class="menu-dropdown-item" data-action="theme">🎨 Change Theme</button>
+              <button class="menu-dropdown-item" data-action="games">🎮 Switch Game</button>
+              <button class="menu-dropdown-item" data-action="settings">⚙️ Game Settings</button>
+              <button class="menu-dropdown-item menu-dropdown-danger" data-action="reset">🔄 Reset Game</button>
+              <div class="menu-dropdown-divider"></div>
+              <button class="menu-dropdown-item" data-action="mainmenu">🏠 Main Menu</button>
+            </div>
+          </div>
         </div>
       </header>
 

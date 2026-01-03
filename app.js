@@ -830,7 +830,6 @@ function setupSettingsDialog(onAfterSave) {
   const titleInput = document.getElementById("settingsGameTitle");
   const subtitleInput = document.getElementById("settingsGameSubtitle");
   const teamsContainer = document.getElementById("settingsTeams");
-  const addTeamBtn = document.getElementById("addTeamBtn");
 
   function renderTeamInputs() {
     const state = app.state;
@@ -880,20 +879,7 @@ function setupSettingsDialog(onAfterSave) {
     teamsContainer.appendChild(list);
   }
 
-  addTeamBtn.addEventListener("click", () => {
-    if (!app.state) return;
-    const nextIndex = app.state.teams.length + 1;
-    app.state.teams.push({ id: `t${Date.now()}`, name: `Team ${nextIndex}`, score: 0 });
-    renderTeamInputs();
-  });
-
-  document.getElementById("settingsBtn").addEventListener("click", () => {
-    if (!app.state || !app.game) return;
-    titleInput.value = app.state.customTitle ?? app.game.title;
-    subtitleInput.value = app.state.customSubtitle ?? app.game.subtitle;
-    renderTeamInputs();
-    dialog.showModal();
-  });
+  // settingsBtn and addTeamBtn are now handled in main() via dropdown
 
   dialog.addEventListener("close", () => {
     if (!app.state) return;
@@ -906,7 +892,6 @@ function setupSettingsDialog(onAfterSave) {
 
 function setupGamesDialog(onPickGame) {
   const dialog = document.getElementById("gamesDialog");
-  const gamesBtn = document.getElementById("gamesBtn");
   const listEl = document.getElementById("gamesList");
   const fileInput = document.getElementById("gamesFileInput");
   const helpText = document.getElementById("gamesHelpText");
@@ -982,11 +967,6 @@ function setupGamesDialog(onPickGame) {
     renderList();
   }
 
-  gamesBtn.addEventListener("click", async () => {
-    await refresh();
-    dialog.showModal();
-  });
-
   playBtn.addEventListener("click", (e) => {
     e.preventDefault();
     const selected = available.find((g) => g.id === selectedId);
@@ -1035,13 +1015,7 @@ function setupGamesDialog(onPickGame) {
 
 function setupThemeDialog() {
   const dialog = document.getElementById("themeDialog");
-  const themeBtn = document.getElementById("themeBtn");
   const themeGrid = document.getElementById("themeGrid");
-
-  themeBtn.addEventListener("click", () => {
-    renderThemeGrid();
-    dialog.showModal();
-  });
 
   function renderThemeGrid() {
     themeGrid.textContent = "";
@@ -1071,6 +1045,8 @@ function setupThemeDialog() {
     applyTheme(themeKey);
     renderThemeGrid();
   }
+
+  return { renderThemeGrid };
 }
 
 // ==================== MAIN MENU ====================
@@ -1173,11 +1149,6 @@ async function initMainMenu() {
     renderGameList();
   });
 
-  // Menu button - go back to menu
-  document.getElementById("menuBtn").addEventListener("click", () => {
-    showMainMenu();
-  });
-
   renderGameList();
   renderThemeGrid();
 }
@@ -1261,7 +1232,7 @@ function main() {
   applyTheme(currentTheme);
 
   // Setup dialogs
-  setupThemeDialog();
+  const themeDialog = setupThemeDialog();
   const { openClue } = setupClueDialog();
   app.openClueFunc = openClue;
 
@@ -1276,21 +1247,140 @@ function main() {
 
   setupSettingsDialog(rerenderAll);
 
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    if (!app.game || !app.state || !app.gameId) return;
-    localStorage.removeItem(stateKey(app.gameId));
-    const next = defaultState(app.state.teams.length);
-    Object.assign(app.state, next);
-    rerenderAll();
-  });
-
-  window.addEventListener("resize", () => rerenderAll());
-
   const gamesDialog = setupGamesDialog((picked) => {
     setCurrentGame(picked).catch((err) => {
       const message = err instanceof Error ? err.message : String(err);
       alert(message);
     });
+  });
+
+  // Setup top menu dropdown
+  const topMenuDropdown = document.getElementById("topMenuDropdown");
+  const topMenuBtn = document.getElementById("topMenuBtn");
+
+  function toggleTopMenu() {
+    topMenuDropdown.classList.toggle("open");
+  }
+
+  function closeTopMenu() {
+    topMenuDropdown.classList.remove("open");
+  }
+
+  topMenuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleTopMenu();
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!topMenuDropdown.contains(e.target)) {
+      closeTopMenu();
+    }
+  });
+
+  // Handle menu item clicks
+  topMenuDropdown.addEventListener("click", (e) => {
+    const item = e.target.closest(".menu-dropdown-item");
+    if (!item) return;
+
+    const action = item.dataset.action;
+    closeTopMenu();
+
+    switch (action) {
+      case "theme":
+        themeDialog.renderThemeGrid();
+        document.getElementById("themeDialog").showModal();
+        break;
+      case "games":
+        gamesDialog.refresh();
+        document.getElementById("gamesDialog").showModal();
+        break;
+      case "settings":
+        // Trigger the settings dialog setup
+        if (!app.state || !app.game) return;
+        const settingsDialog = document.getElementById("settingsDialog");
+        const settingsTitle = document.getElementById("settingsGameTitle");
+        const settingsSubtitle = document.getElementById("settingsGameSubtitle");
+        const settingsTeams = document.getElementById("settingsTeams");
+        settingsTitle.value = app.state.customTitle ?? app.game.title;
+        settingsSubtitle.value = app.state.customSubtitle ?? app.game.subtitle;
+        // Render team inputs
+        settingsTeams.textContent = "";
+        const list = el("div", { class: "settingsTeamsList" });
+        app.state.teams.forEach((team, index) => {
+          const nameInput = el("input", { type: "text", value: team.name, autocomplete: "off" });
+          nameInput.addEventListener("input", () => {
+            team.name = nameInput.value;
+          });
+          const scoreInput = el("input", {
+            type: "text",
+            value: String(team.score),
+            inputmode: "numeric",
+            autocomplete: "off",
+          });
+          scoreInput.addEventListener("input", () => {
+            const next = Number.parseInt(scoreInput.value.replace(/[^\d-]/g, ""), 10);
+            if (Number.isFinite(next)) team.score = next;
+            else team.score = 0;
+          });
+          const removeBtn = el("button", { class: "iconBtn removeTeamBtn", type: "button" }, "🗑");
+          removeBtn.disabled = app.state.teams.length <= 1;
+          removeBtn.addEventListener("click", () => {
+            app.state.teams.splice(index, 1);
+            if (!app.state.teams.some((t) => t.id === app.state.activeTeamId)) {
+              app.state.activeTeamId = app.state.teams[0]?.id ?? app.state.activeTeamId;
+            }
+            // Re-render
+            settingsTeams.textContent = "";
+            const newList = el("div", { class: "settingsTeamsList" });
+            app.state.teams.forEach((t, i) => {
+              const ni = el("input", { type: "text", value: t.name, autocomplete: "off" });
+              ni.addEventListener("input", () => { t.name = ni.value; });
+              const si = el("input", { type: "text", value: String(t.score), inputmode: "numeric", autocomplete: "off" });
+              si.addEventListener("input", () => {
+                const n = Number.parseInt(si.value.replace(/[^\d-]/g, ""), 10);
+                t.score = Number.isFinite(n) ? n : 0;
+              });
+              const rb = el("button", { class: "iconBtn removeTeamBtn", type: "button" }, "🗑");
+              rb.disabled = app.state.teams.length <= 1;
+              rb.addEventListener("click", () => {
+                app.state.teams.splice(i, 1);
+                // Trigger re-render by clicking settings again
+                document.querySelector("[data-action=\"settings\"]")?.click();
+              });
+              newList.appendChild(el("div", { class: "settingsTeamRow" }, ni, si, rb));
+            });
+            settingsTeams.appendChild(newList);
+          });
+          list.appendChild(el("div", { class: "settingsTeamRow" }, nameInput, scoreInput, removeBtn));
+        });
+        settingsTeams.appendChild(list);
+        settingsDialog.showModal();
+        break;
+      case "reset":
+        if (!app.game || !app.state || !app.gameId) return;
+        if (confirm("Reset this game? All progress will be lost.")) {
+          localStorage.removeItem(stateKey(app.gameId));
+          const next = defaultState(app.state.teams.length);
+          Object.assign(app.state, next);
+          rerenderAll();
+        }
+        break;
+      case "mainmenu":
+        showMainMenu();
+        break;
+    }
+  });
+
+  window.addEventListener("resize", () => rerenderAll());
+
+  // Setup add team button for settings dialog
+  document.getElementById("addTeamBtn").addEventListener("click", () => {
+    if (!app.state) return;
+    const nextIndex = app.state.teams.length + 1;
+    app.state.teams.push({ id: `t${Date.now()}`, name: `Team ${nextIndex}`, score: 0 });
+    // Re-render settings by clicking settings again
+    document.querySelector("[data-action=\"settings\"]")?.click();
   });
 
   // Initialize main menu
