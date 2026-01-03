@@ -1246,6 +1246,7 @@ function main() {
   }
 
   setupSettingsDialog(rerenderAll);
+  setupResetDialog(rerenderAll);
 
   const gamesDialog = setupGamesDialog((picked) => {
     setCurrentGame(picked).catch((err) => {
@@ -1359,12 +1360,7 @@ function main() {
         break;
       case "reset":
         if (!app.game || !app.state || !app.gameId) return;
-        if (confirm("Reset this game? All progress will be lost.")) {
-          localStorage.removeItem(stateKey(app.gameId));
-          const next = defaultState(app.state.teams.length);
-          Object.assign(app.state, next);
-          rerenderAll();
-        }
+        document.getElementById("resetDialog").showModal();
         break;
       case "mainmenu":
         showMainMenu();
@@ -1425,6 +1421,27 @@ function showResumeDialog(game) {
   });
 
   dialog.showModal();
+}
+
+// ==================== RESET DIALOG ====================
+function setupResetDialog(onReset) {
+  const dialog = document.getElementById("resetDialog");
+  const confirmBtn = document.getElementById("confirmResetBtn");
+  const cancelBtn = document.getElementById("cancelResetBtn");
+
+  confirmBtn.addEventListener("click", () => {
+    if (!app.game || !app.state || !app.gameId) return;
+    localStorage.removeItem(stateKey(app.gameId));
+    const next = defaultState(app.state.teams.length);
+    Object.assign(app.state, next);
+    if (onReset) onReset();
+    dialog.close();
+  });
+
+  // Cancel and close button just close the dialog
+  cancelBtn.addEventListener("click", () => {
+    dialog.close();
+  });
 }
 
 main();

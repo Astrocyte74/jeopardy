@@ -252,6 +252,29 @@
       </form>
     </dialog>
 
+    <!-- Reset Confirmation Dialog -->
+    <dialog id="resetDialog" class="dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Reset Game</div>
+          </div>
+          <button class="iconBtn" value="close" aria-label="Close" type="submit">✕</button>
+        </div>
+
+        <div class="reset-content">
+          <div class="reset-icon">⚠️</div>
+          <div class="reset-title">Are you sure?</div>
+          <div class="reset-subtitle">This will clear all scores and progress. This action cannot be undone.</div>
+        </div>
+
+        <div class="dialogActions">
+          <button id="cancelResetBtn" class="btn btnSecondary btn-large" type="button" value="close">Cancel</button>
+          <button id="confirmResetBtn" class="btn btnDanger btn-large" type="button">Yes, Reset Game</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="app.js"></script>
   </body>
 </html>
