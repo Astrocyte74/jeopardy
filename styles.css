@@ -1003,14 +1003,14 @@ input:focus-visible {
   font-size: 15px;
 }
 
-/* Larger team chips in the large clue dialog */
+/* Compact team chips in the large clue dialog scoring panel */
 .dialogCardLarge .teamChip {
-  padding: 16px 28px;
-  font-size: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
 }
 
 .dialogCardLarge .whoAnsweredLabel {
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .teamChip:hover {
