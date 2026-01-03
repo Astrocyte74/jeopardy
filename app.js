@@ -739,6 +739,21 @@ function setupClueDialog() {
 
     // Focus the "Show Answer" button for keyboard users
     setTimeout(() => showResponseBtn.focus(), 50);
+
+    // Click anywhere on dialog card (except buttons) to show answer
+    const dialogCard = dialog.querySelector(".dialogCardLarge");
+    const showAnswerOnClick = (e) => {
+      // Only handle if answer is still hidden and not clicking on buttons
+      if (responseEl.classList.contains("hidden") &&
+          !e.target.closest("button") &&
+          !e.target.closest(".answeringTeams")) {
+        e.preventDefault();
+        showResponseBtn.click();
+        // Remove the listener after showing answer
+        dialogCard.removeEventListener("click", showAnswerOnClick);
+      }
+    };
+    dialogCard.addEventListener("click", showAnswerOnClick);
   }
 
   function closeDialog() {

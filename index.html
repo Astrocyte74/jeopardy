@@ -116,20 +116,22 @@
           <div id="clueValue" class="dialogValue"></div>
         </div>
 
-        <div id="clueText" class="dialogClue dialogClueLarge"></div>
-
-        <div id="responseText" class="dialogResponse dialogResponseLarge hidden"></div>
-
-        <div class="whoAnsweredSection">
-          <div class="whoAnsweredLabel">Who answered?</div>
-          <div id="answeringTeams" class="answeringTeams" role="group" aria-label="Who answered?"></div>
+        <div class="clueContent">
+          <div id="clueText" class="dialogClue dialogClueLarge"></div>
+          <div id="responseText" class="dialogResponse dialogResponseLarge hidden"></div>
         </div>
 
-        <div class="dialogActions">
-          <button id="showResponseBtn" class="btn btnSecondary btn-large" type="button">Show Answer</button>
-          <div class="spacer"></div>
-          <button id="markIncorrectBtn" class="btn btnDanger btn-large" type="button">✗ Incorrect</button>
-          <button id="markCorrectBtn" class="btn btnPrimary btn-large" type="button">✓ Correct</button>
+        <button id="showResponseBtn" class="btn btnSecondary btn-large revealBtn" type="button">Show Answer</button>
+
+        <div class="scoringPanel">
+          <div class="scoringPanelHeader">
+            <div class="whoAnsweredLabel">Who answered?</div>
+          </div>
+          <div id="answeringTeams" class="answeringTeams" role="group" aria-label="Who answered?"></div>
+          <div class="scoringActions">
+            <button id="markIncorrectBtn" class="btn btnDanger btn-large" type="button">✗ Incorrect</button>
+            <button id="markCorrectBtn" class="btn btnPrimary btn-large" type="button">✓ Correct</button>
+          </div>
         </div>
       </form>
     </dialog>
