@@ -1095,6 +1095,10 @@ async function initMainMenu() {
   const { games } = await getAvailableGames();
   menuSelectedGame = games[0];
 
+  // Initialize game settings with the first game's data
+  menuGameTitle.value = menuSelectedGame.title || "";
+  menuGameSubtitle.value = menuSelectedGame.subtitle || "";
+
   function renderGameList() {
     gameList.innerHTML = "";
     games.forEach(game => {
@@ -1109,6 +1113,11 @@ async function initMainMenu() {
       `;
       option.addEventListener("click", () => {
         menuSelectedGame = game;
+        // Auto-populate game settings from the selected game
+        menuGameTitle.value = game.title || "";
+        menuGameSubtitle.value = game.subtitle || "";
+        menuGameSettings.title = "";
+        menuGameSettings.subtitle = "";
         renderGameList();
       });
       gameList.appendChild(option);
