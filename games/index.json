@@ -1,0 +1,11 @@
+{
+  "games": [
+    {
+      "id": "living-christ-400",
+      "title": "The Living Christ (Quiz)",
+      "subtitle": "Up to 400-point clues (some are open-response).",
+      "path": "game.json"
+    }
+  ]
+}
+

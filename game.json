@@ -1,0 +1,104 @@
+{
+  "title": "The Living Christ (Quiz)",
+  "subtitle": "Up to 400-point clues (some are open-response).",
+  "categories": [
+    {
+      "title": "Column #1",
+      "clues": [
+        { "value": 100, "clue": "How long in years, is two millennia?", "response": "What is 2000 years?" },
+        {
+          "value": 200,
+          "clue": "Though Christ was sinless, why then, was He baptized?",
+          "response": "What is \"to fulfill all righteousness?\""
+        },
+        { "value": 300, "clue": "Christ gave His life to to atone for the sins of who?", "response": "What is all mankind?" },
+        {
+          "value": 400,
+          "clue": "Fill in the blanks: \"Each of us will stand to be judged of Him according to our __ and the __ of our hearts.\"",
+          "response": "What is works and desires?"
+        }
+      ]
+    },
+    {
+      "title": "Column #2",
+      "clues": [
+        { "value": 100, "clue": "How many times is the word \"matchless\" stated?", "response": "What is twice?" },
+        { "value": 200, "clue": "Fill in the blanks: His message was one of __ and __.", "response": "What is peace and goodwill?" },
+        {
+          "value": 300,
+          "clue": "What did Joseph Smith write, saying Christ looked and sounded like?",
+          "response": "(open response)"
+        },
+        { "value": 400, "clue": "What is one thing you learned in The Living Christ?", "response": "(open response)" }
+      ]
+    },
+    {
+      "title": "Column #3",
+      "clues": [
+        {
+          "value": 100,
+          "clue": "How was Christ known, or referred to as, in the Old Testament?",
+          "response": "Who is the Great Jehovah?"
+        },
+        {
+          "value": 200,
+          "clue": "Name four things Christ taught when he was here on Earth.",
+          "response": "What are: taught truths of eternity, the reality of our premortal existence, the purpose of our life here on earth, and the potential for the sons and daughters of God in the life to come?"
+        },
+        {
+          "value": 300,
+          "clue": "What did Joseph Smith emphatically declare in his testimony?",
+          "response": "What is that Christ lives?"
+        },
+        { "value": 400, "clue": "Who is the President of our church now?", "response": "Who is President Thomas S. Monson?" }
+      ]
+    },
+    {
+      "title": "Column #4",
+      "clues": [
+        {
+          "value": 100,
+          "clue": "How was Christ known, or referred to as, in the New Testament?",
+          "response": "Who is the Messiah?"
+        },
+        {
+          "value": 200,
+          "clue": "Why did Christ institute the sacrament?",
+          "response": "What is as a reminder of His great atoning sacrifice?"
+        },
+        {
+          "value": 300,
+          "clue": "Name two things that have been restored upon the Earth?",
+          "response": "What is His priesthood and His Church?"
+        },
+        { "value": 400, "clue": "When did The Living Christ come out?", "response": "What is January 1, 2000?" }
+      ]
+    },
+    {
+      "title": "Column #5",
+      "clues": [
+        {
+          "value": 100,
+          "clue": "Who directed Jesus when He was creating Earth?",
+          "response": "Who is His Father, or Heavenly Father?"
+        },
+        {
+          "value": 200,
+          "clue": "What was the name of the hill where the cross that Christ died upon, was located?",
+          "response": "What is Calvary?"
+        },
+        {
+          "value": 300,
+          "clue": "According to The First Presidency and the Quorum of the Twelve, will Christ return?",
+          "response": "What is yes?"
+        },
+        {
+          "value": 400,
+          "clue": "Who comprised of The First Presidency when this was written?",
+          "response": "(open response)"
+        }
+      ]
+    }
+  ]
+}
+

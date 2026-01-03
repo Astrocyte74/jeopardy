@@ -1,0 +1,13 @@
+{
+  "title": "My Game Title",
+  "subtitle": "Optional subtitle",
+  "categories": [
+    {
+      "title": "Category 1",
+      "clues": [
+        { "value": 100, "clue": "Clue text", "response": "Response text" }
+      ]
+    }
+  ]
+}
+

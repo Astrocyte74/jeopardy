@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jeop2 - Best of Both</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Score Float Container -->
+    <div id="scoreFloats"></div>
+
+    <!-- Confetti Container -->
+    <canvas id="confetti"></canvas>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="main-menu">
+      <div class="menu-content">
+        <h1 class="menu-title">JEOPARDY</h1>
+        <div class="menu-subtitle">Choose Your Game</div>
+
+        <!-- Game Selection -->
+        <div class="menu-section">
+          <h3 class="section-title">📁 Select Game</h3>
+          <div class="game-list" id="menuGameList">
+            <!-- Games will be populated by JS -->
+          </div>
+          <div class="custom-upload">
+            <label for="menu-json-input" class="btn btn-secondary">
+              📤 Import JSON Games
+            </label>
+            <input type="file" id="menu-json-input" accept=".json,application/json" multiple style="display: none;" />
+          </div>
+        </div>
+
+        <!-- Theme Selection -->
+        <div class="menu-section">
+          <h3 class="section-title">🎨 Select Theme</h3>
+          <div class="theme-grid" id="menuThemeGrid">
+            <!-- Themes will be populated by JS -->
+          </div>
+        </div>
+
+        <!-- Number of Teams -->
+        <div class="menu-section">
+          <h3 class="section-title">👥 Number of Teams</h3>
+          <div class="team-selector" id="teamSelector">
+            <div class="team-option" data-teams="1">
+              <span class="team-icon">👤</span>
+              <span class="team-label">1 Team</span>
+            </div>
+            <div class="team-option" data-teams="2">
+              <span class="team-icon">👥</span>
+              <span class="team-label">2 Teams</span>
+            </div>
+            <div class="team-option" data-teams="3">
+              <span class="team-icon">👥👥</span>
+              <span class="team-label">3 Teams</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start Button -->
+        <button id="startGameBtn" class="btn btn-primary btn-large">▶ Start Game</button>
+      </div>
+    </div>
+
+    <!-- Game Container (hidden initially) -->
+    <div id="gameContainer" class="game-container hidden">
+      <header class="topbar">
+        <div class="titleblock">
+          <h1 id="gameTitle">Jeop2</h1>
+          <p id="gameSubtitle" class="subtitle"></p>
+        </div>
+
+        <div class="topbarActions">
+          <button id="menuBtn" class="btn btnSecondary" type="button" title="Back to menu">☰ Menu</button>
+          <button id="themeBtn" class="btn btnSecondary" type="button" title="Change theme">
+            <span class="themeIcon">🎨</span>
+          </button>
+          <button id="gamesBtn" class="btn btnSecondary" type="button">Games</button>
+          <button id="settingsBtn" class="btn btnSecondary" type="button">Settings</button>
+          <button id="resetBtn" class="btn btnDanger" type="button">Reset</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="scores" aria-label="Scores">
+          <div class="scoresHeader">
+            <h2>Scores</h2>
+            <div class="activeTeamHint">Select who's answering.</div>
+          </div>
+          <div id="teams"></div>
+        </section>
+
+        <section class="boardWrap" aria-label="Game board">
+          <div id="board" class="board" role="grid" aria-label="Jeopardy board"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Clue Dialog (LARGE) -->
+    <dialog id="clueDialog" class="dialog clue-dialog-large">
+      <form method="dialog" class="dialogCard dialogCardLarge">
+        <button class="closeBtnTop" value="close" aria-label="Close" type="submit">✕</button>
+
+        <div class="clueDialogHeader">
+          <div id="clueCategory" class="dialogCategory"></div>
+          <div id="clueValue" class="dialogValue"></div>
+        </div>
+
+        <div id="clueText" class="dialogClue dialogClueLarge"></div>
+
+        <div id="responseText" class="dialogResponse dialogResponseLarge hidden"></div>
+
+        <div class="whoAnsweredSection">
+          <div class="whoAnsweredLabel">Who answered?</div>
+          <div id="answeringTeams" class="answeringTeams" role="group" aria-label="Who answered?"></div>
+        </div>
+
+        <div class="dialogActions">
+          <button id="showResponseBtn" class="btn btnSecondary btn-large" type="button">Show Answer</button>
+          <div class="spacer"></div>
+          <button id="markIncorrectBtn" class="btn btnDanger btn-large" type="button">✗ Incorrect</button>
+          <button id="markCorrectBtn" class="btn btnPrimary btn-large" type="button">✓ Correct</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Settings Dialog -->
+    <dialog id="settingsDialog" class="dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Settings</div>
+          </div>
+          <button class="iconBtn" value="close" aria-label="Close" type="submit">✕</button>
+        </div>
+
+        <div class="settingsGrid">
+          <label class="field">
+            <div class="label">Game title</div>
+            <input id="settingsGameTitle" type="text" autocomplete="off" />
+          </label>
+
+          <label class="field">
+            <div class="label">Subtitle</div>
+            <input id="settingsGameSubtitle" type="text" autocomplete="off" />
+          </label>
+
+          <div class="field">
+            <div class="label">Teams</div>
+            <div id="settingsTeams"></div>
+            <button id="addTeamBtn" class="btn btnSecondary" type="button">Add team</button>
+          </div>
+        </div>
+
+        <div class="dialogActions">
+          <button id="saveSettingsBtn" class="btn btnPrimary" value="close" type="submit">
+            Save
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Games Dialog -->
+    <dialog id="gamesDialog" class="dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Choose a Game</div>
+          </div>
+          <button class="iconBtn" value="close" aria-label="Close" type="submit">✕</button>
+        </div>
+
+        <div class="gamesGrid">
+          <div class="gamesListWrap">
+            <div id="gamesList" class="gamesList" role="list"></div>
+          </div>
+
+          <div class="gamesSide">
+            <div class="gamesHelp">
+              <div class="gamesHelpTitle">Add games</div>
+              <div id="gamesHelpText" class="gamesHelpText">
+                Add entries to <code>games/index.json</code> to show more built-in games, or upload a JSON file.
+              </div>
+            </div>
+
+            <label class="btn btnSecondary fileBtn">
+              Load JSON file
+              <input id="gamesFileInput" type="file" accept=".json,application/json" />
+            </label>
+
+            <button id="removeCustomGameBtn" class="btn btnDanger" type="button" disabled>
+              Remove selected custom game
+            </button>
+          </div>
+        </div>
+
+        <div class="dialogActions">
+          <button id="playSelectedGameBtn" class="btn btnPrimary" value="close" type="submit" disabled>
+            Play selected
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Theme Dialog -->
+    <dialog id="themeDialog" class="dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Choose Theme</div>
+          </div>
+          <button class="iconBtn" value="close" aria-label="Close" type="submit">✕</button>
+        </div>
+
+        <div id="themeGrid" class="themeGrid"></div>
+
+        <div class="dialogActions">
+          <button class="btn btnPrimary" value="close" type="submit">Done</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Resume Dialog -->
+    <dialog id="resumeDialog" class="dialog resume-dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Welcome Back!</div>
+          </div>
+        </div>
+
+        <div class="resume-content">
+          <div class="resume-icon">🏆</div>
+          <div class="resume-title">Resume your game?</div>
+          <div class="resume-subtitle" id="resumeGameTitle">Loading...</div>
+        </div>
+
+        <div class="dialogActions">
+          <button id="newGameBtn" class="btn btnSecondary btn-large" type="button" value="close">New Game</button>
+          <button id="resumeGameBtn" class="btn btnPrimary btn-large" type="button">▶ Resume</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
