@@ -1071,7 +1071,7 @@ async function initMainMenu() {
   const gameList = document.getElementById("menuGameList");
   const themeGrid = document.getElementById("menuThemeGrid");
   const teamsSetup = document.getElementById("teamsSetup");
-  const addTeamBtn = document.getElementById("addTeamBtn");
+  const addTeamBtn = document.getElementById("menuAddTeamBtn");
   const startBtn = document.getElementById("startGameBtn");
   const jsonInput = document.getElementById("menu-json-input");
 
