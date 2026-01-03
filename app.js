@@ -1074,12 +1074,22 @@ async function initMainMenu() {
   const addTeamBtn = document.getElementById("menuAddTeamBtn");
   const startBtn = document.getElementById("startGameBtn");
   const jsonInput = document.getElementById("menu-json-input");
+  const gameSettingsToggle = document.getElementById("gameSettingsToggle");
+  const gameSettingsContent = document.getElementById("gameSettingsContent");
+  const menuGameTitle = document.getElementById("menuGameTitle");
+  const menuGameSubtitle = document.getElementById("menuGameSubtitle");
 
   // Teams data - start with 2 teams
   let menuTeams = [
     { name: "Team 1" },
     { name: "Team 2" }
   ];
+
+  // Game settings data
+  let menuGameSettings = {
+    title: "",
+    subtitle: ""
+  };
 
   // Load games
   const { games } = await getAvailableGames();
@@ -1160,12 +1170,27 @@ async function initMainMenu() {
     renderTeamInputs();
   });
 
+  // Collapsible game settings
+  gameSettingsToggle.addEventListener("click", () => {
+    const isCollapsed = gameSettingsContent.classList.toggle("collapsed");
+    gameSettingsToggle.classList.toggle("collapsed", isCollapsed);
+  });
+
+  // Game settings inputs
+  menuGameTitle.addEventListener("input", () => {
+    menuGameSettings.title = menuGameTitle.value;
+  });
+
+  menuGameSubtitle.addEventListener("input", () => {
+    menuGameSettings.subtitle = menuGameSubtitle.value;
+  });
+
   // Initial render
   renderTeamInputs();
 
-  // Start button - pass the team names to startGame
+  // Start button - pass the team names and game settings to startGame
   startBtn.addEventListener("click", () => {
-    startGame(menuSelectedGame, menuTeams);
+    startGame(menuSelectedGame, menuTeams, menuGameSettings);
   });
 
   // JSON import
@@ -1212,7 +1237,7 @@ function hideMainMenu() {
   document.getElementById("gameContainer").classList.remove("hidden");
 }
 
-async function startGame(gameRef, teamNames = null) {
+async function startGame(gameRef, teamNames = null, gameSettings = null) {
   hideMainMenu();
 
   const gameId = gameRef.id;
@@ -1236,8 +1261,19 @@ async function startGame(gameRef, teamNames = null) {
         team.name = teamNames[index].name || team.name;
       }
     });
-    saveState(state);
   }
+
+  // If game settings were provided, use them
+  if (gameSettings) {
+    if (gameSettings.title) {
+      state.customTitle = gameSettings.title;
+    }
+    if (gameSettings.subtitle) {
+      state.customSubtitle = gameSettings.subtitle;
+    }
+  }
+
+  saveState(state);
 
   app.gameId = gameId;
   app.game = game;

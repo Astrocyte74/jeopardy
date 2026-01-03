@@ -202,7 +202,7 @@ body {
 .game-list {
   display: grid;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
 }
 
 .game-option {
@@ -291,6 +291,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 12px;
 }
 
 .team-input-row {
@@ -347,7 +348,106 @@ body {
 }
 
 .custom-upload {
-  margin-top: 6px;
+  margin-top: 12px;
+}
+
+/* Start Game button - prominent and centered */
+#startGameBtn {
+  width: 100%;
+  padding: 18px 32px;
+  font-size: 20px;
+  font-weight: 900;
+  background: linear-gradient(145deg, var(--theme-gold), var(--theme-accent));
+  border: none;
+  color: #1a1a2e;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 8px 24px rgba(255, 204, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+#startGameBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(255, 204, 0, 0.4);
+}
+
+#startGameBtn:active {
+  transform: translateY(0);
+}
+
+/* Collapsible sections */
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 0;
+}
+
+.collapsible-icon {
+  transition: transform 0.3s ease;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.collapsible-header.collapsed .collapsible-icon {
+  transform: rotate(-90deg);
+}
+
+.collapsible-content {
+  max-height: 200px;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 1;
+}
+
+.collapsible-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+.game-settings-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.game-settings-fields .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.game-settings-fields .label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.game-settings-fields input {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.game-settings-fields input:focus {
+  outline: none;
+  border-color: var(--theme-accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.game-settings-fields input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 /* Theme Grid in Menu */
