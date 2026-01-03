@@ -1247,7 +1247,7 @@ function main() {
   applyTheme(currentTheme);
 
   // Setup dialogs
-  const themeDialog = setupThemeDialog();
+  setupThemeDialog();
   const { openClue } = setupClueDialog();
   app.openClueFunc = openClue;
 
@@ -1294,6 +1294,27 @@ function main() {
     }
   });
 
+  // Render theme circles in dropdown
+  const themeCircles = document.getElementById("themeCircles");
+  for (const [themeKey, theme] of Object.entries(themes)) {
+    const circle = document.createElement("div");
+    circle.className = `theme-circle${currentTheme === themeKey ? " selected" : ""}`;
+    circle.style.background = `linear-gradient(145deg, ${theme.primary}, ${theme.secondary})`;
+    circle.dataset.theme = themeKey;
+    circle.title = theme.name;
+
+    circle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      applyTheme(themeKey);
+      // Update selected state
+      document.querySelectorAll(".theme-circle").forEach(c => c.classList.remove("selected"));
+      circle.classList.add("selected");
+      // Keep menu open for visual feedback
+    });
+
+    themeCircles.appendChild(circle);
+  }
+
   // Handle menu item clicks
   topMenuDropdown.addEventListener("click", (e) => {
     const item = e.target.closest(".menu-dropdown-item");
@@ -1303,10 +1324,6 @@ function main() {
     closeTopMenu();
 
     switch (action) {
-      case "theme":
-        themeDialog.renderThemeGrid();
-        document.getElementById("themeDialog").showModal();
-        break;
       case "games":
         gamesDialog.refresh();
         document.getElementById("gamesDialog").showModal();
