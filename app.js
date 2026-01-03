@@ -786,6 +786,11 @@ function setupClueDialog() {
     const team = state.teams.find((t) => t.id === selected);
     if (!team) return;
 
+    // Show screen flash
+    const flash = document.getElementById("screenFlash");
+    flash.className = sign > 0 ? "flash-correct" : "flash-incorrect";
+    setTimeout(() => flash.className = "", 500);
+
     // Show score float animation
     const rect = event.target.getBoundingClientRect();
     showScoreFloat(sign * value, rect.left + rect.width / 2, rect.top);
