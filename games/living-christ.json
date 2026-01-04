@@ -1,0 +1,66 @@
+{
+  "title": "The Living Christ",
+  "subtitle": "Faith-promoting quiz",
+  "categories": [
+    {
+      "title": "Birth & Early Life",
+      "clues": [
+        { "value": 200, "clue": "Where was Jesus born?", "response": "Bethlehem" },
+        { "value": 400, "clue": "Who was Jesus' mother?", "response": "Mary" },
+        { "value": 600, "clue": "What was Jesus' occupation?", "response": "Carpenter" },
+        { "value": 800, "clue": "Who baptized Jesus?", "response": "John the Baptist" },
+        { "value": 1000, "clue": "Where did Jesus grow up?", "response": "Nazareth" }
+      ]
+    },
+    {
+      "title": "Miracles",
+      "clues": [
+        { "value": 200, "clue": "Jesus turned water into this at a wedding", "response": "Wine" },
+        { "value": 400, "clue": "Jesus walked on this body of water", "response": "Sea of Galilee" },
+        { "value": 600, "clue": "Jesus raised this friend from the dead", "response": "Lazarus" },
+        { "value": 800, "clue": "Jesus fed 5,000 with this amount of loaves and fishes", "response": "5 loaves, 2 fishes" },
+        { "value": 1000, "clue": "Jesus healed this man who was blind from birth", "response": "The blind man" }
+      ]
+    },
+    {
+      "title": "Teachings",
+      "clues": [
+        { "value": 200, "clue": "This sermon is famous for the Beatitudes", "response": "Sermon on the Mount" },
+        { "value": 400, "clue": "Jesus taught us to love our _______", "response": "Enemies / Neighbors" },
+        { "value": 600, "clue": "The Golden Rule", "response": "Do unto others..." },
+        { "value": 800, "clue": "Jesus is the way, the truth, and the ____", "response": "Life" },
+        { "value": 1000, "clue": "This parable teaches about lost sheep", "response": "Parable of the Lost Sheep" }
+      ]
+    },
+    {
+      "title": "Atonement",
+      "clues": [
+        { "value": 200, "clue": "Jesus suffered in this garden", "response": "Garden of Gethsemane" },
+        { "value": 400, "clue": "Jesus was crucified at this place", "response": "Golgotha / Calvary" },
+        { "value": 600, "clue": "This sign was placed above Jesus on the cross", "response": "INRI (King of the Jews)" },
+        { "value": 800, "clue": "Jesus died at this hour", "response": "The 9th hour (3 PM)" },
+        { "value": 1000, "clue": "This earthquake event occurred when Jesus died", "response": "The veil of the temple rent" }
+      ]
+    },
+    {
+      "title": "Resurrection",
+      "clues": [
+        { "value": 200, "clue": "Jesus rose on this day", "response": "The third day / Sunday" },
+        { "value": 400, "clue": "This woman first saw the risen Lord", "response": "Mary Magdalene" },
+        { "value": 600, "clue": "The tomb was sealed with this", "response": "A great stone" },
+        { "value": 800, "clue": "Jesus appeared to these disciples on the road to Emmaus", "response": "Two disciples" },
+        { "value": 1000, "clue": "Jesus ascended to heaven from this place", "response": "Mount of Olives / Bethany" }
+      ]
+    },
+    {
+      "title": "Titles of Jesus",
+      "clues": [
+        { "value": 200, "clue": "The Good _____", "response": "Shepherd" },
+        { "value": 400, "clue": "The _____ of God", "response": "Lamb / Son" },
+        { "value": 600, "clue": "The Light of the _____", "response": "World" },
+        { "value": 800, "clue": "The King of _____", "response": "Kings" },
+        { "value": 1000, "clue": "The Alpha and the _____", "response": "Omega" }
+      ]
+    }
+  ]
+}

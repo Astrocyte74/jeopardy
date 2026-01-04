@@ -1,0 +1,46 @@
+{
+  "title": "General Knowledge",
+  "subtitle": "A mix of categories",
+  "categories": [
+    {
+      "title": "Science",
+      "clues": [
+        { "value": 200, "clue": "H2O is the chemical formula for this", "response": "Water" },
+        { "value": 400, "clue": "This planet is known as the Red Planet", "response": "Mars" },
+        { "value": 600, "clue": "The force that keeps us on the ground", "response": "Gravity" },
+        { "value": 800, "clue": "The largest mammal in the world", "response": "Blue Whale" },
+        { "value": 1000, "clue": "The closest star to Earth", "response": "The Sun" }
+      ]
+    },
+    {
+      "title": "Geography",
+      "clues": [
+        { "value": 200, "clue": "The largest ocean on Earth", "response": "Pacific Ocean" },
+        { "value": 400, "clue": "The capital of France", "response": "Paris" },
+        { "value": 600, "clue": "The longest river in the world", "response": "Nile River" },
+        { "value": 800, "clue": "The smallest continent", "response": "Australia" },
+        { "value": 1000, "clue": "The country with the most people", "response": "India / China" }
+      ]
+    },
+    {
+      "title": "History",
+      "clues": [
+        { "value": 200, "clue": "The first President of the United States", "response": "George Washington" },
+        { "value": 400, "clue": "The ancient civilization built the pyramids", "response": "Egyptians" },
+        { "value": 600, "clue": "World War II ended in this year", "response": "1945" },
+        { "value": 800, "clue": "The Wright brothers invented this", "response": "Airplane" },
+        { "value": 1000, "clue": "The Roman Empire fell in this century", "response": "5th century (476 AD)" }
+      ]
+    },
+    {
+      "title": "Literature",
+      "clues": [
+        { "value": 200, "clue": "William Shakespeare wrote this play about Romeo & Juliet", "response": "Romeo and Juliet" },
+        { "value": 400, "clue": "This author wrote Harry Potter", "response": "J.K. Rowling" },
+        { "value": 600, "clue": "The author of 1984", "response": "George Orwell" },
+        { "value": 800, "clue": "This novel features a character named Atticus Finch", "response": "To Kill a Mockingbird" },
+        { "value": 1000, "clue": "The poet who wrote 'The Raven'", "response": "Edgar Allan Poe" }
+      ]
+    }
+  ]
+}

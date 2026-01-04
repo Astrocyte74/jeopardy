@@ -25,14 +25,20 @@
         <!-- Game Selection -->
         <div class="menu-section">
           <h3 class="section-title">📁 Select Game</h3>
+          <div class="game-selection-header">
+            <div class="game-category-selector">
+              <select id="menuCategorySelect">
+                <option value="all">All Games</option>
+              </select>
+            </div>
+            <button id="menuCreateGameBtn" class="btn btn-secondary btn-sm">⚙️ Manage</button>
+          </div>
+          <div class="game-search">
+            <input type="text" id="menuGameSearch" placeholder="Search games..." autocomplete="off" />
+            <span class="game-search-count" id="menuGameSearchCount">0</span>
+          </div>
           <div class="game-list" id="menuGameList">
             <!-- Games will be populated by JS -->
-          </div>
-          <div class="custom-upload">
-            <label for="menu-json-input" class="btn btn-secondary">
-              📤 Import JSON Games
-            </label>
-            <input type="file" id="menu-json-input" accept=".json,application/json" multiple style="display: none;" />
           </div>
         </div>
 
@@ -75,6 +81,9 @@
 
         <!-- Start Button -->
         <button id="startGameBtn" class="btn btn-primary btn-large">▶ Start Game</button>
+
+        <!-- Create Game Button (hidden, triggered by menuCreateGameBtn) -->
+        <button id="createGameBtn" style="display: none;"></button>
       </div>
     </div>
 
@@ -289,6 +298,157 @@
         </div>
       </form>
     </dialog>
+
+    <!-- Delete Category Confirmation Dialog -->
+    <dialog id="deleteCategoryDialog" class="dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Delete Category</div>
+          </div>
+          <button class="iconBtn" value="close" aria-label="Close" type="submit">✕</button>
+        </div>
+
+        <div class="reset-content">
+          <div class="reset-icon">🗑️</div>
+          <div class="reset-title">Delete category?</div>
+          <div class="reset-subtitle" id="deleteCategoryMessage">Games in this category will move to "All Games".</div>
+        </div>
+
+        <div class="dialogActions">
+          <button id="cancelDeleteCategoryBtn" class="btn btnSecondary btn-large" type="button" value="close">Cancel</button>
+          <button id="confirmDeleteCategoryBtn" class="btn btnDanger btn-large" type="button">Delete</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Game Creator Modal -->
+    <dialog id="gameCreatorDialog" class="dialog game-creator-dialog">
+      <form method="dialog" class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">🎮 Game Creator</div>
+          </div>
+          <button class="iconBtn" value="close" aria-label="Close" type="submit">✕</button>
+        </div>
+
+        <div class="game-creator-workspace">
+          <!-- Left Sidebar -->
+          <aside class="creator-sidebar">
+            <!-- Categories Section -->
+            <div class="sidebar-section">
+              <div class="sidebar-header">
+                <span class="sidebar-title">Categories</span>
+                <button class="sidebar-add-btn" id="creatorAddCategoryBtn" title="Add Category" type="button">+</button>
+              </div>
+              <div class="sidebar-list" id="creatorCategoriesList">
+                <!-- Categories will be populated by JS -->
+              </div>
+            </div>
+
+            <!-- Games Section -->
+            <div class="sidebar-section">
+              <div class="sidebar-header">
+                <span class="sidebar-title">Games</span>
+                <button class="sidebar-add-btn" id="creatorAddGameBtn" title="Add Game" type="button">+</button>
+              </div>
+              <div class="sidebar-search">
+                <input type="text" id="creatorSearchInput" placeholder="Search..." autocomplete="off" />
+                <span class="search-count" id="creatorSearchCount">0</span>
+              </div>
+              <div class="sidebar-list sidebar-games-list" id="creatorGamesList">
+                <!-- Games will be populated by JS -->
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main Canvas - 3 Column Layout -->
+          <main class="creator-main">
+            <!-- Game Header Area (full width) -->
+            <div class="creator-game-header" id="creatorGameHeader">
+              <div class="creator-empty-state">
+                <div class="creator-empty-icon">🎮</div>
+                <div class="creator-empty-title">Select a game to edit</div>
+                <div class="creator-empty-text">Choose a category and game from the sidebar</div>
+              </div>
+            </div>
+
+            <!-- 3-Column Workspace: Categories | Clues | Editor -->
+            <div class="creator-workspace-grid" id="creatorWorkspaceGrid" style="display: none;">
+              <!-- Categories Column -->
+              <section class="creator-column creator-categories-column">
+                <div class="column-header">
+                  <h3 class="column-title">Categories</h3>
+                  <button class="column-add-btn" id="workspaceAddCategoryBtn" type="button" title="Add Category">+</button>
+                </div>
+                <div class="column-list" id="workspaceCategoriesList">
+                  <!-- Categories injected by JS -->
+                </div>
+              </section>
+
+              <!-- Questions Column -->
+              <section class="creator-column creator-clues-column">
+                <div class="column-header">
+                  <h3 class="column-title">Questions</h3>
+                  <div class="column-header-actions">
+                    <span class="column-status" id="cluesColumnStatus"></span>
+                    <div class="questions-count-control">
+                      <button class="count-control-btn" id="questionsDecreaseBtn" type="button" title="Decrease">−</button>
+                      <span class="count-control-value" id="questionsCountValue">5</span>
+                      <button class="count-control-btn" id="questionsIncreaseBtn" type="button" title="Increase">+</button>
+                    </div>
+                    <button class="column-add-btn" id="workspaceAddQuestionBtn" type="button" title="Add Question">+</button>
+                  </div>
+                </div>
+                <div class="column-list" id="workspaceCluesList">
+                  <!-- Questions injected by JS -->
+                </div>
+              </section>
+
+              <!-- Answers Column (Always Visible) -->
+              <section class="creator-column creator-editor-column">
+                <div class="column-header">
+                  <h3 class="column-title">Answers</h3>
+                </div>
+                <div class="editor-panel" id="workspaceEditorPanel">
+                  <div class="editor-empty-state">
+                    <div class="editor-empty-icon">✏️</div>
+                    <div class="editor-empty-text">Select a question to edit</div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- Sticky Action Bar -->
+            <div class="creator-action-bar">
+              <button class="action-bar-save" id="creatorSaveBtn" type="button" disabled>Saved ✓</button>
+            </div>
+          </main>
+        </div>
+
+        <input type="file" id="creatorImportInput" accept=".json,application/json" style="display: none;" />
+      </form>
+    </dialog>
+
+    <!-- Simple Input Modal (custom overlay, not using <dialog> to avoid interference) -->
+    <div id="inputDialog" class="input-dialog-overlay" style="display: none;">
+      <div class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory" id="inputDialogTitle">Enter Value</div>
+          </div>
+          <button class="iconBtn" id="inputDialogXBtn" aria-label="Cancel" type="button">✕</button>
+        </div>
+        <div class="inputDialogContent">
+          <input id="inputDialogValue" type="text" placeholder="Enter value..." autocomplete="off" autofocus />
+          <div id="inputDialogError" class="editor-json-error"></div>
+        </div>
+        <div class="dialogActions">
+          <button id="inputDialogCancel" class="btn btnSecondary" type="button">Cancel</button>
+          <button id="inputDialogConfirm" class="btn btnPrimary" type="button">OK</button>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>

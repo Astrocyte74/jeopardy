@@ -1,11 +1,16 @@
 {
   "games": [
     {
-      "id": "living-christ-400",
-      "title": "The Living Christ (Quiz)",
-      "subtitle": "Up to 400-point clues (some are open-response).",
-      "path": "game.json"
+      "id": "living-christ",
+      "title": "The Living Christ",
+      "subtitle": "Faith-promoting quiz",
+      "path": "games/living-christ.json"
+    },
+    {
+      "id": "general-knowledge",
+      "title": "General Knowledge",
+      "subtitle": "A mix of categories",
+      "path": "games/general-knowledge.json"
     }
   ]
 }
-
