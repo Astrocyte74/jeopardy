@@ -350,7 +350,11 @@
             <div class="sidebar-section">
               <div class="sidebar-header">
                 <span class="sidebar-title">Games</span>
-                <button class="sidebar-add-btn" id="creatorAddGameBtn" title="Add Game" type="button">+</button>
+              </div>
+              <div class="sidebar-filter">
+                <select id="creatorCategoryFilter" class="sidebar-filter-select">
+                  <option value="all">Filter: All</option>
+                </select>
               </div>
               <div class="sidebar-search">
                 <input type="text" id="creatorSearchInput" placeholder="Search..." autocomplete="off" />
@@ -378,14 +382,17 @@
               <!-- Categories Column -->
               <section class="creator-column creator-categories-column">
                 <div class="column-header">
-                  <h3 class="column-title">Categories</h3>
-                  <div class="column-header-actions">
+                  <div class="column-header-left">
+                    <h3 class="column-title">Categories</h3>
+                  </div>
+                  <div class="column-header-right">
                     <div class="categories-count-control">
                       <button class="count-control-btn" id="categoriesDecreaseBtn" type="button" title="Decrease">−</button>
                       <span class="count-control-value" id="categoriesCountValue">6</span>
                       <button class="count-control-btn" id="categoriesIncreaseBtn" type="button" title="Increase">+</button>
                     </div>
                     <button class="column-add-btn" id="workspaceAddCategoryBtn" type="button" title="Add Category">+</button>
+                    <div class="column-ai-menu-placeholder"></div>
                   </div>
                 </div>
                 <div class="column-list" id="workspaceCategoriesList">
@@ -396,15 +403,18 @@
               <!-- Questions Column -->
               <section class="creator-column creator-clues-column">
                 <div class="column-header">
-                  <h3 class="column-title">Questions</h3>
-                  <div class="column-header-actions">
-                    <span class="column-status" id="cluesColumnStatus"></span>
+                  <div class="column-header-left">
+                    <h3 class="column-title">Questions</h3>
+                    <span class="column-meta" id="cluesColumnMeta"></span>
+                  </div>
+                  <div class="column-header-right">
                     <div class="questions-count-control">
                       <button class="count-control-btn" id="questionsDecreaseBtn" type="button" title="Decrease">−</button>
                       <span class="count-control-value" id="questionsCountValue">5</span>
                       <button class="count-control-btn" id="questionsIncreaseBtn" type="button" title="Increase">+</button>
                     </div>
                     <button class="column-add-btn" id="workspaceAddQuestionBtn" type="button" title="Add Question">+</button>
+                    <div class="column-ai-menu-placeholder"></div>
                   </div>
                 </div>
                 <div class="column-list" id="workspaceCluesList">
@@ -434,29 +444,36 @@
         </div>
 
         <input type="file" id="creatorImportInput" accept=".json,application/json" style="display: none;" />
+
+        <!-- Simple Input Modal (inside game creator dialog to appear above modal) -->
+        <div id="inputDialog" class="input-dialog-overlay" style="display: none;">
+          <div class="dialogCard">
+            <div class="dialogHeader">
+              <div class="dialogMeta">
+                <div class="dialogCategory" id="inputDialogTitle">Enter Value</div>
+              </div>
+              <button class="iconBtn" id="inputDialogXBtn" aria-label="Cancel" type="button">✕</button>
+            </div>
+            <div class="inputDialogContent">
+              <input id="inputDialogValue" type="text" placeholder="Enter value..." autocomplete="off" autofocus />
+              <div id="inputDialogError" class="editor-json-error"></div>
+            </div>
+            <div class="dialogActions">
+              <button id="inputDialogCancel" class="btn btnSecondary" type="button">Cancel</button>
+              <button id="inputDialogConfirm" class="btn btnPrimary" type="button">OK</button>
+            </div>
+          </div>
+        </div>
       </form>
     </dialog>
 
-    <!-- Simple Input Modal (custom overlay, not using <dialog> to avoid interference) -->
-    <div id="inputDialog" class="input-dialog-overlay" style="display: none;">
-      <div class="dialogCard">
-        <div class="dialogHeader">
-          <div class="dialogMeta">
-            <div class="dialogCategory" id="inputDialogTitle">Enter Value</div>
-          </div>
-          <button class="iconBtn" id="inputDialogXBtn" aria-label="Cancel" type="button">✕</button>
-        </div>
-        <div class="inputDialogContent">
-          <input id="inputDialogValue" type="text" placeholder="Enter value..." autocomplete="off" autofocus />
-          <div id="inputDialogError" class="editor-json-error"></div>
-        </div>
-        <div class="dialogActions">
-          <button id="inputDialogCancel" class="btn btnSecondary" type="button">Cancel</button>
-          <button id="inputDialogConfirm" class="btn btnPrimary" type="button">OK</button>
-        </div>
-      </div>
-    </div>
-
+    <!-- AI Integration Scripts (must load before app.js) -->
+    <script src="ai-prompts.js"></script>
+    <script src="ai-service-frontend.js"></script>
+    <script src="ai-toast.js"></script>
+    <script src="ai-preview.js"></script>
+    <script src="ai-actions.js"></script>
+    <script src="ai-buttons.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

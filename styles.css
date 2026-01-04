@@ -1,18 +1,65 @@
-/* ==================== THEME VARIABLES ==================== */
+/* ==================== DESIGN TOKENS ==================== */
 :root {
   color-scheme: dark;
-  --bg: #070b17;
+
+  /* Colors */
+  --bg0: #070b17;
+  --bg1: rgba(255, 255, 255, 0.04);
+  --bg2: rgba(255, 255, 255, 0.06);
+  --bg3: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.08);
+  --border2: rgba(255, 255, 255, 0.12);
+  --border3: rgba(255, 255, 255, 0.16);
+
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.62);
+  --muted2: rgba(255, 255, 255, 0.42);
+
+  /* AI Accent */
+  --ai: rgba(168, 85, 247, 0.8);
+  --ai-bg: rgba(168, 85, 247, 0.1);
+  --ai-border: rgba(168, 85, 247, 0.25);
+
+  /* Spacing scale (8px base) */
+  --s4: 4px;
+  --s6: 6px;
+  --s8: 8px;
+  --s10: 10px;
+  --s12: 12px;
+  --s14: 14px;
+  --s16: 16px;
+  --s18: 18px;
+  --s20: 20px;
+  --s24: 24px;
+  --s28: 28px;
+  --s32: 32px;
+
+  /* Border radius */
+  --r6: 6px;
+  --r8: 8px;
+  --r10: 10px;
+  --r12: 12px;
+  --r14: 14px;
+  --r16: 16px;
+  --r20: 20px;
+  --r24: 24px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  /* Legacy vars for compatibility */
+  --bg: var(--bg0);
   --panel: #0b1228;
   --panel2: #0e1a3a;
-  --text: #e7ecff;
-  --muted: rgba(231, 236, 255, 0.7);
-  --border: rgba(231, 236, 255, 0.14);
   --focus: #7aa2ff;
   --danger: #ff4d6d;
   --primary: #4d8dff;
-  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  --radius: 14px;
-  --radiusSm: 10px;
+  --radius: var(--r14);
+  --radiusSm: var(--r10);
+
+  /* Font */
   --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     "Apple Color Emoji", "Segoe UI Emoji";
 
@@ -1074,6 +1121,7 @@ input:focus-visible {
   transition: all 0.2s ease;
   display: grid;
   place-items: center;
+  z-index: 10;
 }
 
 .closeBtnTop:hover {
@@ -1686,6 +1734,30 @@ input[type="text"]:focus {
   opacity: 1;
 }
 
+/* Text version with "New Game" label */
+.sidebar-add-btn-text {
+  width: auto;
+  height: auto;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  background: rgba(46, 213, 115, 0.08);
+  border: 1px solid rgba(46, 213, 115, 0.2);
+  color: #2ed573;
+  opacity: 1;
+}
+
+.sidebar-add-btn-text:hover {
+  background: rgba(46, 213, 115, 0.2);
+  border-color: rgba(46, 213, 115, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(46, 213, 115, 0.2);
+}
+
 .sidebar-search {
   padding: 0 20px 12px;
   position: relative;
@@ -1716,6 +1788,34 @@ input[type="text"]:focus {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.3);
   pointer-events: none;
+}
+
+.sidebar-filter {
+  padding: 0 20px 8px;
+}
+
+.sidebar-filter-select {
+  width: 100%;
+  padding: var(--s6) var(--s10);
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--r8);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.sidebar-filter-select:hover {
+  background: var(--bg2);
+  border-color: var(--border2);
+}
+
+.sidebar-filter-select:focus {
+  border-color: var(--ai);
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.1);
 }
 
 .sidebar-list {
@@ -1901,6 +2001,51 @@ input[type="text"]:focus {
   opacity: 0.8;
 }
 
+/* ===== "NEW GAME" CARD ===== */
+.creator-game-add {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.creator-game-add:hover {
+  background: rgba(46, 213, 115, 0.1);
+  border-color: rgba(46, 213, 115, 0.3);
+}
+
+.creator-game-add .creator-game-title {
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.15s ease;
+}
+
+.creator-game-add .creator-game-subtitle {
+  color: rgba(255, 255, 255, 0.3);
+  transition: color 0.15s ease;
+}
+
+.creator-game-add:hover .creator-game-title {
+  color: #2ed573;
+}
+
+.creator-game-add:hover .creator-game-subtitle {
+  color: rgba(46, 213, 115, 0.5);
+}
+
+.creator-game-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  font-style: italic;
+}
+
+/* ===== DIVIDER ===== */
+.creator-game-divider {
+  padding: 8px 12px 0;
+}
+
+.divider-line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* ===== MAIN CANVAS ===== */
 .creator-main {
   flex: 1;
@@ -1915,6 +2060,7 @@ input[type="text"]:focus {
   padding: 20px 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.2);
+  min-height: 120px; /* Ensure consistent height to prevent jarring transitions */
 }
 
 /* 3-Column Workspace Grid */
@@ -1922,25 +2068,29 @@ input[type="text"]:focus {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr 1.2fr;
-  gap: 20px;
-  padding: 20px;
+  gap: var(--s24);
+  padding: var(--s20);
   overflow: hidden;
+  align-items: start;
+  min-height: 400px; /* Ensure consistent height */
+  transition: opacity 0.2s ease;
 }
 
 .creator-column {
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--r16);
   overflow: hidden;
+  box-shadow: var(--shadow);
 }
 
 /* Editor column - visually dominant */
 .creator-editor-column {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
+  background: var(--bg2);
+  border-color: var(--border2);
+  box-shadow: var(--shadow);
 }
 
 .column-header {
@@ -1948,9 +2098,38 @@ input[type="text"]:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: var(--s14) var(--s16);
+  border-bottom: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.15);
+  gap: var(--s12);
+}
+
+.column-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  min-width: 0;
+}
+
+.column-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--s8);
+}
+
+.column-meta {
+  font-size: 11px;
+  color: var(--muted2);
+  font-weight: 500;
+}
+
+.column-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s10);
 }
 
 .column-title {
@@ -1977,57 +2156,60 @@ input[type="text"]:focus {
 .categories-count-control {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  gap: var(--s4);
+  padding: var(--s4);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r8);
+  opacity: 0.6;
 }
 
 .count-control-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--r6);
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 16px;
+  color: var(--muted);
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   display: grid;
   place-items: center;
 }
 
 .count-control-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--bg2);
+  color: var(--text);
 }
 
 .count-control-value {
-  min-width: 20px;
+  min-width: 18px;
   text-align: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
 }
 
 .column-add-btn {
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.4);
+  border-radius: var(--r8);
+  border: 1px solid rgba(46, 213, 115, 0.3);
+  background: rgba(46, 213, 115, 0.1);
+  color: rgba(46, 213, 115, 0.8);
   font-size: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  display: grid;
+  place-items: center;
 }
 
 .column-add-btn:hover {
-  background: rgba(46, 213, 115, 0.15);
-  border-color: rgba(46, 213, 115, 0.3);
-  color: rgba(46, 213, 115, 0.8);
+  background: rgba(46, 213, 115, 0.2);
+  border-color: rgba(46, 213, 115, 0.4);
+  color: rgba(46, 213, 115, 0.95);
 }
 
 .column-list {
@@ -2042,8 +2224,26 @@ input[type="text"]:focus {
 /* Editor Panel (Right Column) */
 .editor-panel {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-panel .editor-form {
+  flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: var(--s16);
+}
+
+/* Standalone editor-form (not in panel) */
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s20);
+}
+
+.editor-panel .editor-footer {
+  flex-shrink: 0;
 }
 
 /* Empty state in editor panel */
@@ -2082,22 +2282,23 @@ input[type="text"]:focus {
   color: rgba(255, 255, 255, 0.3);
 }
 
-/* Category Card Item (in categories column) */
+/* Category Card Item (in categories column) - Row with hover actions */
 .category-card-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  gap: var(--s12);
+  padding: var(--s12) var(--s12);
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--r12);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .category-card-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg2);
+  border-color: var(--border2);
 }
 
 .category-card-item.selected {
@@ -2113,10 +2314,11 @@ input[type="text"]:focus {
 .category-card-number {
   font-size: 10px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.3);
-  padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 4px;
+  color: var(--muted2);
+  padding: var(--s4) var(--s8);
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--r6);
   flex-shrink: 0;
 }
 
@@ -2133,7 +2335,7 @@ input[type="text"]:focus {
 .category-card-title {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2141,29 +2343,180 @@ input[type="text"]:focus {
 
 .category-card-count {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--muted2);
 }
 
 .category-card-item.selected .category-card-count {
   color: rgba(255, 204, 0, 0.6);
 }
 
-/* Clue Card Item (in clues column) */
-.clue-card-item {
+/* ===== ROW ACTIONS PATTERN ===== */
+/* Action buttons that appear on hover ONLY */
+.category-card-actions,
+.clue-card-actions {
+  display: flex;
+  gap: var(--s6);
+  align-items: center;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+/* Show actions on hover */
+.category-card-item:hover .category-card-actions,
+.clue-card-item:hover .clue-card-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Selected rows show subtle ghost icon (low opacity) */
+.category-card-item.selected .category-card-actions,
+.clue-card-item.selected .clue-card-actions {
+  opacity: 0.3;
+  pointer-events: auto;
+}
+
+.category-card-item.selected:hover .category-card-actions,
+.clue-card-item.selected:hover .clue-card-actions {
+  opacity: 1;
+}
+
+/* Icon button (AI sparkle, delete, etc.) */
+.row-action-btn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r8);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.row-action-btn:hover {
+  background: var(--bg2);
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.row-action-btn.ai-sparkle {
+  color: var(--ai);
+  border-color: var(--ai-border);
+}
+
+.row-action-btn.ai-sparkle:hover {
+  background: var(--ai-bg);
+  border-color: var(--ai);
+}
+
+.row-action-btn.delete:hover {
+  background: rgba(220, 53, 69, 0.15);
+  border-color: rgba(220, 53, 69, 0.4);
+  color: #ff6b6b;
+}
+
+/* ===== AI ACTION DROPDOWN MENU ===== */
+.ai-action-menu {
+  position: relative;
+}
+
+.ai-action-dropdown {
+  position: absolute;
+  top: calc(100% + var(--s6));
+  left: 0;
+  min-width: 200px;
+  background: rgba(20, 20, 35, 0.98);
+  border: 1px solid var(--border2);
+  border-radius: var(--r10);
+  box-shadow: var(--shadow);
+  padding: 0;
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.ai-action-dropdown.show {
+  display: flex;
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-action-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  gap: var(--s10);
+  padding: var(--s8) var(--s10);
+  background: transparent;
+  border: none;
+  border-radius: var(--r6);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.1s ease;
+  font-family: inherit;
+}
+
+.ai-action-item:hover {
+  background: var(--bg2);
+  color: var(--text);
+}
+
+.ai-action-item.danger {
+  color: #ff6b6b;
+}
+
+.ai-action-item.danger:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.ai-action-divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--s4) 0;
+}
+
+.ai-action-icon {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+  opacity: 0.7;
+}
+
+/* Clue Card Item (in clues column) - Row with hover actions */
+.clue-card-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s12);
+  padding: var(--s12) var(--s12);
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--r12);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .clue-card-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg2);
+  border-color: var(--border2);
 }
 
 .clue-card-item.selected {
@@ -2175,30 +2528,31 @@ input[type="text"]:focus {
 .clue-value-badge {
   font-size: 11px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 3px 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 5px;
+  color: var(--text);
+  padding: var(--s4) var(--s8);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r6);
   flex-shrink: 0;
 }
 
 .clue-card-preview {
   flex: 1;
+  min-width: 0;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .clue-card-preview.empty {
-  color: rgba(255, 255, 255, 0.25);
+  color: var(--muted2);
   font-style: italic;
 }
 
 .clue-card-item.selected .clue-card-preview {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text);
 }
 
 .clue-card-complete {
@@ -2207,17 +2561,10 @@ input[type="text"]:focus {
   flex-shrink: 0;
 }
 
-/* Editor Form (in right panel) */
-.editor-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .editor-form-row {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s8);
 }
 
 .editor-form-row label {
@@ -2291,6 +2638,96 @@ input[type="text"]:focus {
 .editor-form-btn.delete:hover {
   background: rgba(255, 107, 107, 0.15);
   color: rgba(255, 107, 107, 0.85);
+}
+
+/* Editor field actions (icon buttons below each field) */
+.editor-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s8);
+  margin-bottom: var(--s8);
+}
+
+.editor-form-header label {
+  flex: 0 0 auto;
+}
+
+.editor-field-actions {
+  display: flex;
+  gap: var(--s6);
+  margin-left: auto;
+}
+
+.field-action-btn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r6);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.field-action-btn:hover {
+  background: var(--bg2);
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.field-action-btn.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Editor footer (for delete button) */
+.editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--s12) var(--s16);
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.editor-footer-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--s6);
+  padding: var(--s8) var(--s12);
+  border-radius: var(--r8);
+  border: 1px solid var(--border);
+  background: var(--bg1);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.editor-footer-btn:hover {
+  background: var(--bg2);
+  border-color: var(--border2);
+}
+
+.editor-footer-btn.btn-icon {
+  font-size: 14px;
+}
+
+.editor-footer-btn.danger {
+  border-color: rgba(255, 107, 107, 0.25);
+  background: rgba(255, 107, 107, 0.05);
+  color: rgba(255, 107, 107, 0.7);
+}
+
+.editor-footer-btn.danger:hover {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.4);
+  color: rgba(255, 107, 107, 0.9);
 }
 
 /* Legacy creator-editor-content (deprecated) */
@@ -2430,7 +2867,7 @@ input[type="text"]:focus {
 .action-menu-dropdown {
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  right: 0;
   min-width: 180px;
   background: rgba(30, 30, 50, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2544,6 +2981,7 @@ input[type="text"]:focus {
 /* ===== GAME HEADER (Notion/Linear style) ===== */
 .game-header {
   padding: 20px 0 32px 0;
+  padding-right: 60px; /* Extra space to avoid close button */
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 20px;
   display: flex;
@@ -2611,12 +3049,219 @@ input[type="text"]:focus {
   color: rgba(255, 255, 255, 0.2);
 }
 
+/* Game category assignment (folder selector) */
+.game-category-assign {
+  display: flex;
+  align-items: center;
+  gap: var(--s8);
+  margin-top: var(--s6);
+}
+
+.game-category-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.game-category-select {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r6);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.game-category-select:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.game-category-select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 204, 0, 0.3);
+}
+
+.game-category-select option {
+  background: var(--panel2);
+  color: var(--text);
+  padding: 4px 8px;
+}
+
 /* Game metadata (category selector) - subtle */
 .game-metadata {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s12);
   flex-shrink: 0;
+}
+
+/* Header Zones - clear separation of concerns */
+.header-zone {
+  display: flex;
+  align-items: center;
+}
+
+/* AI Pill - single unit containing all AI controls */
+.ai-pill {
+  display: flex;
+  align-items: center;
+}
+
+.ai-pill-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--s8);
+  padding: var(--s8) var(--s12);
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: var(--r20);
+  color: rgba(168, 85, 247, 1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ai-pill-trigger:hover {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow: 0 2px 6px rgba(168, 85, 247, 0.15);
+  transform: translateY(-1px);
+}
+
+.ai-pill-icon {
+  font-size: 15px;
+}
+
+.ai-pill-label {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-size: 14px;
+}
+
+.ai-pill-difficulty {
+  font-size: 10px;
+  padding: 3px 7px;
+  background: rgba(168, 85, 247, 0.2);
+  border-radius: var(--r6);
+  font-weight: 500;
+  opacity: 0.85;
+  margin-left: var(--s2);
+}
+
+/* AI Dropdown header and footer - contextual framing */
+.ai-action-dropdown-header {
+  padding: var(--s8) var(--s12);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted2);
+  border-bottom: 1px solid var(--border);
+}
+
+/* AI Difficulty section inside dropdown */
+.ai-action-difficulty-section {
+  padding: var(--s8) var(--s12);
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--border);
+}
+
+.ai-action-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted2);
+  margin-bottom: var(--s6);
+}
+
+.ai-difficulty-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+
+.ai-difficulty-option {
+  display: flex;
+  align-items: center;
+  gap: var(--s8);
+  padding: var(--s4);
+  border-radius: var(--r6);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.ai-difficulty-option:hover {
+  background: var(--bg2);
+}
+
+.ai-difficulty-option input[type="radio"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.ai-difficulty-option input[type="radio"]:checked {
+  border-color: rgba(168, 85, 247, 0.8);
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.ai-difficulty-option input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  background: rgba(168, 85, 247, 0.9);
+  border-radius: 50%;
+}
+
+.ai-difficulty-label-text {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.ai-difficulty-option:has(input:checked) .ai-difficulty-label-text {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.header-zone-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  margin: 0 var(--s8);
+}
+
+.header-zone-system {
+  /* System Zone: de-emphasized import/export */
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.header-zone-system:hover {
+  opacity: 0.8;
 }
 
 /* Game stats - shows categories and clues count - badge-like */
@@ -2630,37 +3275,36 @@ input[type="text"]:focus {
   display: inline-block;
 }
 
-.game-metadata select {
-  padding: 4px 8px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+/* Action Menu (kebab) - system-level, de-emphasized */
+.action-menu {
+  position: relative;
+}
+
+.action-menu-trigger {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r8);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
   cursor: pointer;
-  outline: none;
   transition: all 0.15s ease;
+  display: grid;
+  place-items: center;
 }
 
-.game-metadata select:hover {
-  color: rgba(255, 255, 255, 0.55);
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.game-metadata select:focus {
-  color: rgba(255, 255, 255, 0.65);
-  border-color: var(--theme-primary);
-}
-
-.game-metadata select option {
-  background: #1a1a2e;
-  color: rgba(255, 255, 255, 0.8);
+.action-menu-trigger:hover {
+  background: var(--bg2);
+  color: var(--text);
 }
 
 .creator-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--s6);
 }
 
 .creator-field label {
@@ -3428,6 +4072,52 @@ input[type="text"]:focus {
   opacity: 1;
 }
 
+/* "New Game" Card */
+.creator-game-add {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.creator-game-add:hover {
+  background: rgba(46, 213, 115, 0.1);
+  border-color: rgba(46, 213, 115, 0.3);
+}
+
+.creator-game-add .creator-game-title {
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.2s ease;
+}
+
+.creator-game-add .creator-game-subtitle {
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.creator-game-add:hover .creator-game-title {
+  color: #2ed573;
+}
+
+.creator-game-add:hover .creator-game-subtitle {
+  color: rgba(46, 213, 115, 0.5);
+}
+
+.creator-game-hint {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* Divider */
+.creator-game-divider {
+  padding: 8px 12px 0;
+}
+
+.divider-line {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Editor Panel */
 .creator-editor-content {
   flex: 1;
@@ -3784,4 +4474,358 @@ input[type="text"]:focus {
 .inputDialogContent input:focus {
   outline: none;
   border-color: var(--theme-primary);
+}
+
+/* ==================== AI BUTTONS ==================== */
+.ai-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 6px;
+  color: rgba(196, 181, 253, 0.9);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-btn:hover:not(:disabled) {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.6);
+}
+
+.ai-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ai-btn.loading {
+  pointer-events: none;
+}
+
+.ai-btn-icon {
+  font-size: 12px;
+}
+
+.ai-btn-text {
+  font-size: 11px;
+}
+
+.ai-btn-spinner {
+  font-size: 11px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ai-btn-sm {
+  padding: 4px 8px;
+  font-size: 10px;
+}
+
+.ai-btn-sm .ai-btn-icon {
+  font-size: 11px;
+}
+
+.ai-actions-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ai-actions-game {
+  margin-bottom: 8px;
+}
+
+/* ==================== DIFFICULTY SELECTOR ==================== */
+/* AI Controls container (difficulty + sparkle button) */
+.ai-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s8);
+}
+
+.difficulty-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s6);
+}
+
+.difficulty-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.difficulty-select {
+  padding: var(--s4) var(--s8);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r6);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.difficulty-select:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.difficulty-select:focus {
+  border-color: rgba(168, 85, 247, 0.6);
+}
+
+/* ==================== AI PREVIEW DIALOG ==================== */
+.ai-preview-dialog {
+  max-width: min(700px, calc(100vw - 40px));
+  width: 90vw;
+}
+
+.preview-type {
+  font-size: 12px;
+  color: rgba(168, 85, 247, 0.7);
+  margin-top: 2px;
+}
+
+.preview-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.preview-category {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.preview-category:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.preview-category h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--theme-accent);
+}
+
+.preview-category ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preview-category li {
+  padding: 4px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.preview-category .clue-value {
+  color: var(--theme-gold);
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+/* ==================== AI TOAST NOTIFICATIONS ==================== */
+.ai-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.ai-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(20, 20, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  pointer-events: all;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 380px;
+}
+
+.ai-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.ai-toast.hide {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.ai-toast-success {
+  border-left: 3px solid #2ed573;
+}
+
+.ai-toast-error {
+  border-left: 3px solid #ff6b6b;
+}
+
+.ai-toast-info {
+  border-left: 3px solid #4d8dff;
+}
+
+.ai-toast-loading {
+  border-left: 3px solid rgba(168, 85, 247, 0.7);
+}
+
+.toast-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.toast-undo-btn {
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toast-undo-btn:hover {
+  background: rgba(255, 204, 0, 0.12);
+  border-color: rgba(255, 204, 0, 0.25);
+  color: var(--theme-accent);
+}
+
+/* ==================== EDITOR AI ACTIONS ==================== */
+.editor-ai-actions {
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.editor-ai-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.editor-ai-row:last-child {
+  margin-bottom: 0;
+}
+
+.editor-ai-row label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(168, 85, 247, 0.7);
+}
+
+/* ==================== AI ERROR DIALOG ==================== */
+.ai-error-content {
+  padding: 16px;
+}
+
+.ai-error-message {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 107, 107, 0.9);
+  margin-bottom: 8px;
+}
+
+.ai-error-type {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
+  font-family: monospace;
+}
+
+.ai-error-raw-section {
+  margin-top: 16px;
+}
+
+.ai-error-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ai-error-header span {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ai-error-copy-btn {
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-error-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ai-error-raw {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ==================== GAME METADATA AREA ==================== */
+.game-metadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+/* ==================== AI UNAVAILABLE STATE ==================== */
+.ai-btn-unavailable {
+  opacity: 0.3 !important;
 }

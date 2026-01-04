@@ -1,16 +1,3 @@
 {
-  "games": [
-    {
-      "id": "living-christ",
-      "title": "The Living Christ",
-      "subtitle": "Faith-promoting quiz",
-      "path": "games/living-christ.json"
-    },
-    {
-      "id": "general-knowledge",
-      "title": "General Knowledge",
-      "subtitle": "A mix of categories",
-      "path": "games/general-knowledge.json"
-    }
-  ]
+  "games": []
 }

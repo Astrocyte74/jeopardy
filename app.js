@@ -1000,6 +1000,14 @@ async function initMainMenu() {
   creatorData.games.forEach(creatorGame => {
     // Check if this game already exists in the list
     if (!allGames.find(g => g.id === creatorGame.id)) {
+      // Build proper game structure: {title, subtitle, categories: [...]}
+      const gameData = creatorGame.game || creatorGame.gameData || { categories: [] };
+      const gameForMenu = {
+        title: creatorGame.title,
+        subtitle: creatorGame.subtitle,
+        ...gameData  // Spreads {categories: [...]}
+      };
+
       // Convert creator game to the format expected by main menu
       allGames.push({
         id: creatorGame.id,
@@ -1007,7 +1015,7 @@ async function initMainMenu() {
         subtitle: creatorGame.subtitle,
         source: "creator",
         categoryId: creatorGame.categoryId,
-        game: creatorGame.gameData,
+        game: gameForMenu,  // Proper structure with title/subtitle/categories
       });
     }
   });
@@ -1172,13 +1180,21 @@ async function initMainMenu() {
     // Add creator games
     refreshedCreatorData.games.forEach(creatorGame => {
       if (!allGames.find(g => g.id === creatorGame.id)) {
+        // Build proper game structure: {title, subtitle, categories: [...]}
+        const gameData = creatorGame.game || creatorGame.gameData || { categories: [] };
+        const gameForMenu = {
+          title: creatorGame.title,
+          subtitle: creatorGame.subtitle,
+          ...gameData  // Spreads {categories: [...]}
+        };
+
         allGames.push({
           id: creatorGame.id,
           title: creatorGame.title,
           subtitle: creatorGame.subtitle,
           source: "creator",
           categoryId: creatorGame.categoryId,
-          game: creatorGame.gameData,
+          game: gameForMenu,  // Proper structure with title/subtitle/categories
         });
       }
     });
@@ -1544,6 +1560,7 @@ const CREATOR_DATA_KEY = "jeop2:creatorData:v1";
 
 // Helper function to show input dialog (custom overlay to avoid interference with parent dialogs)
 function showInputDialog(title, defaultValue = "") {
+  console.log('[showInputDialog] Called with:', title, defaultValue);
   return new Promise((resolve) => {
     const overlay = document.getElementById("inputDialog");
     const titleEl = document.getElementById("inputDialogTitle");
@@ -1552,6 +1569,20 @@ function showInputDialog(title, defaultValue = "") {
     const cancelBtn = document.getElementById("inputDialogCancel");
     const xBtn = document.getElementById("inputDialogXBtn");
     const errorEl = document.getElementById("inputDialogError");
+
+    console.log('[showInputDialog] Elements found:', {
+      overlay: !!overlay,
+      titleEl: !!titleEl,
+      valueInput: !!valueInput,
+      confirmBtn: !!confirmBtn,
+      cancelBtn: !!cancelBtn
+    });
+
+    if (!overlay) {
+      console.error('[showInputDialog] Overlay not found!');
+      resolve(null);
+      return;
+    }
 
     titleEl.textContent = title;
     valueInput.value = defaultValue;
@@ -1568,6 +1599,7 @@ function showInputDialog(title, defaultValue = "") {
         resolved = true;
         abortController.abort(); // Remove all event listeners
         overlay.style.display = "none"; // Hide the overlay
+        console.log('[showInputDialog] Resolved with:', value);
         resolve(value);
       }
     };
@@ -1612,9 +1644,88 @@ function showInputDialog(title, defaultValue = "") {
     }, { signal, capture: true });
 
     // Show the overlay
+    console.log('[showInputDialog] Setting display to flex');
     overlay.style.display = "flex";
     valueInput.focus();
     valueInput.select();
+  });
+}
+
+// Expose globally for AI modules
+window.showInputDialog = showInputDialog;
+
+// Helper function to show export instructions dialog
+function showExportInstructions(filename, gameId, gameTitle, gameSubtitle) {
+  return new Promise((resolve) => {
+    // Create dialog overlay dynamically
+    const overlay = document.createElement('div');
+    overlay.className = 'input-dialog-overlay';
+    overlay.style.cssText = 'display: flex;';
+
+    overlay.innerHTML = `
+      <div class="dialogCard">
+        <div class="dialogHeader">
+          <div class="dialogMeta">
+            <div class="dialogCategory">Game Exported</div>
+          </div>
+          <button class="iconBtn" id="exportCloseXBtn" aria-label="Close" type="button">✕</button>
+        </div>
+        <div class="inputDialogContent">
+          <p style="margin: 0 0 16px 0; color: rgba(255,255,255,0.9);">
+            <strong>Exported:</strong> <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">${filename}</code>
+          </p>
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 8px;">To add to main menu:</div>
+            <ol style="margin: 0; padding-left: 20px; color: rgba(255,255,255,0.85); line-height: 1.6;">
+              <li style="margin-bottom: 8px;">Move <code>${filename}</code> to:<br><code style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 4px;">/Users/markdarby/projects/jeop2/games/</code></li>
+              <li>Add to <code>games/index.json</code>:
+                <pre style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; margin: 8px 0; font-size: 12px; overflow-x: auto;">{
+  "id": "${gameId}",
+  "title": "${gameTitle}",
+  "subtitle": "${gameSubtitle}",
+  "path": "games/${filename}"
+}</pre>
+              </li>
+            </ol>
+          </div>
+
+          <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.5);">
+            💡 Tip: Your game is also saved in localStorage and works immediately.
+          </p>
+        </div>
+        <div class="dialogActions">
+          <button id="exportCloseBtn" class="btn btnPrimary" type="button">Got it</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const closeBtn = overlay.querySelector('#exportCloseBtn');
+    const xBtn = overlay.querySelector('#exportCloseXBtn');
+
+    const close = () => {
+      overlay.remove();
+      resolve();
+    };
+
+    closeBtn.addEventListener('click', close);
+    xBtn.addEventListener('click', close);
+
+    // Close on backdrop click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    // Close on Escape key
+    const escapeHandler = (e) => {
+      if (e.key === 'Escape') {
+        document.removeEventListener('keydown', escapeHandler);
+        close();
+      }
+    };
+    document.addEventListener('keydown', escapeHandler);
   });
 }
 
@@ -1683,8 +1794,14 @@ async function setupGameCreator() {
 
     // Add creator games (fully editable)
     creatorData.games.forEach(game => {
+      // game.game should have proper structure: {title, subtitle, categories: [...]}
+      const gameData = game.game || { categories: [] };
+      // Extract just the categories part for gameData (used internally by Game Creator)
+      const categoriesData = { categories: gameData.categories || [] };
+
       allCreatorGames.push({
         ...game,
+        gameData: categoriesData, // Internal format: {categories: [...]}
         editable: true,
         source: "creator"
       });
@@ -1985,6 +2102,29 @@ async function setupGameCreator() {
 
     searchCount.textContent = filteredGames.length;
 
+    // Add "New Game" card as first item
+    const addGameCard = document.createElement("div");
+    addGameCard.className = "creator-game-item creator-game-add";
+    addGameCard.innerHTML = `
+      <div class="creator-game-title">+ New Game</div>
+      <div class="creator-game-subtitle">Create a blank game</div>
+      <div class="creator-game-actions">
+        <span class="creator-game-hint">Click to create</span>
+      </div>
+    `;
+
+    addGameCard.addEventListener("click", () => {
+      addGameBtn.click();
+    });
+
+    gamesList.appendChild(addGameCard);
+
+    // Divider after add card
+    const divider = document.createElement("div");
+    divider.className = "creator-game-divider";
+    divider.innerHTML = '<div class="divider-line"></div>';
+    gamesList.appendChild(divider);
+
     filteredGames.forEach(game => {
       const item = document.createElement("div");
       item.className = `creator-game-item${game.id === selectedGameId ? " selected" : ""}`;
@@ -2079,20 +2219,30 @@ async function setupGameCreator() {
     const gameHeader = document.getElementById("creatorGameHeader");
     const workspaceGrid = document.getElementById("creatorWorkspaceGrid");
 
+    // Always show workspace grid for consistent height
+    if (workspaceGrid) workspaceGrid.style.display = "grid";
+
     if (!selectedGameId) {
-      // Show empty state in header, hide workspace
-      if (gameHeader) {
-        gameHeader.innerHTML = `
-          <div class="creator-empty-state">
-            <div class="creator-empty-icon">🎮</div>
-            <div class="creator-empty-title">Create your trivia game</div>
-            <div class="creator-empty-text">Choose a category and game from the sidebar</div>
-          </div>
-        `;
+      // Select first available game instead of creating blank template
+      if (allCreatorGames.length > 0) {
+        selectedGameId = allCreatorGames[0].id;
+        selectedCategoryIndex = 0;
+        selectedClueIndex = null;
+        renderGames();
+      } else {
+        // No games exist - show empty state
+        if (gameHeader) {
+          gameHeader.innerHTML = `
+            <div class="creator-empty-state">
+              <div class="creator-empty-icon">🎮</div>
+              <div class="creator-empty-title">No games yet</div>
+              <div class="creator-empty-text">Click + next to "Games" to create one</div>
+            </div>
+          `;
+        }
+        saveBtn.disabled = true;
+        return;
       }
-      if (workspaceGrid) workspaceGrid.style.display = "none";
-      saveBtn.disabled = true;
-      return;
     }
 
     const game = allCreatorGames.find(g => g.id === selectedGameId);
@@ -2117,7 +2267,6 @@ async function setupGameCreator() {
             </div>
           `;
         }
-        if (workspaceGrid) workspaceGrid.style.display = "none";
         return;
       }
     }
@@ -2140,6 +2289,12 @@ async function setupGameCreator() {
     const categoryCount = categories.length;
     const cluesCount = categories.reduce((sum, cat) => sum + (cat.clues?.length || 0), 0);
 
+    // Build category options for game-level category assignment
+    const gameCategoryId = game.categoryId || selectedCategoryId || creatorData.categories[0]?.id || "";
+    const categoryOptions = creatorData.categories.map(cat =>
+      `<option value="${cat.id}" ${cat.id === gameCategoryId ? 'selected' : ''}>${cat.name}</option>`
+    ).join('');
+
     // Show game header
     if (gameHeader) {
       gameHeader.innerHTML = `
@@ -2147,25 +2302,72 @@ async function setupGameCreator() {
           <div class="game-header-main">
             <input id="editorTitle" type="text" value="${game.title || ""}" placeholder="Untitled Game" autocomplete="off" />
             <input id="editorSubtitle" type="text" value="${game.subtitle || ""}" placeholder="Add a description..." autocomplete="off" />
+            <div class="game-category-assign">
+              <label class="game-category-label">Folder:</label>
+              <select id="editorGameCategory" class="game-category-select" title="Assign this game to a folder">
+                ${categoryOptions}
+              </select>
+            </div>
             <div class="game-stats">${categoryCount} ${categoryCount === 1 ? 'category' : 'categories'} • ${cluesCount} ${cluesCount === 1 ? 'clue' : 'clues'}</div>
           </div>
           <div class="game-metadata">
-            <select id="editorCategory">
-              ${creatorData.categories.map(cat =>
-                `<option value="${cat.id}" ${game.categoryId === cat.id ? "selected" : ""}>${cat.name}</option>`
-              ).join("")}
-            </select>
-            <div class="action-menu">
-              <button class="action-menu-trigger" id="creatorMenuTrigger" type="button" title="More options">⋮</button>
-              <div class="action-menu-dropdown" id="creatorMenuDropdown">
-                <button class="action-menu-item" id="creatorImportBtn" type="button">
-                  <span class="action-menu-icon">📥</span>
-                  <span>Import JSON</span>
+            <!-- AI Pill - single unit containing all AI controls -->
+            <div class="ai-pill">
+              <div class="ai-action-menu" data-menu-id="ai-menu-game">
+                <button class="ai-pill-trigger" data-ai-trigger="dropdown" aria-label="AI controls for this game" title="AI: Generate game content">
+                  <span class="ai-pill-icon">✨</span>
+                  <span class="ai-pill-label">AI</span>
+                  <span class="ai-pill-difficulty" id="aiPillDifficulty">Normal</span>
                 </button>
-                <button class="action-menu-item" id="creatorExportBtn" type="button">
-                  <span class="action-menu-icon">📤</span>
-                  <span>Export JSON</span>
-                </button>
+                <div class="ai-action-dropdown" id="ai-menu-game">
+                  <div class="ai-action-dropdown-header">AI for this game</div>
+                  <button class="ai-action-item" data-ai-action="game-title" title="Generate a new title and subtitle for the entire game">
+                    <span class="ai-action-icon">📝</span>
+                    Generate title & subtitle
+                  </button>
+                  <button class="ai-action-item" data-ai-action="categories-generate" title="Replace all categories in this game with AI-generated ones">
+                    <span class="ai-action-icon">🎯</span>
+                    Generate all categories
+                  </button>
+                  <div class="ai-action-divider"></div>
+                  <div class="ai-action-difficulty-section">
+                    <div class="ai-action-section-title">Difficulty</div>
+                    <div class="ai-difficulty-options" id="aiDifficultyOptions">
+                      <label class="ai-difficulty-option">
+                        <input type="radio" name="aiDifficulty" value="easy">
+                        <span class="ai-difficulty-label-text">Easy</span>
+                      </label>
+                      <label class="ai-difficulty-option">
+                        <input type="radio" name="aiDifficulty" value="normal" checked>
+                        <span class="ai-difficulty-label-text">Normal</span>
+                      </label>
+                      <label class="ai-difficulty-option">
+                        <input type="radio" name="aiDifficulty" value="hard">
+                        <span class="ai-difficulty-label-text">Hard</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Separator -->
+            <div class="header-zone-divider"></div>
+
+            <!-- System Zone (neutral, de-emphasized) -->
+            <div class="header-zone header-zone-system">
+              <div class="action-menu">
+                <button class="action-menu-trigger" id="creatorMenuTrigger" type="button" title="File options">💾</button>
+                <div class="action-menu-dropdown" id="creatorMenuDropdown">
+                  <button class="action-menu-item" id="creatorImportBtn" type="button">
+                    <span class="action-menu-icon">📥</span>
+                    <span>Import JSON</span>
+                  </button>
+                  <button class="action-menu-item" id="creatorExportBtn" type="button">
+                    <span class="action-menu-icon">📤</span>
+                    <span>Export JSON</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -2194,6 +2396,19 @@ async function setupGameCreator() {
 
     // Setup header event listeners
     setupHeaderEventListeners(gameHeader, game, gameData);
+
+    // Initialize AI actions with Game Creator context
+    if (typeof initAIActions === 'function') {
+      initAIActions({
+        getGameHeader: () => gameHeader,
+        renderEditor: renderEditor
+      });
+    }
+
+    // Setup AI button handlers
+    if (typeof setupAIButtonHandlers === 'function') {
+      setupAIButtonHandlers();
+    }
   }
 
   // Render categories in left column
@@ -2228,25 +2443,36 @@ async function setupGameCreator() {
             <div class="category-card-title">${cat.title || '(Untitled)'}</div>
             <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
           </div>
+          <div class="category-card-actions"></div>
         </div>
       `;
     }).join('');
 
     // Add click listeners
     categoriesList.querySelectorAll(".category-card-item").forEach(item => {
-      item.addEventListener("click", () => {
+      item.addEventListener("click", (e) => {
+        // Don't select if clicking on AI button
+        if (e.target.closest('.ai-btn')) return;
+
         const catIndex = parseInt(item.dataset.categoryIndex);
         selectedCategoryIndex = catIndex;
         selectedClueIndex = null; // Reset clue selection when changing category
         renderEditor();
       });
     });
+
+    // Inject AI buttons for each category
+    if (typeof injectCategoryAIButtons === 'function') {
+      categoriesList.querySelectorAll(".category-card-item").forEach((item, index) => {
+        injectCategoryAIButtons(item, index);
+      });
+    }
   }
 
   // Render clues in middle column
   function renderCluesColumn(categories) {
     const cluesList = document.getElementById("workspaceCluesList");
-    const statusEl = document.getElementById("cluesColumnStatus");
+    const metaEl = document.getElementById("cluesColumnMeta");
     const countValueEl = document.getElementById("questionsCountValue");
     if (!cluesList) return;
 
@@ -2257,7 +2483,7 @@ async function setupGameCreator() {
     }
 
     if (selectedCategoryIndex === null || !categories[selectedCategoryIndex]) {
-      if (statusEl) statusEl.textContent = "";
+      if (metaEl) metaEl.textContent = "";
       cluesList.innerHTML = `
         <div class="editor-empty-state">
           <div class="editor-empty-icon">📂</div>
@@ -2270,7 +2496,7 @@ async function setupGameCreator() {
     const category = categories[selectedCategoryIndex];
     const clues = category.clues || [];
 
-    if (statusEl) statusEl.textContent = `${clues.length} questions`;
+    if (metaEl) metaEl.textContent = `${clues.length} questions`;
 
     if (clues.length === 0) {
       cluesList.innerHTML = `
@@ -2290,18 +2516,29 @@ async function setupGameCreator() {
           <span class="clue-value-badge">$${clue.value || 200}</span>
           <span class="clue-card-preview${!clue.clue ? ' empty' : ''}">${clue.clue || '(No question yet)'}</span>
           ${isComplete ? '<span class="clue-card-complete">✔</span>' : ''}
+          <div class="clue-card-actions"></div>
         </div>
       `;
     }).join('');
 
     // Add click listeners
     cluesList.querySelectorAll(".clue-card-item").forEach(item => {
-      item.addEventListener("click", () => {
+      item.addEventListener("click", (e) => {
+        // Don't select if clicking on AI button
+        if (e.target.closest('.ai-btn')) return;
+
         const clueIndex = parseInt(item.dataset.clueIndex);
         selectedClueIndex = clueIndex;
         renderEditor();
       });
     });
+
+    // Inject AI buttons for each question
+    if (typeof injectQuestionAIButtons === 'function') {
+      cluesList.querySelectorAll(".clue-card-item").forEach((item) => {
+        injectQuestionAIButtons(item);
+      });
+    }
   }
 
   // Render editor panel in right column
@@ -2337,22 +2574,39 @@ async function setupGameCreator() {
           <label>Value</label>
           <input type="number" id="clueValueInput" value="${clue.value || 200}" placeholder="200" />
         </div>
+
         <div class="editor-form-row">
-          <label>Question</label>
+          <div class="editor-form-header">
+            <label>Question</label>
+            <div class="editor-field-actions" data-field="question"></div>
+          </div>
           <textarea id="clueQuestionInput" placeholder="Enter question..." rows="3">${clue.clue || ''}</textarea>
         </div>
+
         <div class="editor-form-row">
-          <label>Answer</label>
+          <div class="editor-form-header">
+            <label>Answer</label>
+            <div class="editor-field-actions" data-field="answer"></div>
+          </div>
           <textarea id="clueAnswerInput" placeholder="Enter answer..." rows="2">${clue.response || ''}</textarea>
         </div>
-        <div class="editor-form-actions">
-          <button type="button" class="editor-form-btn delete" id="deleteClueBtn">Delete Question</button>
-        </div>
       </form>
+
+      <div class="editor-footer">
+        <button type="button" class="editor-footer-btn danger" id="deleteClueBtn">
+          <span class="btn-icon">🗑️</span>
+          Delete
+        </button>
+      </div>
     `;
 
     // Setup form listeners
     setupClueEditorListeners(editorPanel, categories, category, clue);
+
+    // Inject AI buttons in editor panel
+    if (typeof injectEditorAIButtons === 'function') {
+      injectEditorAIButtons();
+    }
   }
 
   // Setup clue editor event listeners
@@ -2425,13 +2679,43 @@ async function setupGameCreator() {
       renderGames();
     });
 
-    // Category select
-    const categorySelect = gameHeader.querySelector("#editorCategory");
-    categorySelect?.addEventListener("change", () => {
-      game.categoryId = categorySelect.value;
+    // Game category dropdown (folder assignment)
+    const categorySelect = gameHeader.querySelector("#editorGameCategory");
+    categorySelect?.addEventListener("change", (e) => {
+      const newCategoryId = e.target.value;
+      game.categoryId = newCategoryId;
+      // Update selected category in sidebar
+      selectedCategoryId = newCategoryId;
       dirty = true;
       saveBtn.disabled = false;
+      renderCategories();
+      renderGames();
     });
+
+    // Difficulty radio buttons
+    const difficultyRadios = gameHeader.querySelectorAll("input[name='aiDifficulty']");
+    const pillDifficulty = gameHeader.querySelector("#aiPillDifficulty");
+    difficultyRadios.forEach(radio => {
+      radio.addEventListener("change", (e) => {
+        const newDifficulty = e.target.value;
+        // Update pill label
+        if (pillDifficulty) {
+          pillDifficulty.textContent = newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1);
+        }
+        // Trigger AI action difficulty update
+        if (typeof window !== 'undefined' && window.updateAIDifficulty) {
+          window.updateAIDifficulty(newDifficulty);
+        }
+        // Close dropdown after selection
+        const dropdown = gameHeader.querySelector(".ai-action-dropdown");
+        if (dropdown) dropdown.classList.remove("show");
+      });
+    });
+
+    // Setup AI button handlers
+    if (typeof setupAIButtonHandlers === 'function') {
+      setupAIButtonHandlers();
+    }
   }
 
   // Setup event listeners for the workspace (add category, etc)
@@ -2686,16 +2970,39 @@ async function setupGameCreator() {
     const newImportBtn = document.getElementById("creatorImportBtn");
 
     if (newExportBtn) {
-      newExportBtn.addEventListener("click", () => {
-        const dataStr = JSON.stringify(creatorData, null, 2);
+      newExportBtn.addEventListener("click", async () => {
+        const gameHeader = document.getElementById("creatorGameHeader");
+        if (!gameHeader || !gameHeader._game) {
+          alert('No game to export');
+          return;
+        }
+
+        const game = gameHeader._game;
+        const gameData = gameHeader._gameData;
+
+        // Build proper game structure for export
+        const gameToExport = {
+          title: game.title,
+          subtitle: game.subtitle,
+          ...gameData  // Spreads {categories: [...]}
+        };
+
+        // Create filename from title
+        const filename = game.title.trim() || 'game';
+        const safeFilename = filename.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.json';
+
+        const dataStr = JSON.stringify(gameToExport, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `jeop2-games-${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = safeFilename;
         a.click();
         URL.revokeObjectURL(url);
         menuDropdown.classList.remove("show");
+
+        // Show HTML export instructions dialog
+        await showExportInstructions(safeFilename, game.id, game.title, game.subtitle);
       });
     }
 
@@ -2729,11 +3036,19 @@ async function setupGameCreator() {
     // Update the game's data
     game.gameData = gameData;
 
+    // Build proper game structure for saving (categories at top level)
+    const gameToSave = {
+      title: game.title,
+      subtitle: game.subtitle,
+      ...gameData  // This spreads {categories: [...]}
+    };
+
     // Save to appropriate storage
     if (game.source === "creator") {
       // Update in creatorData.games
       const creatorGame = creatorData.games.find(g => g.id === game.id);
       if (creatorGame) {
+        creatorGame.game = gameToSave;  // Save as flat structure
         creatorGame.gameData = gameData;
         creatorGame.title = game.title;
         creatorGame.subtitle = game.subtitle;
@@ -2745,7 +3060,7 @@ async function setupGameCreator() {
       const custom = loadCustomGames();
       const customGame = custom.find(g => g.id === game.id);
       if (customGame) {
-        customGame.game = gameData;
+        customGame.game = gameToSave;  // Save as flat structure
         customGame.title = game.title;
         customGame.subtitle = game.subtitle;
         if (game.categoryId) {
@@ -2762,7 +3077,7 @@ async function setupGameCreator() {
         title: game.title,
         subtitle: game.subtitle,
         categoryId: game.categoryId,
-        game: gameData,
+        game: gameToSave,  // Save as flat structure
         source: "custom"
       };
 
@@ -2842,9 +3157,76 @@ async function setupGameCreator() {
       renderCategories();
       renderGames();
 
-      // Auto-select the first game if nothing is selected
+      // Default to first game if nothing selected (not blank template)
       if (!selectedGameId && allCreatorGames.length > 0) {
         selectedGameId = allCreatorGames[0].id;
+        renderGames();
+        renderEditor();
+      } else if (!selectedGameId && allCreatorGames.length === 0) {
+        // Only create blank template if no games exist at all
+        const defaultCategoryId = creatorData.categories[0]?.id || "custom";
+        const blankGameData = {
+          categories: [
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]}
+          ]
+        };
+
+        const blankGame = {
+          id: `game_${generateId()}`,
+          title: "",
+          subtitle: "",
+          categoryId: defaultCategoryId,
+          gameData: blankGameData, // Store as gameData for renderEditor
+          editable: true,
+          source: "creator",
+          _isNew: true
+        };
+
+        allCreatorGames.push(blankGame);
+        selectedGameId = blankGame.id;
+        selectedCategoryIndex = 0;
+        selectedClueIndex = null;
         renderGames();
         renderEditor();
       } else {
@@ -2869,8 +3251,164 @@ async function setupGameCreator() {
     loadAllGames().then(() => {
       renderCategories();
       renderGames();
+
+      // Default to first game if nothing selected
+      if (!selectedGameId && allCreatorGames.length > 0) {
+        selectedGameId = allCreatorGames[0].id;
+        renderGames();
+      } else if (!selectedGameId && allCreatorGames.length === 0) {
+        // Only create blank template if no games exist
+        const defaultCategoryId = creatorData.categories[0]?.id || "custom";
+        const blankGameData = {
+          categories: [
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]}
+          ]
+        };
+
+        const blankGame = {
+          id: `game_${generateId()}`,
+          title: "",
+          subtitle: "",
+          categoryId: defaultCategoryId,
+          gameData: blankGameData,
+          editable: true,
+          source: "creator",
+          _isNew: true
+        };
+
+        allCreatorGames.push(blankGame);
+        selectedGameId = blankGame.id;
+        selectedCategoryIndex = 0;
+        selectedClueIndex = null;
+        renderGames();
+      }
+
       renderEditor();
     });
+  });
+
+  // Add Game button in sidebar - creates a new blank game
+  addGameBtn?.addEventListener("click", async () => {
+    // Find or create "Custom" category
+    let customCategory = creatorData.categories.find(c => c.id === "custom");
+    if (!customCategory) {
+      customCategory = {
+        id: "custom",
+        name: "Custom",
+        icon: "📁"
+      };
+      creatorData.categories.push(customCategory);
+    }
+
+    // Create new game with default structure
+    const newGame = {
+      id: `game_${generateId()}`,
+      title: "New Game",
+      subtitle: "",
+      categoryId: customCategory.id, // Assign to Custom category
+      categories: [
+        { title: "", clues: [
+          { value: 200, clue: "", response: "" },
+          { value: 400, clue: "", response: "" },
+          { value: 600, clue: "", response: "" },
+          { value: 800, clue: "", response: "" },
+          { value: 1000, clue: "", response: "" }
+        ]},
+        { title: "", clues: [
+          { value: 200, clue: "", response: "" },
+          { value: 400, clue: "", response: "" },
+          { value: 600, clue: "", response: "" },
+          { value: 800, clue: "", response: "" },
+          { value: 1000, clue: "", response: "" }
+        ]},
+        { title: "", clues: [
+          { value: 200, clue: "", response: "" },
+          { value: 400, clue: "", response: "" },
+          { value: 600, clue: "", response: "" },
+          { value: 800, clue: "", response: "" },
+          { value: 1000, clue: "", response: "" }
+        ]},
+        { title: "", clues: [
+          { value: 200, clue: "", response: "" },
+          { value: 400, clue: "", response: "" },
+          { value: 600, clue: "", response: "" },
+          { value: 800, clue: "", response: "" },
+          { value: 1000, clue: "", response: "" }
+        ]},
+        { title: "", clues: [
+          { value: 200, clue: "", response: "" },
+          { value: 400, clue: "", response: "" },
+          { value: 600, clue: "", response: "" },
+          { value: 800, clue: "", response: "" },
+          { value: 1000, clue: "", response: "" }
+        ]},
+        { title: "", clues: [
+          { value: 200, clue: "", response: "" },
+          { value: 400, clue: "", response: "" },
+          { value: 600, clue: "", response: "" },
+          { value: 800, clue: "", response: "" },
+          { value: 1000, clue: "", response: "" }
+        ]}
+      ]
+    };
+
+    // Add to creator data
+    creatorData.games.push(newGame);
+    dirty = true;
+    saveBtn.disabled = false;
+
+    // Reload allCreatorGames to include the new game
+    await loadAllGames();
+
+    // Select the Custom category and the new game
+    selectedCategoryId = customCategory.id;
+    selectedGameId = newGame.id;
+
+    // Re-render
+    renderCategories();
+    renderGames();
+    renderEditor();
   });
 
   // Initial render
