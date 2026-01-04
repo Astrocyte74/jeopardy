@@ -1972,8 +1972,9 @@ input[type="text"]:focus {
   gap: 10px;
 }
 
-/* Questions count control (+/-) */
-.questions-count-control {
+/* Questions and Categories count control (+/-) */
+.questions-count-control,
+.categories-count-control {
   display: flex;
   align-items: center;
   gap: 4px;

@@ -2199,7 +2199,13 @@ async function setupGameCreator() {
   // Render categories in left column
   function renderCategoriesColumn(categories) {
     const categoriesList = document.getElementById("workspaceCategoriesList");
+    const categoriesCountValueEl = document.getElementById("categoriesCountValue");
     if (!categoriesList) return;
+
+    // Update the categories count display
+    if (categoriesCountValueEl) {
+      categoriesCountValueEl.textContent = categories.length.toString();
+    }
 
     if (categories.length === 0) {
       categoriesList.innerHTML = `
@@ -2569,6 +2575,87 @@ async function setupGameCreator() {
       const currentCount = parseInt(countValue.textContent) || 5;
       if (currentCount < 10) {
         updateQuestionsCount(currentCount + 1);
+      }
+    });
+
+    // Categories count control (+/-)
+    const categoriesDecreaseBtn = document.getElementById("categoriesDecreaseBtn");
+    const categoriesIncreaseBtn = document.getElementById("categoriesIncreaseBtn");
+    const categoriesCountValue = document.getElementById("categoriesCountValue");
+
+    const updateCategoriesCount = (newCount) => {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const game = gameHeader._game;
+      const gameData = gameHeader._gameData;
+
+      if (!gameData.categories) gameData.categories = [];
+      const currentCount = gameData.categories.length;
+
+      // Warn if going above 6
+      if (newCount > 6) {
+        const message = `Jeopardy games typically have 6 categories. You're about to create ${newCount} categories. Continue?`;
+        if (!confirm(message)) return;
+      }
+
+      // Warn if reducing would remove categories
+      if (newCount < currentCount) {
+        const toRemove = currentCount - newCount;
+        const categoriesBeingRemoved = gameData.categories.slice(newCount);
+
+        let message = `Reducing to ${newCount} categor${newCount === 1 ? 'y' : 'ies'} will remove:\n\n`;
+        categoriesBeingRemoved.forEach((cat, i) => {
+          const cluesCount = cat.clues?.length || 0;
+          message += `• ${cat.title || '(Untitled)'}: ${cluesCount} question${cluesCount === 1 ? '' : 's'}\n`;
+        });
+        message += `\nContinue?`;
+
+        if (!confirm(message)) return;
+      }
+
+      if (newCount > currentCount) {
+        // Add categories
+        for (let i = currentCount; i < newCount; i++) {
+          gameData.categories.push({
+            title: "",
+            clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]
+          });
+        }
+      } else if (newCount < currentCount) {
+        // Remove categories from the end
+        gameData.categories = gameData.categories.slice(0, newCount);
+      }
+
+      // Reset selection if needed
+      if (selectedCategoryIndex !== null && selectedCategoryIndex >= newCount) {
+        selectedCategoryIndex = newCount > 0 ? newCount - 1 : null;
+        selectedClueIndex = null;
+      }
+
+      game.gameData = gameData;
+      dirty = true;
+      saveBtn.disabled = false;
+      renderEditor();
+    };
+
+    categoriesDecreaseBtn?.addEventListener("click", () => {
+      const countValue = document.getElementById("categoriesCountValue");
+      const currentCount = parseInt(countValue.textContent) || 6;
+      if (currentCount > 1) {
+        updateCategoriesCount(currentCount - 1);
+      }
+    });
+
+    categoriesIncreaseBtn?.addEventListener("click", () => {
+      const countValue = document.getElementById("categoriesCountValue");
+      const currentCount = parseInt(countValue.textContent) || 6;
+      if (currentCount < 12) {
+        updateCategoriesCount(currentCount + 1);
       }
     });
   }

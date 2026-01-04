@@ -379,7 +379,14 @@
               <section class="creator-column creator-categories-column">
                 <div class="column-header">
                   <h3 class="column-title">Categories</h3>
-                  <button class="column-add-btn" id="workspaceAddCategoryBtn" type="button" title="Add Category">+</button>
+                  <div class="column-header-actions">
+                    <div class="categories-count-control">
+                      <button class="count-control-btn" id="categoriesDecreaseBtn" type="button" title="Decrease">−</button>
+                      <span class="count-control-value" id="categoriesCountValue">6</span>
+                      <button class="count-control-btn" id="categoriesIncreaseBtn" type="button" title="Increase">+</button>
+                    </div>
+                    <button class="column-add-btn" id="workspaceAddCategoryBtn" type="button" title="Add Category">+</button>
+                  </div>
                 </div>
                 <div class="column-list" id="workspaceCategoriesList">
                   <!-- Categories injected by JS -->
