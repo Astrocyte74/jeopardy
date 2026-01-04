@@ -2114,7 +2114,7 @@ async function setupGameCreator() {
     `;
 
     addGameCard.addEventListener("click", () => {
-      addGameBtn.click();
+      createNewGame();
     });
 
     gamesList.appendChild(addGameCard);
@@ -3328,8 +3328,8 @@ async function setupGameCreator() {
     });
   });
 
-  // Add Game button in sidebar - creates a new blank game
-  addGameBtn?.addEventListener("click", async () => {
+  // Create new blank game
+  async function createNewGame() {
     // Find or create "Custom" category
     let customCategory = creatorData.categories.find(c => c.id === "custom");
     if (!customCategory) {
@@ -3347,50 +3347,54 @@ async function setupGameCreator() {
       title: "New Game",
       subtitle: "",
       categoryId: customCategory.id, // Assign to Custom category
-      categories: [
-        { title: "", clues: [
-          { value: 200, clue: "", response: "" },
-          { value: 400, clue: "", response: "" },
-          { value: 600, clue: "", response: "" },
-          { value: 800, clue: "", response: "" },
-          { value: 1000, clue: "", response: "" }
-        ]},
-        { title: "", clues: [
-          { value: 200, clue: "", response: "" },
-          { value: 400, clue: "", response: "" },
-          { value: 600, clue: "", response: "" },
-          { value: 800, clue: "", response: "" },
-          { value: 1000, clue: "", response: "" }
-        ]},
-        { title: "", clues: [
-          { value: 200, clue: "", response: "" },
-          { value: 400, clue: "", response: "" },
-          { value: 600, clue: "", response: "" },
-          { value: 800, clue: "", response: "" },
-          { value: 1000, clue: "", response: "" }
-        ]},
-        { title: "", clues: [
-          { value: 200, clue: "", response: "" },
-          { value: 400, clue: "", response: "" },
-          { value: 600, clue: "", response: "" },
-          { value: 800, clue: "", response: "" },
-          { value: 1000, clue: "", response: "" }
-        ]},
-        { title: "", clues: [
-          { value: 200, clue: "", response: "" },
-          { value: 400, clue: "", response: "" },
-          { value: 600, clue: "", response: "" },
-          { value: 800, clue: "", response: "" },
-          { value: 1000, clue: "", response: "" }
-        ]},
-        { title: "", clues: [
-          { value: 200, clue: "", response: "" },
-          { value: 400, clue: "", response: "" },
-          { value: 600, clue: "", response: "" },
-          { value: 800, clue: "", response: "" },
-          { value: 1000, clue: "", response: "" }
-        ]}
-      ]
+      game: {
+        title: "New Game",
+        subtitle: "",
+        categories: [
+          { title: "", clues: [
+            { value: 200, clue: "", response: "" },
+            { value: 400, clue: "", response: "" },
+            { value: 600, clue: "", response: "" },
+            { value: 800, clue: "", response: "" },
+            { value: 1000, clue: "", response: "" }
+          ]},
+          { title: "", clues: [
+            { value: 200, clue: "", response: "" },
+            { value: 400, clue: "", response: "" },
+            { value: 600, clue: "", response: "" },
+            { value: 800, clue: "", response: "" },
+            { value: 1000, clue: "", response: "" }
+          ]},
+          { title: "", clues: [
+            { value: 200, clue: "", response: "" },
+            { value: 400, clue: "", response: "" },
+            { value: 600, clue: "", response: "" },
+            { value: 800, clue: "", response: "" },
+            { value: 1000, clue: "", response: "" }
+          ]},
+          { title: "", clues: [
+            { value: 200, clue: "", response: "" },
+            { value: 400, clue: "", response: "" },
+            { value: 600, clue: "", response: "" },
+            { value: 800, clue: "", response: "" },
+            { value: 1000, clue: "", response: "" }
+          ]},
+          { title: "", clues: [
+            { value: 200, clue: "", response: "" },
+            { value: 400, clue: "", response: "" },
+            { value: 600, clue: "", response: "" },
+            { value: 800, clue: "", response: "" },
+            { value: 1000, clue: "", response: "" }
+          ]},
+          { title: "", clues: [
+            { value: 200, clue: "", response: "" },
+            { value: 400, clue: "", response: "" },
+            { value: 600, clue: "", response: "" },
+            { value: 800, clue: "", response: "" },
+            { value: 1000, clue: "", response: "" }
+          ]}
+        ]
+      }
     };
 
     // Add to creator data
@@ -3409,7 +3413,10 @@ async function setupGameCreator() {
     renderCategories();
     renderGames();
     renderEditor();
-  });
+  }
+
+  // Add Game button in sidebar - creates a new blank game (if button exists)
+  addGameBtn?.addEventListener("click", createNewGame);
 
   // Initial render
   renderCategories();
