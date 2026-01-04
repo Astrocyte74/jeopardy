@@ -1974,15 +1974,13 @@ async function setupGameCreator() {
     gamesList.innerHTML = "";
     const searchTerm = searchInput.value.toLowerCase().trim();
 
-    // Filter games by category and search term
+    // Filter games by search term only (no category filtering in Game Creator)
+    // Category filtering happens on the main menu
     let filteredGames = allCreatorGames.filter(game => {
-      // If "All Games" is selected, show all games
-      // Otherwise, filter by selected category
-      const categoryMatch = selectedCategoryId === creatorData.categories[0]?.id || game.categoryId === selectedCategoryId;
       const searchMatch = !searchTerm ||
         game.title.toLowerCase().includes(searchTerm) ||
         game.subtitle.toLowerCase().includes(searchTerm);
-      return categoryMatch && searchMatch;
+      return searchMatch;
     });
 
     searchCount.textContent = filteredGames.length;
@@ -2756,7 +2754,16 @@ async function setupGameCreator() {
     loadAllGames().then(() => {
       renderCategories();
       renderGames();
-      renderEditor();
+
+      // Auto-select the first game if nothing is selected
+      if (!selectedGameId && allCreatorGames.length > 0) {
+        selectedGameId = allCreatorGames[0].id;
+        renderGames();
+        renderEditor();
+      } else {
+        renderEditor();
+      }
+
       dialog.showModal();
     });
   });

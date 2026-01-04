@@ -76,9 +76,16 @@ The Game Creator is a custom-built interface for creating and editing Jeopardy g
 ## Critical Features
 
 ### 1. Auto-Selection Behavior
-When a game is loaded, the system **automatically selects** the first category and first question. This prevents blank sections.
+When the Game Creator is opened (via Manage button), the system **automatically loads the first game** in the list, preventing a blank state. When a game is loaded, it also **automatically selects** the first category and first question.
 
 ```javascript
+// In openBtn.addEventListener (when opening Game Creator)
+if (!selectedGameId && allCreatorGames.length > 0) {
+  selectedGameId = allCreatorGames[0].id;
+  renderGames();
+  renderEditor();
+}
+
 // In renderEditor()
 if (selectedCategoryIndex === null && categories.length > 0) {
   selectedCategoryIndex = 0;
@@ -172,8 +179,15 @@ Key state variables (in `app.js`):
 
 ### New Features
 - **Global questions count control** - `+`/`−` interface in Questions header
-- **Auto-selection** - Automatically loads first category and question
+- **Auto-selection** - Automatically loads first game, first category, and first question
 - **Smaller game cards** - 1/3 size, responsive grid layout
+- **Category filtering on main menu only** - Game Creator shows all games
+
+### Category Filtering - Important!
+- **Main menu** has the category filter (`menuCategorySelect`) - this is the PRIMARY place for filtering games
+- **Game Creator** does NOT filter games by category - it shows ALL games regardless of category
+- The Categories section in the Game Creator sidebar is for managing categories (create/rename/delete), not for filtering games
+- Games can be assigned to categories via the dropdown in the game header when editing
 
 ---
 
@@ -185,6 +199,7 @@ Key state variables (in `app.js`):
 - Let sections appear blank when loading a game (use auto-selection)
 - Apply question count changes to individual categories (must be uniform)
 - Remove questions without warning the user
+- Filter games by category within the Game Creator (category filtering happens on main menu only)
 
 ### DO:
 - Keep the editor panel visually dominant
@@ -192,6 +207,7 @@ Key state variables (in `app.js`):
 - Warn before destructive operations
 - Auto-select first available items when loading games
 - Use neutral colors for non-selection UI elements
+- Show ALL games in the Game Creator (no category filtering)
 
 ---
 
@@ -200,11 +216,14 @@ Key state variables (in `app.js`):
 Before deploying changes, verify:
 - [ ] Selection states use yellow, everything else uses neutral colors
 - [ ] Editor panel is visually dominant (lighter background, stronger border)
-- [ ] Auto-selection works when loading a game
+- [ ] Auto-selection works when opening Game Creator (loads first game)
+- [ ] Auto-selection works when loading a game (first category and question)
 - [ ] Questions count control warns before removing questions
 - [ ] All three columns update correctly when selecting items
 - [ ] Save button state changes correctly (dirty tracking)
 - [ ] Spacing feels consistent and not cramped
+- [ ] Main menu category filter works correctly
+- [ ] Game Creator shows ALL games (not filtered by category)
 
 ---
 
