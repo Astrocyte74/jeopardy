@@ -231,13 +231,13 @@ function applyResult(action, result, game, gameData, selections) {
         const issues = validation.issues.join(', ');
         aiToast.show({ message: `Issues: ${issues}`, type: 'error', duration: 5000 });
       }
-      return; // Don't re-render or mark dirty
+      return; // Don't re-render or save
   }
 
-  // Mark as dirty and re-render
-  window.dirty = true;
-  const saveBtn = document.getElementById('creatorSaveBtn');
-  if (saveBtn) saveBtn.disabled = false;
+  // Auto-save after AI changes
+  if (window.autoSave) {
+    window.autoSave();
+  }
 
   // Re-render editor
   if (renderEditor) {
@@ -305,10 +305,10 @@ function undoSnapshot(snapshotId) {
     window.selectedClueIndex = clueIndex;
   }
 
-  // Mark dirty and re-render
-  window.dirty = true;
-  const saveBtn = document.getElementById('creatorSaveBtn');
-  if (saveBtn) saveBtn.disabled = false;
+  // Auto-save after undo
+  if (window.autoSave) {
+    window.autoSave();
+  }
 
   if (renderEditor) {
     renderEditor();

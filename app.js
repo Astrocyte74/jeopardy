@@ -2193,6 +2193,101 @@ function generateId() {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Auto-save with debouncing (called from Game Creator)
+// Returns a function that can be called to trigger auto-save
+function createAutoSaveFunction() {
+  let saveTimeout = null;
+  let isSaving = false;
+
+  return async () => {
+    // Clear any pending save
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Debounce: wait 500ms after last change before saving
+    saveTimeout = setTimeout(async () => {
+      if (isSaving) return; // Prevent concurrent saves
+
+      const gameHeader = document.getElementById("creatorGameHeader");
+      if (!gameHeader || !gameHeader._game || !gameHeader._gameData) return;
+
+      isSaving = true;
+      const game = gameHeader._game;
+      const gameData = gameHeader._gameData;
+
+      // Update the game's data
+      game.gameData = gameData;
+
+      // Build proper game structure for saving (categories at top level)
+      const gameToSave = {
+        title: game.title,
+        subtitle: game.subtitle,
+        ...gameData  // This spreads {categories: [...]}
+      };
+
+      // Save to appropriate storage
+      if (game.source === "creator") {
+        const creatorData = loadCreatorData();
+        // Update in creatorData.games
+        const creatorGame = creatorData.games.find(g => g.id === game.id);
+        if (creatorGame) {
+          creatorGame.game = gameToSave;
+          creatorGame.gameData = gameData;
+          creatorGame.title = game.title;
+          creatorGame.subtitle = game.subtitle;
+          creatorGame.categoryId = game.categoryId;
+        }
+        saveCreatorData(creatorData);
+
+        // Also save to customGames so it appears in main menu
+        const custom = loadCustomGames();
+        const existingIndex = custom.findIndex(g => g.id === game.id);
+        const customGame = {
+          id: game.id,
+          title: game.title,
+          subtitle: game.subtitle,
+          categoryId: game.categoryId,
+          game: gameToSave,
+          source: "creator"
+        };
+
+        if (existingIndex >= 0) {
+          custom[existingIndex] = customGame;
+        } else {
+          custom.unshift(customGame);
+        }
+        saveCustomGames(custom);
+      } else if (game.source === "custom") {
+        // Update in custom games
+        const custom = loadCustomGames();
+        const customGame = custom.find(g => g.id === game.id);
+        if (customGame) {
+          customGame.game = gameToSave;
+          customGame.title = game.title;
+          customGame.subtitle = game.subtitle;
+          if (game.categoryId) {
+            customGame.categoryId = game.categoryId;
+          }
+          saveCustomGames(custom);
+        }
+      }
+
+      isSaving = false;
+
+      // Show subtle "Saved" indicator
+      const saveIndicator = document.getElementById("creatorSaveIndicator");
+      if (saveIndicator) {
+        saveIndicator.textContent = "✓ Saved";
+        saveIndicator.style.opacity = "1";
+        setTimeout(() => {
+          saveIndicator.style.opacity = "0.5";
+        }, 1000);
+      }
+    }, 500);
+  };
+}
+
 // Setup Game Creator
 async function setupGameCreator() {
   const dialog = document.getElementById("gameCreatorDialog");
@@ -2214,6 +2309,9 @@ async function setupGameCreator() {
   let pendingDeleteGameId = null;
   let dirty = false;
   let allCreatorGames = [];
+
+  // Create auto-save function (debounced, saves to both creatorData and customGames)
+  const autoSave = createAutoSaveFunction();
 
   // Load all games (file-based, custom, and creator games)
   async function loadAllGames() {
@@ -3082,8 +3180,7 @@ async function setupGameCreator() {
     valueInput?.addEventListener("input", () => {
       clue.value = parseInt(valueInput.value) || 200;
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save on change
       renderCluesColumn(categories);
     });
 
@@ -3092,8 +3189,7 @@ async function setupGameCreator() {
     questionInput?.addEventListener("input", () => {
       clue.clue = questionInput.value;
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save on change
       renderCluesColumn(categories);
     });
 
@@ -3102,8 +3198,7 @@ async function setupGameCreator() {
     answerInput?.addEventListener("input", () => {
       clue.response = answerInput.value;
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save on change
       renderCluesColumn(categories);
     });
 
@@ -3113,8 +3208,7 @@ async function setupGameCreator() {
       if (confirm("Delete this question?")) {
         category.clues.splice(selectedClueIndex, 1);
         game.gameData = gameData;
-        dirty = true;
-        saveBtn.disabled = false;
+        autoSave();  // Auto-save on delete
         selectedClueIndex = null;
         renderEditor();
       }
@@ -3127,8 +3221,7 @@ async function setupGameCreator() {
     const titleInput = gameHeader.querySelector("#editorTitle");
     titleInput?.addEventListener("input", () => {
       game.title = titleInput.value;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save on change
       renderGames();
     });
 
@@ -3136,8 +3229,7 @@ async function setupGameCreator() {
     const subtitleInput = gameHeader.querySelector("#editorSubtitle");
     subtitleInput?.addEventListener("input", () => {
       game.subtitle = subtitleInput.value;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save on change
       renderGames();
     });
 
@@ -3148,8 +3240,7 @@ async function setupGameCreator() {
       game.categoryId = newCategoryId;
       // Update selected category in sidebar
       selectedCategoryId = newCategoryId;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save on change
       renderCategories();
       renderGames();
     });
@@ -3487,101 +3578,7 @@ async function setupGameCreator() {
   // Setup workspace listeners
   setupWorkspaceListeners();
 
-  // Save button
-  saveBtn.addEventListener("click", async () => {
-    const gameHeader = document.getElementById("creatorGameHeader");
-    if (!gameHeader || !gameHeader._game || !gameHeader._gameData) return;
-
-    const game = gameHeader._game;
-    const gameData = gameHeader._gameData;
-
-    // Update the game's data
-    game.gameData = gameData;
-
-    // Build proper game structure for saving (categories at top level)
-    const gameToSave = {
-      title: game.title,
-      subtitle: game.subtitle,
-      ...gameData  // This spreads {categories: [...]}
-    };
-
-    // Save to appropriate storage
-    if (game.source === "creator") {
-      // Update in creatorData.games
-      const creatorGame = creatorData.games.find(g => g.id === game.id);
-      if (creatorGame) {
-        creatorGame.game = gameToSave;  // Save as flat structure
-        creatorGame.gameData = gameData;
-        creatorGame.title = game.title;
-        creatorGame.subtitle = game.subtitle;
-        creatorGame.categoryId = game.categoryId;
-      }
-      saveCreatorData(creatorData);
-
-      // Also save to customGames so it appears in main menu
-      const custom = loadCustomGames();
-      const existingIndex = custom.findIndex(g => g.id === game.id);
-      const customGame = {
-        id: game.id,
-        title: game.title,
-        subtitle: game.subtitle,
-        categoryId: game.categoryId,
-        game: gameToSave,
-        source: "creator"
-      };
-
-      if (existingIndex >= 0) {
-        custom[existingIndex] = customGame;
-      } else {
-        custom.unshift(customGame);
-      }
-      saveCustomGames(custom);
-    } else if (game.source === "custom") {
-      // Update in custom games
-      const custom = loadCustomGames();
-      const customGame = custom.find(g => g.id === game.id);
-      if (customGame) {
-        customGame.game = gameToSave;  // Save as flat structure
-        customGame.title = game.title;
-        customGame.subtitle = game.subtitle;
-        if (game.categoryId) {
-          customGame.categoryId = game.categoryId;
-        }
-        saveCustomGames(custom);
-      }
-    } else if (game.source === "file") {
-      // File-based game - save to localStorage as a custom game
-      const custom = loadCustomGames();
-      const existingIndex = custom.findIndex(g => g.id === game.id);
-      const customGame = {
-        id: game.id,
-        title: game.title,
-        subtitle: game.subtitle,
-        categoryId: game.categoryId,
-        game: gameToSave,  // Save as flat structure
-        source: "custom"
-      };
-
-      if (existingIndex >= 0) {
-        custom[existingIndex] = customGame;
-      } else {
-        custom.unshift(customGame);
-      }
-      saveCustomGames(custom);
-      game.source = "custom";
-    }
-
-    saveCreatorData(creatorData);
-    dirty = false;
-    saveBtn.disabled = true;
-
-    // Show success feedback
-    const originalText = saveBtn.textContent;
-    saveBtn.textContent = "✓ Saved!";
-    setTimeout(() => {
-      saveBtn.textContent = originalText;
-    }, 1500);
-  });
+  // Note: Save button removed - auto-save is now enabled
 
   // Import file handler (shared - called from dynamically created import button)
   importInput.addEventListener("change", async () => {
@@ -3902,6 +3899,7 @@ async function setupGameCreator() {
   window.createNewGame = createNewGame;
   window.loadAllGames = loadAllGames;
   window.renderEditor = renderEditor;
+  window.autoSave = autoSave;
 
   // Add Game button in sidebar - creates a new blank game (if button exists)
   addGameBtn?.addEventListener("click", createNewGame);
