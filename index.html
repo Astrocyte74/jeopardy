@@ -465,6 +465,35 @@
             </div>
           </div>
         </div>
+
+        <!-- Selection Dialog (for radio/tile choices like difficulty) -->
+        <div id="selectionDialog" class="input-dialog-overlay" style="display: none;">
+          <div class="input-dialog-card">
+            <button class="selection-dialog-close" id="selectionDialogXBtn" aria-label="Cancel" type="button">✕</button>
+
+            <h2 class="input-dialog-title" id="selectionDialogTitle">Choose an option</h2>
+
+            <p class="input-dialog-helper" id="selectionDialogHelper">Select your preference below</p>
+
+            <div class="selection-dialog-options" id="selectionDialogOptions">
+              <!-- Options will be injected by JS -->
+            </div>
+
+            <div class="input-dialog-actions">
+              <button id="selectionDialogCancel" class="btn btnSecondary" type="button">Back</button>
+              <button id="selectionDialogConfirm" class="btn btnPrimary" type="button">Continue</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading Dialog (shows during AI generation) -->
+        <div id="loadingDialog" class="input-dialog-overlay" style="display: none;">
+          <div class="loading-dialog-card">
+            <div class="loading-spinner"></div>
+            <h2 class="loading-dialog-title" id="loadingDialogTitle">Creating your game...</h2>
+            <p class="loading-dialog-status" id="loadingDialogStatus">Connecting to AI...</p>
+          </div>
+        </div>
       </form>
     </dialog>
 

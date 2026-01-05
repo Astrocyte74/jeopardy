@@ -1656,6 +1656,280 @@ function showInputDialog(title, defaultValue = "", helperText = null) {
 // Expose globally for AI modules
 window.showInputDialog = showInputDialog;
 
+// Selection dialog for choosing from options (e.g., difficulty)
+// @param {string} title - Dialog title
+// @param {string} helperText - Helper text below title
+// @param {Array} options - Array of {value, icon, title, desc} objects
+// @returns {Promise} Resolves with selected value or null if cancelled
+function showSelectionDialog(title, helperText, options) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("selectionDialog");
+    const titleEl = document.getElementById("selectionDialogTitle");
+    const helperEl = document.getElementById("selectionDialogHelper");
+    const optionsContainer = document.getElementById("selectionDialogOptions");
+    const cancelBtn = document.getElementById("selectionDialogCancel");
+    const confirmBtn = document.getElementById("selectionDialogConfirm");
+    const xBtn = document.getElementById("selectionDialogXBtn");
+
+    if (!overlay) {
+      console.error('[showSelectionDialog] Overlay not found!');
+      resolve(null);
+      return;
+    }
+
+    // Set content
+    titleEl.textContent = title;
+    helperEl.textContent = helperText;
+
+    // Build options
+    optionsContainer.innerHTML = '';
+    let selectedValue = options[0]?.value || null;
+
+    options.forEach((opt, index) => {
+      const optionEl = document.createElement('div');
+      optionEl.className = `selection-option${index === 0 ? ' selected' : ''}`;
+      optionEl.dataset.value = opt.value;
+      optionEl.innerHTML = `
+        ${opt.icon ? `<span class="selection-option-icon">${opt.icon}</span>` : ''}
+        <div class="selection-option-content">
+          <div class="selection-option-title">${opt.title}</div>
+          ${opt.desc ? `<div class="selection-option-desc">${opt.desc}</div>` : ''}
+        </div>
+        <div class="selection-option-radio"></div>
+      `;
+
+      optionEl.addEventListener('click', () => {
+        // Update selection visual only
+        optionsContainer.querySelectorAll('.selection-option').forEach(el => {
+          el.classList.remove('selected');
+        });
+        optionEl.classList.add('selected');
+        selectedValue = opt.value;
+        // Don't auto-confirm - wait for button click
+      });
+
+      optionsContainer.appendChild(optionEl);
+    });
+
+    let resolved = false;
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+
+    const doResolve = (value) => {
+      if (!resolved) {
+        resolved = true;
+        abortController.abort();
+        overlay.style.display = "none";
+        resolve(value);
+      }
+    };
+
+    const cancelHandler = (e) => {
+      e.preventDefault();
+      doResolve(null);
+    };
+
+    const confirmHandler = (e) => {
+      e.preventDefault();
+      doResolve(selectedValue);
+    };
+
+    cancelBtn.addEventListener("click", cancelHandler, { signal });
+    confirmBtn.addEventListener("click", confirmHandler, { signal });
+    xBtn.addEventListener("click", cancelHandler, { signal });
+
+    // Show the overlay
+    overlay.style.display = "flex";
+
+    // Focus continue button
+    if (confirmBtn) {
+      confirmBtn.focus();
+    }
+  });
+}
+
+// Expose globally
+window.showSelectionDialog = showSelectionDialog;
+
+// ==================== NEW GAME WIZARD ====================
+/**
+ * Run the New Game Wizard - walks user through creating a game with AI
+ * @returns {Promise<boolean>} true if game was created, false if cancelled
+ */
+async function runNewGameWizard() {
+  console.log('[NewGameWizard] Starting wizard...');
+
+  // Step 1: Theme
+  const theme = await showInputDialog(
+    "Let's create your game",
+    '',
+    'What theme would you like? Leave blank for a random theme'
+  );
+
+  if (theme === null) {
+    console.log('[NewGameWizard] User cancelled at theme step');
+    return false; // Cancelled
+  }
+
+  // Step 2: Difficulty
+  const difficulty = await showSelectionDialog(
+    'Choose difficulty',
+    'How challenging should the questions be?',
+    [
+      {
+        value: 'easy',
+        icon: '🟢',
+        title: 'Easy',
+        desc: 'Accessible, well-known facts - great for beginners'
+      },
+      {
+        value: 'normal',
+        icon: '🟡',
+        title: 'Normal',
+        desc: 'Balanced mix - a fun challenge for everyone'
+      },
+      {
+        value: 'hard',
+        icon: '🔴',
+        title: 'Hard',
+        desc: 'Niche details and deep cuts - for trivia experts'
+      }
+    ]
+  );
+
+  if (difficulty === null) {
+    console.log('[NewGameWizard] User cancelled at difficulty step');
+    return false; // Cancelled
+  }
+
+  console.log('[NewGameWizard] Wizard complete:', { theme, difficulty });
+
+  // Step 3: Generate the game using AI
+  return await generateGameWithAI(theme, difficulty);
+}
+
+/**
+ * Generate a game using AI with the given theme and difficulty
+ * @param {string} theme - Game theme (empty string for random)
+ * @param {string} difficulty - 'easy', 'normal', or 'hard'
+ * @returns {Promise<boolean>} true if successful, false if failed
+ */
+async function generateGameWithAI(theme, difficulty) {
+  console.log('[GenerateGame] Starting AI generation:', { theme, difficulty });
+
+  // Show loading dialog
+  showLoadingDialog('Creating your game...', 'Connecting to AI...');
+
+  try {
+    // Check if AI is available
+    updateLoadingDialog('Checking AI availability...');
+    const isAvailable = await checkAIServer();
+    if (!isAvailable) {
+      hideLoadingDialog();
+      aiToast.show({
+        message: 'AI server is not available. Please start the AI server.',
+        type: 'error',
+        duration: 5000
+      });
+      return false;
+    }
+
+    // Build context for categories-generate
+    const context = {
+      theme: theme || 'random interesting trivia',
+      count: 6 // Always generate 6 categories
+    };
+
+    // Update status and execute AI generation
+    updateLoadingDialog('Generating your game...');
+
+    // Note: We'll hide the loading dialog when preview appears
+    // The preview dialog will overlay it, so we hide it after preview is shown
+    const originalPreviewShow = window.aiPreview?.show;
+    if (originalPreviewShow) {
+      window.aiPreview.show = function(...args) {
+        hideLoadingDialog();
+        return originalPreviewShow.apply(this, args);
+      };
+    }
+
+    const result = await executeAIAction('categories-generate', context, difficulty);
+
+    if (result) {
+      // Success - loading dialog already hidden by preview
+      aiToast.show({
+        message: 'Game created successfully!',
+        type: 'success',
+        duration: 3000
+      });
+      return true;
+    } else {
+      hideLoadingDialog();
+      aiToast.show({
+        message: 'Failed to generate game',
+        type: 'error',
+        duration: 5000
+      });
+      return false;
+    }
+  } catch (error) {
+    console.error('[GenerateGame] Error:', error);
+    hideLoadingDialog();
+    aiToast.show({
+      message: error.message || 'Failed to generate game',
+      type: 'error',
+      duration: 5000
+    });
+    return false;
+  }
+}
+
+// Expose wizard function
+window.runNewGameWizard = runNewGameWizard;
+
+// ==================== LOADING DIALOG ====================
+/**
+ * Show the loading dialog with optional status update
+ * @param {string} status - Status text to display
+ */
+function showLoadingDialog(title = 'Creating your game...', status = 'Connecting to AI...') {
+  const overlay = document.getElementById("loadingDialog");
+  const titleEl = document.getElementById("loadingDialogTitle");
+  const statusEl = document.getElementById("loadingDialogStatus");
+
+  if (overlay && titleEl && statusEl) {
+    titleEl.textContent = title;
+    statusEl.textContent = status;
+    overlay.style.display = "flex";
+  }
+}
+
+/**
+ * Update the loading dialog status text
+ * @param {string} status - New status text
+ */
+function updateLoadingDialog(status) {
+  const statusEl = document.getElementById("loadingDialogStatus");
+  if (statusEl) {
+    statusEl.textContent = status;
+  }
+}
+
+/**
+ * Hide the loading dialog
+ */
+function hideLoadingDialog() {
+  const overlay = document.getElementById("loadingDialog");
+  if (overlay) {
+    overlay.style.display = "none";
+  }
+}
+
+// Expose globally
+window.showLoadingDialog = showLoadingDialog;
+window.updateLoadingDialog = updateLoadingDialog;
+window.hideLoadingDialog = hideLoadingDialog;
+
 // Helper function to show export instructions dialog
 function showExportInstructions(filename, gameId, gameTitle, gameSubtitle) {
   return new Promise((resolve) => {
@@ -2109,14 +2383,18 @@ async function setupGameCreator() {
     addGameCard.className = "creator-game-item creator-game-add";
     addGameCard.innerHTML = `
       <div class="creator-game-title">+ New Game</div>
-      <div class="creator-game-subtitle">Create a blank game</div>
+      <div class="creator-game-subtitle">Create with AI wizard</div>
       <div class="creator-game-actions">
-        <span class="creator-game-hint">Click to create</span>
+        <span class="creator-game-hint">✨ Theme → Difficulty → Generate</span>
       </div>
     `;
 
-    addGameCard.addEventListener("click", () => {
-      createNewGame();
+    addGameCard.addEventListener("click", async () => {
+      const success = await runNewGameWizard();
+      if (success) {
+        // Wizard completed successfully - game will be auto-selected
+        console.log('[NewGameCard] Wizard completed, game created');
+      }
     });
 
     gamesList.appendChild(addGameCard);
