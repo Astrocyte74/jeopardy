@@ -1562,7 +1562,7 @@ const CREATOR_DATA_KEY = "jeop2:creatorData:v1";
 // @param {string} title - Short title for the dialog
 // @param {string} defaultValue - Default value for the input
 // @param {string} helperText - Optional helper text below title
-function showInputDialog(title, defaultValue = "", helperText = null) {
+function showInputDialog(title, defaultValue = "", helperText = null, confirmButtonText = "Create game") {
   console.log('[showInputDialog] Called with:', title, defaultValue, helperText);
   return new Promise((resolve) => {
     const overlay = document.getElementById("inputDialog");
@@ -1592,11 +1592,11 @@ function showInputDialog(title, defaultValue = "", helperText = null) {
     titleEl.textContent = title;
     if (helperText && helperEl) {
       helperEl.textContent = helperText;
-      helperEl.style.display = '';
     } else if (helperEl) {
       helperEl.style.display = 'none';
     }
     valueInput.value = defaultValue;
+    confirmBtn.textContent = confirmButtonText;
     errorEl.textContent = "";
 
     let resolved = false;
@@ -1661,13 +1661,13 @@ window.showInputDialog = showInputDialog;
 // @param {string} helperText - Helper text below title
 // @param {Array} options - Array of {value, icon, title, desc} objects
 // @returns {Promise} Resolves with selected value or null if cancelled
-function showSelectionDialog(title, helperText, options) {
+function showSelectionDialog(title, helperText, options, defaultValue = null, showBackButton = false) {
   return new Promise((resolve) => {
     const overlay = document.getElementById("selectionDialog");
     const titleEl = document.getElementById("selectionDialogTitle");
     const helperEl = document.getElementById("selectionDialogHelper");
     const optionsContainer = document.getElementById("selectionDialogOptions");
-    const cancelBtn = document.getElementById("selectionDialogCancel");
+    const backBtn = document.getElementById("selectionDialogBack");
     const confirmBtn = document.getElementById("selectionDialogConfirm");
     const xBtn = document.getElementById("selectionDialogXBtn");
 
@@ -1681,13 +1681,20 @@ function showSelectionDialog(title, helperText, options) {
     titleEl.textContent = title;
     helperEl.textContent = helperText;
 
+    // Show/hide back button based on parameter
+    if (backBtn) {
+      backBtn.style.display = showBackButton ? 'inline-block' : 'none';
+    }
+
     // Build options
     optionsContainer.innerHTML = '';
-    let selectedValue = options[0]?.value || null;
+    // Use defaultValue if provided, otherwise use first option
+    let selectedValue = defaultValue || options[0]?.value || null;
 
     options.forEach((opt, index) => {
+      const isSelected = opt.value === selectedValue;
       const optionEl = document.createElement('div');
-      optionEl.className = `selection-option${index === 0 ? ' selected' : ''}`;
+      optionEl.className = `selection-option${isSelected ? ' selected' : ''}`;
       optionEl.dataset.value = opt.value;
       optionEl.innerHTML = `
         ${opt.icon ? `<span class="selection-option-icon">${opt.icon}</span>` : ''}
@@ -1724,8 +1731,15 @@ function showSelectionDialog(title, helperText, options) {
       }
     };
 
+    const backHandler = (e) => {
+      e.preventDefault();
+      // Return special value 'back' to indicate going back
+      doResolve('back');
+    };
+
     const cancelHandler = (e) => {
       e.preventDefault();
+      // Return null to indicate cancellation
       doResolve(null);
     };
 
@@ -1734,7 +1748,10 @@ function showSelectionDialog(title, helperText, options) {
       doResolve(selectedValue);
     };
 
-    cancelBtn.addEventListener("click", cancelHandler, { signal });
+    // Only add back button listener if button exists and is visible
+    if (backBtn && showBackButton) {
+      backBtn.addEventListener("click", backHandler, { signal });
+    }
     confirmBtn.addEventListener("click", confirmHandler, { signal });
     xBtn.addEventListener("click", cancelHandler, { signal });
 
@@ -1756,65 +1773,106 @@ window.showSelectionDialog = showSelectionDialog;
  * Run the New Game Wizard - walks user through creating a game with AI
  * @returns {Promise<boolean>} true if game was created, false if cancelled
  */
-async function runNewGameWizard() {
-  console.log('[NewGameWizard] Starting wizard...');
+/**
+ * Run the New Game Wizard
+ * @param {object} previousContext - Optional context from previous run { theme, difficulty }
+ * @returns {Promise<boolean>} true if successful, false if cancelled
+ */
+async function runNewGameWizard(previousContext = null) {
+  console.log('[NewGameWizard] Starting wizard...', { previousContext });
 
-  // Step 1: Theme
-  const theme = await showInputDialog(
+  // Step 1: Theme (pre-fill if retrying)
+  let theme = await showInputDialog(
     "Let's create your game",
-    '',
-    'What theme would you like? Leave blank for a random theme'
+    previousContext?.theme || '',
+    'What theme would you like? Leave blank for a random theme',
+    'Next' // Custom button text for wizard
   );
 
   if (theme === null) {
     console.log('[NewGameWizard] User cancelled at theme step');
-    return false; // Cancelled
+    return false; // Cancelled (no game created yet, so no cleanup needed)
   }
 
-  // Step 2: Difficulty
-  const difficulty = await showSelectionDialog(
+  // Step 2: Difficulty (pre-select if retrying)
+  const difficultyOptions = [
+    {
+      value: 'easy',
+      icon: '🟢',
+      title: 'Easy',
+      desc: 'Accessible, well-known facts - great for beginners'
+    },
+    {
+      value: 'normal',
+      icon: '🟡',
+      title: 'Normal',
+      desc: 'Balanced mix - a fun challenge for everyone'
+    },
+    {
+      value: 'hard',
+      icon: '🔴',
+      title: 'Hard',
+      desc: 'Niche details and deep cuts - for trivia experts'
+    }
+  ];
+
+  let difficulty = await showSelectionDialog(
     'Choose difficulty',
     'How challenging should the questions be?',
-    [
-      {
-        value: 'easy',
-        icon: '🟢',
-        title: 'Easy',
-        desc: 'Accessible, well-known facts - great for beginners'
-      },
-      {
-        value: 'normal',
-        icon: '🟡',
-        title: 'Normal',
-        desc: 'Balanced mix - a fun challenge for everyone'
-      },
-      {
-        value: 'hard',
-        icon: '🔴',
-        title: 'Hard',
-        desc: 'Niche details and deep cuts - for trivia experts'
-      }
-    ]
+    difficultyOptions,
+    previousContext?.difficulty || null,
+    true // Show back button
   );
 
+  // Handle "Back" - go back to theme step
+  if (difficulty === 'back') {
+    console.log('[NewGameWizard] User clicked Back, returning to theme step');
+    // Re-run wizard with current theme as default
+    return await runNewGameWizard({ theme });
+  }
+
+  // Handle cancel (X button)
   if (difficulty === null) {
     console.log('[NewGameWizard] User cancelled at difficulty step');
-    return false; // Cancelled
+    return false; // Cancelled (no game created yet, so no cleanup needed)
   }
 
   console.log('[NewGameWizard] Wizard complete:', { theme, difficulty });
 
-  // Step 3: Generate the game using AI
-  return await generateGameWithAI(theme, difficulty);
+  // Step 3: NOW create the blank game and generate with AI
+  // We only create the game after user has confirmed theme and difficulty
+  console.log('[NewGameWizard] Creating new blank game...');
+  await window.createNewGame();
+  console.log('[NewGameWizard] Blank game created and loaded');
+
+  // Helper function to reset if user cancels at preview stage
+  const cleanupOnCancel = () => {
+    console.log('[NewGameWizard] User cancelled at preview, cleaning up...');
+    // Reload from file to reset state (removes the in-memory blank game)
+    window.loadAllGames && window.loadAllGames();
+    window.renderEditor && window.renderEditor();
+  };
+
+  // Generate the game using AI (pass context for retry and cleanup)
+  const result = await generateGameWithAI(theme, difficulty, cleanupOnCancel);
+
+  // If generation failed, clean up the blank game
+  if (!result) {
+    console.log('[NewGameWizard] Generation failed, cleaning up blank game');
+    cleanupOnCancel();
+  }
+
+  return result;
 }
 
 /**
  * Generate a game using AI with the given theme and difficulty
  * @param {string} theme - Game theme (empty string for random)
  * @param {string} difficulty - 'easy', 'normal', or 'hard'
+ * @param {function} onCancel - Optional cleanup callback for cancel
  * @returns {Promise<boolean>} true if successful, false if failed
  */
-async function generateGameWithAI(theme, difficulty) {
+async function generateGameWithAI(theme, difficulty, onCancel = null) {
   console.log('[GenerateGame] Starting AI generation:', { theme, difficulty });
 
   // Show loading dialog
@@ -1840,29 +1898,101 @@ async function generateGameWithAI(theme, difficulty) {
       count: 6 // Always generate 6 categories
     };
 
+    // Create retry callback that re-runs wizard with same settings
+    const retryContext = { theme, difficulty };
+    const onRetry = async (context) => {
+      console.log('[GenerateGame] Retry clicked, re-running wizard with:', context);
+      // Re-run wizard with previous context
+      await runNewGameWizard(context);
+    };
+
     // Update status and execute AI generation
     updateLoadingDialog('Generating your game...');
 
-    // Note: We'll hide the loading dialog when preview appears
-    // The preview dialog will overlay it, so we hide it after preview is shown
+    // Hide loading dialog when preview appears
     const originalPreviewShow = window.aiPreview?.show;
     if (originalPreviewShow) {
       window.aiPreview.show = function(...args) {
+        console.log('[generateGameWithAI] Preview shown, hiding loading dialog');
         hideLoadingDialog();
         return originalPreviewShow.apply(this, args);
       };
     }
 
-    const result = await executeAIAction('categories-generate', context, difficulty);
+    // Create a wrapped onConfirm that will be called after user clicks Apply
+    // This will generate the title AFTER the categories are applied
+    const onConfirmWithExtraAction = async () => {
+      console.log('[generateGameWithAI] User clicked Apply, now generating title...');
 
+      // Build context for game-title action (needs sample content from generated categories)
+      const gameHeader = document.getElementById('creatorGameHeader');
+      const gameData = gameHeader?._gameData;
+      const game = gameHeader?._game;
+
+      let titleContext;
+      if (gameData && game) {
+        // Build sample content from the first 3 categories, first 2 clues each
+        const sampleContent = gameData.categories
+          .filter(cat => cat.clues && cat.clues.some(c => c.clue && c.clue.trim()))
+          .slice(0, 3)
+          .map(cat => ({
+            category: cat.title || 'Untitled',
+            clues: cat.clues
+              .filter(c => c.clue && c.clue.trim())
+              .slice(0, 2)
+              .map(c => ({ question: c.clue, answer: c.response }))
+          }));
+
+        titleContext = {
+          hasContent: true,
+          sampleContent: JSON.stringify(sampleContent),
+          currentTitle: game.title,
+          currentSubtitle: game.subtitle
+        };
+      } else {
+        // Fallback - use theme directly
+        titleContext = {
+          hasContent: false,
+          theme: theme || 'random',
+          currentTitle: 'New Game',
+          currentSubtitle: ''
+        };
+      }
+
+      console.log('[generateGameWithAI] Title context:', titleContext);
+
+      // Generate title using the game-title action (direct mode, no preview)
+      const titleResult = await executeAIAction('game-title', titleContext, difficulty, null, null, null);
+
+      if (titleResult) {
+        console.log('[generateGameWithAI] Title generated successfully');
+        // Refresh game list to show updated title
+        await window.loadAllGames();
+        aiToast.show({
+          message: 'Game created successfully!',
+          type: 'success',
+          duration: 3000
+        });
+      } else {
+        console.warn('[generateGameWithAI] Title generation failed, but game was created');
+        // Still refresh game list even if title failed
+        await window.loadAllGames();
+        aiToast.show({
+          message: 'Game created! (Title generation failed)',
+          type: 'warning',
+          duration: 3000
+        });
+      }
+    };
+
+    // Call executeAIAction with our custom onConfirm callback
+    const result = await executeAIAction('categories-generate', context, difficulty, retryContext, onRetry, onCancel, onConfirmWithExtraAction);
+
+    // In preview mode, executeAIAction returns true immediately
+    // The actual work (including title generation) happens in onConfirmWithExtraAction when user clicks Apply
+    // In direct mode (not applicable here), the result indicates success/failure
     if (result) {
-      // Success - loading dialog already hidden by preview
-      aiToast.show({
-        message: 'Game created successfully!',
-        type: 'success',
-        duration: 3000
-      });
-      return true;
+      return result;
     } else {
       hideLoadingDialog();
       aiToast.show({
@@ -1920,8 +2050,10 @@ function updateLoadingDialog(status) {
  */
 function hideLoadingDialog() {
   const overlay = document.getElementById("loadingDialog");
+  console.log('[hideLoadingDialog] Called, overlay found:', !!overlay, 'current display:', overlay?.style.display);
   if (overlay) {
     overlay.style.display = "none";
+    console.log('[hideLoadingDialog] Set display to none, new value:', overlay.style.display);
   }
 }
 
@@ -2068,7 +2200,7 @@ async function setupGameCreator() {
   async function loadAllGames() {
     allCreatorGames = [];
 
-    // Add creator games (fully editable)
+    // Add creator games (fully editable) - store direct references
     creatorData.games.forEach(game => {
       // game.game should have proper structure: {title, subtitle, categories: [...]}
       const gameData = game.game || { categories: [] };
@@ -2076,7 +2208,11 @@ async function setupGameCreator() {
       const categoriesData = { categories: gameData.categories || [] };
 
       allCreatorGames.push({
-        ...game,
+        id: game.id,
+        title: game.title,
+        subtitle: game.subtitle,
+        categoryId: game.categoryId,
+        game, // Store reference to original game object for updates
         gameData: categoriesData, // Internal format: {categories: [...]}
         editable: true,
         source: "creator"
@@ -2119,6 +2255,9 @@ async function setupGameCreator() {
         });
       }
     });
+
+    // Refresh the game list UI
+    renderGames();
   }
 
   // Initial load
@@ -2370,9 +2509,12 @@ async function setupGameCreator() {
     // Filter games by search term only (no category filtering in Game Creator)
     // Category filtering happens on the main menu
     let filteredGames = allCreatorGames.filter(game => {
+      // Get live title/subtitle from the game reference (not stale copied values)
+      const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
+      const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
       const searchMatch = !searchTerm ||
-        game.title.toLowerCase().includes(searchTerm) ||
-        game.subtitle.toLowerCase().includes(searchTerm);
+        displayTitle.toLowerCase().includes(searchTerm) ||
+        displaySubtitle.toLowerCase().includes(searchTerm);
       return searchMatch;
     });
 
@@ -2409,9 +2551,15 @@ async function setupGameCreator() {
       const item = document.createElement("div");
       item.className = `creator-game-item${game.id === selectedGameId ? " selected" : ""}`;
 
+      // Get live title/subtitle from the game reference (not stale copied values)
+      // For creator games, use game.game.title (live reference)
+      // For file/custom games, use game.title (these are the actual values)
+      const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
+      const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
+
       item.innerHTML = `
-        <div class="creator-game-title">${game.title}</div>
-        <div class="creator-game-subtitle">${game.subtitle || "No subtitle"}</div>
+        <div class="creator-game-title">${displayTitle}</div>
+        <div class="creator-game-subtitle">${displaySubtitle || "No subtitle"}</div>
         <div class="creator-game-actions">
           <button class="creator-action-btn creator-game-edit-btn" title="Edit" type="button">✏️</button>
           <button class="creator-action-btn creator-game-delete-btn" title="Delete" type="button">🗑</button>
@@ -3694,6 +3842,11 @@ async function setupGameCreator() {
     renderGames();
     renderEditor();
   }
+
+  // Expose createNewGame globally for the wizard to use
+  window.createNewGame = createNewGame;
+  window.loadAllGames = loadAllGames;
+  window.renderEditor = renderEditor;
 
   // Add Game button in sidebar - creates a new blank game (if button exists)
   addGameBtn?.addEventListener("click", createNewGame);
