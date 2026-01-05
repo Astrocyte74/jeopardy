@@ -3871,6 +3871,22 @@ async function setupGameCreator() {
     creatorData.games.push(newGame);
     saveCreatorData(creatorData);  // Save immediately
 
+    // Also save to customGames so it appears in main menu
+    const custom = loadCustomGames();
+    const customGame = {
+      id: newGame.id,
+      title: newGame.title,
+      subtitle: newGame.subtitle,
+      categoryId: newGame.categoryId,
+      game: newGame.game,  // Flat structure with title, subtitle, categories
+      source: "creator"
+    };
+    // Don't duplicate if already exists
+    if (!custom.find(g => g.id === newGame.id)) {
+      custom.unshift(customGame);
+    }
+    saveCustomGames(custom);
+
     // Reload allCreatorGames to include the new game
     await loadAllGames();
 
