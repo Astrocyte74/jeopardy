@@ -20,43 +20,56 @@ class AIPreviewDialog {
    * @param {object} options.data - The actual data to preview
    * @param {function} options.onConfirm - Callback when user clicks Apply
    * @param {function} options.onCancel - Callback when user clicks Cancel
+   * @param {function} options.onRetry - Callback when user clicks Try Again (optional)
+   * @param {object} options.context - Context for retry (theme, difficulty, etc.)
    */
-  show(data, { type, data: previewData, onConfirm, onCancel }) {
-    this.onConfirm = onConfirm;
-    this.onCancel = onCancel;
+  show(data, { type, data: previewData, onConfirm, onCancel, onRetry, context }) {
+    try {
+      console.log('[aiPreview] show() called, type:', type, 'data:', data);
+      this.onConfirm = onConfirm;
+      this.onCancel = onCancel;
+      this.onRetry = onRetry;
+      this.context = context;
 
-    // Remove existing dialog if present
-    const existing = document.getElementById('aiPreviewDialog');
-    if (existing) existing.remove();
+      // Remove existing dialog if present
+      const existing = document.getElementById('aiPreviewDialog');
+      if (existing) existing.remove();
 
-    // Create dialog HTML
-    const dialogHTML = `
-      <dialog id="aiPreviewDialog" class="dialog ai-preview-dialog">
-        <form method="dialog" class="dialogCard">
-          <div class="dialogHeader">
-            <div class="dialogMeta">
-              <div class="dialogCategory">🪄 AI Preview</div>
-              <div class="preview-type">${this.getTypeLabel(type)}</div>
+      // Create dialog HTML
+      const dialogHTML = `
+        <dialog id="aiPreviewDialog" class="dialog ai-preview-dialog">
+          <form method="dialog" class="dialogCard">
+            <div class="dialogHeader">
+              <div class="dialogMeta">
+                <div class="dialogCategory">🪄 AI Preview</div>
+                <div class="preview-type">${this.getTypeLabel(type)}</div>
+              </div>
+              <button class="iconBtn" value="cancel" type="button" aria-label="Close">✕</button>
             </div>
-            <button class="iconBtn" value="cancel" type="button" aria-label="Close">✕</button>
-          </div>
 
-          <div class="preview-content">
-            ${this.renderPreview(type, previewData)}
-          </div>
+            <div class="preview-content">
+              ${this.renderPreview(type, previewData)}
+            </div>
 
-          <div class="dialogActions">
-            <button class="btn btnSecondary" value="cancel" type="button">Cancel</button>
-            <button class="btn btnPrimary" value="confirm" type="button">Apply</button>
-          </div>
-        </form>
-      </dialog>
-    `;
+            <div class="dialogActions">
+              <button class="btn btnSecondary" value="cancel" type="button">Cancel</button>
+              ${this.onRetry ? '<button class="btn btnSecondary" value="retry" type="button">Try Again</button>' : ''}
+              <button class="btn btnPrimary" value="confirm" type="button">Apply</button>
+            </div>
+          </form>
+        </dialog>
+      `;
 
-    document.body.insertAdjacentHTML('beforeend', dialogHTML);
-    this.dialog = document.getElementById('aiPreviewDialog');
-    this.setupListeners();
-    this.dialog.showModal();
+      document.body.insertAdjacentHTML('beforeend', dialogHTML);
+      this.dialog = document.getElementById('aiPreviewDialog');
+      console.log('[aiPreview] Dialog element:', this.dialog);
+      this.setupListeners();
+      console.log('[aiPreview] About to call showModal()');
+      this.dialog.showModal();
+      console.log('[aiPreview] showModal() completed');
+    } catch (error) {
+      console.error('[aiPreview] Error showing dialog:', error);
+    }
   }
 
   getTypeLabel(type) {
@@ -138,12 +151,21 @@ class AIPreviewDialog {
   setupListeners() {
     const confirmBtn = this.dialog.querySelector('[value="confirm"]');
     const cancelBtn = this.dialog.querySelector('[value="cancel"]');
+    const retryBtn = this.dialog.querySelector('[value="retry"]');
     const closeBtn = this.dialog.querySelector('.iconBtn');
 
     confirmBtn.addEventListener('click', () => {
       this.dialog.close();
       if (this.onConfirm) this.onConfirm();
     });
+
+    // Retry button - re-run wizard with same context
+    if (retryBtn && this.onRetry) {
+      retryBtn.addEventListener('click', () => {
+        this.dialog.close();
+        if (this.onRetry) this.onRetry(this.context);
+      });
+    }
 
     const cancelHandler = () => {
       this.dialog.close();
@@ -171,3 +193,6 @@ class AIPreviewDialog {
 
 // Singleton instance
 const aiPreview = new AIPreviewDialog();
+
+// Expose globally for other modules to use
+window.aiPreview = aiPreview;

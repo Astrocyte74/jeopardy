@@ -29,10 +29,20 @@ function initAIActions(context) {
  * @param {string} options.action - Prompt type identifier
  * @param {object} options.result - Parsed AI response
  * @param {string} options.mode - 'direct' | 'preview'
+ * @param {object} options.context - Context for retry/cancel callbacks
+ * @param {function} options.onRetry - Retry callback
+ * @param {function} options.onCancel - Cancel callback (for cleanup)
+ * @param {function} options.onConfirm - Optional callback to run after preview is confirmed
  */
-function applyAIPatch({ scope, action, result, mode }) {
+function applyAIPatch({ scope, action, result, mode, context = null, onRetry = null, onCancel = null, onConfirm = null }) {
   const gameHeader = getGameHeader();
+  console.log('[applyAIPatch] gameHeader:', gameHeader);
+  console.log('[applyAIPatch] gameHeader._game:', gameHeader?._game);
+  console.log('[applyAIPatch] gameHeader._gameData:', gameHeader?._gameData);
+  console.log('[applyAIPatch] All properties on gameHeader:', gameHeader ? Object.keys(gameHeader).filter(k => k.startsWith('_')) : 'N/A');
+
   if (!gameHeader || !gameHeader._gameData) {
+    console.error('[applyAIPatch] No game loaded or gameData missing', { gameHeader, hasGame: !!gameHeader?._game, hasGameData: !!gameHeader?._gameData });
     aiToast.show({ message: 'No game loaded', type: 'error', duration: 3000 });
     return;
   }
@@ -55,10 +65,13 @@ function applyAIPatch({ scope, action, result, mode }) {
 
   if (mode === 'preview') {
     // Show preview dialog first
-    aiPreview.show(result, {
+    console.log('[applyAIPatch] Showing preview dialog, window.aiPreview:', window.aiPreview, 'result:', result);
+    window.aiPreview.show(result, {
       type: action,
       data: result,
-      onConfirm: () => {
+      context: context,
+      onRetry: onRetry,
+      onConfirm: async () => {
         // User confirmed - take snapshot and apply
         if (snapshotScope === 'game') {
           undoManager.saveSnapshot(snapshotId, 'game', { gameData, selections });
@@ -67,9 +80,26 @@ function applyAIPatch({ scope, action, result, mode }) {
           undoManager.saveSnapshot(snapshotId, 'single', { item, selections });
         }
         applyResult(action, result, game, gameData, selections);
+        // Re-render the editor to show updated content
+        // Use global renderEditor if available, otherwise use scoped version
+        if (window.renderEditor) {
+          window.renderEditor();
+        } else if (renderEditor) {
+          renderEditor();
+        }
         showUndoToast(snapshotId, action);
+
+        // Call custom onConfirm callback if provided (e.g., for wizard title generation)
+        if (onConfirm) {
+          console.log('[applyAIPatch] Calling custom onConfirm callback');
+          await onConfirm();
+        }
       },
       onCancel: () => {
+        // Call cleanup callback if provided (e.g., for wizard cancel)
+        if (onCancel) {
+          onCancel();
+        }
         aiToast.show({ message: 'Cancelled', type: 'info', duration: 2000 });
       }
     });
@@ -83,6 +113,12 @@ function applyAIPatch({ scope, action, result, mode }) {
     }
 
     applyResult(action, result, game, gameData, selections);
+    // Re-render the editor to show updated content
+    if (window.renderEditor) {
+      window.renderEditor();
+    } else if (renderEditor) {
+      renderEditor();
+    }
     showUndoToast(snapshotId, action);
   }
 }
@@ -110,12 +146,21 @@ function applyResult(action, result, game, gameData, selections) {
     case 'game-title':
       game.title = result.titles[0].title;
       game.subtitle = result.titles[0].subtitle;
+      // Also update nested game.title/subtitle if exists
+      if (game.game) {
+        game.game.title = result.titles[0].title;
+        game.game.subtitle = result.titles[0].subtitle;
+      }
       game.gameData = gameData;
       break;
 
     case 'categories-generate':
       gameData.categories = result.categories;
       game.gameData = gameData;
+      // Also explicitly update nested game.categories if exists (for safety)
+      if (game.game) {
+        game.game.categories = result.categories;
+      }
       // Reset selections to first items
       window.selectedCategoryIndex = 0;
       window.selectedClueIndex = 0;
@@ -278,8 +323,15 @@ function undoSnapshot(snapshotId) {
 
 /**
  * Generate AI result and apply (unified handler)
+ * @param {string} action - The AI action type
+ * @param {object} context - Context for the AI prompt
+ * @param {string} difficulty - Difficulty level
+ * @param {object} retryContext - Optional context for retry (theme, difficulty)
+ * @param {function} onRetry - Optional callback for retry button
+ * @param {function} onCancel - Optional callback for cancel button (cleanup)
+ * @param {function} onConfirm - Optional callback to run after preview is confirmed
  */
-async function executeAIAction(action, context, difficulty) {
+async function executeAIAction(action, context, difficulty, retryContext = null, onRetry = null, onCancel = null, onConfirm = null) {
   console.log('[executeAIAction] Starting:', action, context, difficulty);
   try {
     // Call AI service (server-side has prompts)
@@ -324,8 +376,9 @@ async function executeAIAction(action, context, difficulty) {
 
     // Apply via centralized function
     console.log('[executeAIAction] Calling applyAIPatch...');
-    applyAIPatch({ scope, action, result: finalResult, mode });
+    applyAIPatch({ scope, action, result: finalResult, mode, context: retryContext, onRetry, onCancel, onConfirm });
     console.log('[executeAIAction] Done');
+    return true; // Return true to indicate success
 
   } catch (error) {
     console.error('[executeAIAction] Error:', error);
@@ -338,6 +391,7 @@ async function executeAIAction(action, context, difficulty) {
         duration: 5000
       });
     }
+    return false; // Return false to indicate failure
   }
 }
 
