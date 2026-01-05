@@ -447,20 +447,21 @@
 
         <!-- Simple Input Modal (inside game creator dialog to appear above modal) -->
         <div id="inputDialog" class="input-dialog-overlay" style="display: none;">
-          <div class="dialogCard">
-            <div class="dialogHeader">
-              <div class="dialogMeta">
-                <div class="dialogCategory" id="inputDialogTitle">Enter Value</div>
-              </div>
-              <button class="iconBtn" id="inputDialogXBtn" aria-label="Cancel" type="button">✕</button>
+          <div class="input-dialog-card">
+            <button class="input-dialog-close" id="inputDialogXBtn" aria-label="Cancel" type="button">✕</button>
+
+            <h2 class="input-dialog-title" id="inputDialogTitle">Create a new game</h2>
+
+            <p class="input-dialog-helper" id="inputDialogHelper">Enter a theme to get started, or leave blank for a random theme</p>
+
+            <div class="input-dialog-field">
+              <input id="inputDialogValue" type="text" placeholder='e.g. "The Life of Jesus", "World Geography", "Movie Quotes"' autocomplete="off" autofocus />
+              <div id="inputDialogError" class="input-dialog-error"></div>
             </div>
-            <div class="inputDialogContent">
-              <input id="inputDialogValue" type="text" placeholder="Enter value..." autocomplete="off" autofocus />
-              <div id="inputDialogError" class="editor-json-error"></div>
-            </div>
-            <div class="dialogActions">
+
+            <div class="input-dialog-actions">
               <button id="inputDialogCancel" class="btn btnSecondary" type="button">Cancel</button>
-              <button id="inputDialogConfirm" class="btn btnPrimary" type="button">OK</button>
+              <button id="inputDialogConfirm" class="btn btnPrimary" type="button">Create game</button>
             </div>
           </div>
         </div>

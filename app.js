@@ -1559,11 +1559,15 @@ function setupResetDialog(onReset) {
 const CREATOR_DATA_KEY = "jeop2:creatorData:v1";
 
 // Helper function to show input dialog (custom overlay to avoid interference with parent dialogs)
-function showInputDialog(title, defaultValue = "") {
-  console.log('[showInputDialog] Called with:', title, defaultValue);
+// @param {string} title - Short title for the dialog
+// @param {string} defaultValue - Default value for the input
+// @param {string} helperText - Optional helper text below title
+function showInputDialog(title, defaultValue = "", helperText = null) {
+  console.log('[showInputDialog] Called with:', title, defaultValue, helperText);
   return new Promise((resolve) => {
     const overlay = document.getElementById("inputDialog");
     const titleEl = document.getElementById("inputDialogTitle");
+    const helperEl = document.getElementById("inputDialogHelper");
     const valueInput = document.getElementById("inputDialogValue");
     const confirmBtn = document.getElementById("inputDialogConfirm");
     const cancelBtn = document.getElementById("inputDialogCancel");
@@ -1573,6 +1577,7 @@ function showInputDialog(title, defaultValue = "") {
     console.log('[showInputDialog] Elements found:', {
       overlay: !!overlay,
       titleEl: !!titleEl,
+      helperEl: !!helperEl,
       valueInput: !!valueInput,
       confirmBtn: !!confirmBtn,
       cancelBtn: !!cancelBtn
@@ -1585,6 +1590,12 @@ function showInputDialog(title, defaultValue = "") {
     }
 
     titleEl.textContent = title;
+    if (helperText && helperEl) {
+      helperEl.textContent = helperText;
+      helperEl.style.display = '';
+    } else if (helperEl) {
+      helperEl.style.display = 'none';
+    }
     valueInput.value = defaultValue;
     errorEl.textContent = "";
 
@@ -1608,19 +1619,15 @@ function showInputDialog(title, defaultValue = "") {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      const value = valueInput.value.trim();
-      if (!value) {
-        errorEl.textContent = "Please enter a value";
-        return;
-      }
-      doResolve(value);
+      // Allow blank input (empty string) for "random" option
+      doResolve(valueInput.value.trim());
     };
 
     const cancelHandler = (e) => {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      doResolve(null);
+      doResolve(null); // null means cancelled
     };
 
     // Add event listeners with the abort signal
@@ -1634,12 +1641,7 @@ function showInputDialog(title, defaultValue = "") {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        const value = valueInput.value.trim();
-        if (!value) {
-          errorEl.textContent = "Please enter a value";
-          return;
-        }
-        doResolve(value);
+        doResolve(valueInput.value.trim());
       }
     }, { signal, capture: true });
 
@@ -2321,13 +2323,13 @@ async function setupGameCreator() {
                 </button>
                 <div class="ai-action-dropdown" id="ai-menu-game">
                   <div class="ai-action-dropdown-header">AI for this game</div>
-                  <button class="ai-action-item" data-ai-action="game-title" title="Generate a new title and subtitle for the entire game">
+                  <button class="ai-action-item" data-ai-action="game-title" title="Smart title generation: analyzes your game content or asks for a theme">
                     <span class="ai-action-icon">📝</span>
                     Generate title & subtitle
                   </button>
-                  <button class="ai-action-item" data-ai-action="categories-generate" title="Replace all categories in this game with AI-generated ones">
+                  <button class="ai-action-item" data-ai-action="categories-generate" title="Generate complete game from a theme - all categories and questions">
                     <span class="ai-action-icon">🎯</span>
-                    Generate all categories
+                    Generate full game (categories & questions)
                   </button>
                   <div class="ai-action-divider"></div>
                   <div class="ai-action-difficulty-section">

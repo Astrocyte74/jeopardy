@@ -6,6 +6,7 @@
  */
 
 let currentDifficulty = 'normal';
+let aiHandlersInitialized = false;
 
 // ==================== RENDERING FUNCTIONS ====================
 
@@ -201,6 +202,12 @@ function injectEditorAIButtons() {
  * Handles both dropdown triggers and direct AI action buttons
  */
 function setupAIButtonHandlers() {
+  // Only set up handlers once
+  if (aiHandlersInitialized) {
+    return;
+  }
+  aiHandlersInitialized = true;
+
   // Close dropdowns when clicking outside
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.ai-action-menu')) {
@@ -411,16 +418,56 @@ async function buildContext(action) {
 
   switch (action) {
     case 'game-title':
-      return {
-        theme: game.title || 'general trivia',
-        currentTitle: game.title,
-        currentSubtitle: game.subtitle
-      };
+      // Check if game has content already
+      const hasContent = gameData.categories.some(cat =>
+        cat.clues && cat.clues.some(clue => clue.clue && clue.clue.trim())
+      );
+
+      if (hasContent) {
+        // Build sample content from the game (first 3 categories, first 2 clues each)
+        const sampleContent = gameData.categories
+          .filter(cat => cat.clues && cat.clues.some(c => c.clue && c.clue.trim()))
+          .slice(0, 3)
+          .map(cat => ({
+            category: cat.title || 'Untitled',
+            clues: cat.clues
+              .filter(c => c.clue && c.clue.trim())
+              .slice(0, 2)
+              .map(c => ({ question: c.clue, answer: c.response }))
+          }));
+
+        return {
+          hasContent: true,
+          sampleContent: JSON.stringify(sampleContent),
+          currentTitle: game.title,
+          currentSubtitle: game.subtitle
+        };
+      } else {
+        // No content - ask for theme
+        const theme = await window.showInputDialog(
+          'Create a new game',
+          '',
+          'Enter a theme to get started, or leave blank for a random theme'
+        );
+        if (theme === null) {
+          return null;
+        }
+        return {
+          hasContent: false,
+          theme: theme || 'random',
+          currentTitle: game.title,
+          currentSubtitle: game.subtitle
+        };
+      }
 
     case 'categories-generate':
       // Use HTML input dialog instead of browser prompt
       console.log('[AI] Calling showInputDialog, function exists:', typeof window.showInputDialog);
-      const theme = await window.showInputDialog('Enter theme for generating categories:', game.title || 'general');
+      const theme = await window.showInputDialog(
+        'Generate full game',
+        game.title || '',
+        'Enter a theme to generate all categories and questions'
+      );
       console.log('[AI] Dialog result:', theme);
       // User cancelled
       if (theme === null) {

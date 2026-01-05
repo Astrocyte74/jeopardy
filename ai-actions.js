@@ -306,8 +306,8 @@ async function executeAIAction(action, context, difficulty) {
     }
 
     // Parse with schema validation
-    console.log('[executeAIAction] Parsing with validator, exists?:', typeof validators[action]);
-    const result = safeJsonParse(rawResult, validators[action]);
+    console.log('[executeAIAction] Parsing with validator, exists?:', typeof window.validators[action]);
+    const result = safeJsonParse(rawResult, window.validators[action]);
     console.log('[executeAIAction] Parsed result from safeJsonParse:', result);
 
     // If safeJsonParse returned null, use our manual parse

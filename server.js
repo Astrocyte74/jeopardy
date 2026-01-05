@@ -149,14 +149,43 @@ function buildPrompt(type, context, difficulty) {
   const prompts = {
     'game-title': {
       system: SYSTEM_INSTRUCTION,
-      user: `Generate 3 engaging Jeopardy game title options based on: "${context.theme || 'general trivia'}".
+      user: (() => {
+        if (context.hasContent) {
+          return `Generate 3 engaging Jeopardy game title options based on this sample content:
+
+${context.sampleContent}
+
+Analyze the categories and questions above, then create titles that capture the theme and tone.
+
+${difficultyText}
 
 Return JSON format:
 {
   "titles": [
+    { "title": "...", "subtitle": "..." },
+    { "title": "...", "subtitle": "..." },
     { "title": "...", "subtitle": "..." }
   ]
-}`
+}`;
+        } else {
+          const theme = context.theme || 'general trivia';
+          const randomHint = context.theme === 'random' ? 'Choose any interesting trivia theme at random.' : '';
+          return `Generate 3 engaging Jeopardy game title options for theme: "${theme}"
+
+${randomHint}
+
+${difficultyText}
+
+Return JSON format:
+{
+  "titles": [
+    { "title": "...", "subtitle": "..." },
+    { "title": "...", "subtitle": "..." },
+    { "title": "...", "subtitle": "..." }
+  ]
+}`;
+        }
+      })()
     },
 
     'categories-generate': {

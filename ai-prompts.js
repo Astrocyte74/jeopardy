@@ -45,7 +45,13 @@ Value guidelines:
 
     'game-title': {
       system: SYSTEM_INSTRUCTION,
-      user: `Generate 3 engaging Jeopardy game title options based on: "${context.theme || 'general trivia'}".
+      user: (() => {
+        if (context.hasContent) {
+          return `Generate 3 engaging Jeopardy game title options based on this sample content:
+
+${context.sampleContent}
+
+Analyze the categories and questions above, then create titles that capture the theme and tone.
 
 ${difficultyText}
 
@@ -56,7 +62,26 @@ Return JSON format:
     { "title": "...", "subtitle": "..." },
     { "title": "...", "subtitle": "..." }
   ]
-}`
+}`;
+        } else {
+          const theme = context.theme || 'general trivia';
+          const randomHint = context.theme === 'random' ? 'Choose any interesting trivia theme at random.' : '';
+          return `Generate 3 engaging Jeopardy game title options for theme: "${theme}"
+
+${randomHint}
+
+${difficultyText}
+
+Return JSON format:
+{
+  "titles": [
+    { "title": "...", "subtitle": "..." },
+    { "title": "...", "subtitle": "..." },
+    { "title": "...", "subtitle": "..." }
+  ]
+}`;
+        }
+      })()
     },
 
     // ==================== CATEGORY LEVEL ====================
@@ -263,7 +288,7 @@ Return JSON format:
  * Get schema validator for a prompt type
  * Used by safeJsonParse to validate AI responses
  */
-const validators = {
+window.validators = {
   'game-title': (data) => {
     if (!data.titles || !Array.isArray(data.titles)) return false;
     return data.titles.every(t => typeof t.title === 'string' && typeof t.subtitle === 'string');
