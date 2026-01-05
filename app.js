@@ -3517,6 +3517,25 @@ async function setupGameCreator() {
         creatorGame.categoryId = game.categoryId;
       }
       saveCreatorData(creatorData);
+
+      // Also save to customGames so it appears in main menu
+      const custom = loadCustomGames();
+      const existingIndex = custom.findIndex(g => g.id === game.id);
+      const customGame = {
+        id: game.id,
+        title: game.title,
+        subtitle: game.subtitle,
+        categoryId: game.categoryId,
+        game: gameToSave,
+        source: "creator"
+      };
+
+      if (existingIndex >= 0) {
+        custom[existingIndex] = customGame;
+      } else {
+        custom.unshift(customGame);
+      }
+      saveCustomGames(custom);
     } else if (game.source === "custom") {
       // Update in custom games
       const custom = loadCustomGames();
