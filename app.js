@@ -2166,7 +2166,26 @@ function loadCreatorData() {
 
 // Save creator data to localStorage
 function saveCreatorData(data) {
-  localStorage.setItem(CREATOR_DATA_KEY, JSON.stringify(data));
+  // Clean circular references before saving (gameData, _game, _gameData, etc.)
+  const cleanedData = {
+    categories: data.categories || [],
+    games: (data.games || []).map(game => {
+      // Only save the essential properties, avoid circular references
+      return {
+        id: game.id,
+        title: game.title,
+        subtitle: game.subtitle,
+        categoryId: game.categoryId,
+        // Save the nested game object with categories
+        game: {
+          title: game.game?.title || game.title,
+          subtitle: game.game?.subtitle || game.subtitle,
+          categories: game.game?.categories || []
+        }
+      };
+    })
+  };
+  localStorage.setItem(CREATOR_DATA_KEY, JSON.stringify(cleanedData));
 }
 
 // Generate unique ID
