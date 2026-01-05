@@ -2419,7 +2419,7 @@ async function setupGameCreator() {
           if (index > 0) {
             [creatorData.categories[index - 1], creatorData.categories[index]] =
             [creatorData.categories[index], creatorData.categories[index - 1]];
-            dirty = true;
+            saveCreatorData(creatorData);  // Save immediately
             renderCategories();
           }
         });
@@ -2433,7 +2433,7 @@ async function setupGameCreator() {
           if (index < creatorData.categories.length - 1) {
             [creatorData.categories[index], creatorData.categories[index + 1]] =
             [creatorData.categories[index + 1], creatorData.categories[index]];
-            dirty = true;
+            saveCreatorData(creatorData);  // Save immediately
             renderCategories();
           }
         });
@@ -2447,8 +2447,7 @@ async function setupGameCreator() {
           showInlineRename(item, category.name, (newName) => {
             if (newName) {
               category.name = newName.trim();
-              dirty = true;
-              saveBtn.disabled = false;
+              saveCreatorData(creatorData);  // Save immediately
               renderCategories();
             }
           });
@@ -2543,8 +2542,7 @@ async function setupGameCreator() {
         };
 
         creatorData.categories.push(newCategory);
-        dirty = true;
-        saveBtn.disabled = false;
+        saveCreatorData(creatorData);  // Save immediately
         renderCategories();
       } else {
         item.remove();
@@ -2604,8 +2602,7 @@ async function setupGameCreator() {
       if (selectedCategoryId === pendingDeleteCategoryData.id) {
         selectedCategoryId = creatorData.categories[0]?.id || null;
       }
-      dirty = true;
-      saveBtn.disabled = false;
+      saveCreatorData(creatorData);  // Save immediately
       renderCategories();
       renderGames();
     }
@@ -2727,7 +2724,7 @@ async function setupGameCreator() {
               renderEditor();
             }
             pendingDeleteGameId = null;
-            dirty = true;
+            saveCreatorData(creatorData);  // Save immediately
             renderGames();
           });
         } else {
@@ -2791,7 +2788,6 @@ async function setupGameCreator() {
             </div>
           `;
         }
-        saveBtn.disabled = true;
         return;
       }
     }
@@ -3295,8 +3291,7 @@ async function setupGameCreator() {
         ]
       });
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save
       selectedCategoryIndex = gameData.categories.length - 1;
       selectedClueIndex = null;
       renderEditor();
@@ -3324,8 +3319,7 @@ async function setupGameCreator() {
       });
 
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save
       selectedClueIndex = category.clues.length - 1; // Select the new question
       renderEditor();
     });
@@ -3385,8 +3379,7 @@ async function setupGameCreator() {
       });
 
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save
 
       // Reset selection if the selected question was removed
       if (selectedCategoryIndex !== null && selectedClueIndex !== null) {
@@ -3475,8 +3468,7 @@ async function setupGameCreator() {
       }
 
       game.gameData = gameData;
-      dirty = true;
-      saveBtn.disabled = false;
+      autoSave();  // Auto-save
       renderEditor();
     };
 
@@ -3613,7 +3605,7 @@ async function setupGameCreator() {
         });
       }
 
-      dirty = true;
+      saveCreatorData(creatorData);  // Save immediately
 
       // Reload all games to include imported ones
       loadAllGames().then(() => {
@@ -3877,8 +3869,7 @@ async function setupGameCreator() {
 
     // Add to creator data
     creatorData.games.push(newGame);
-    dirty = true;
-    saveBtn.disabled = false;
+    saveCreatorData(creatorData);  // Save immediately
 
     // Reload allCreatorGames to include the new game
     await loadAllGames();
