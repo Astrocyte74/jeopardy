@@ -2681,7 +2681,16 @@ async function setupGameCreator() {
     }
 
     // For file-based games, load the data on demand
-    let gameData = game.gameData;
+    // For creator games, use live reference from game.game (not stale gameData snapshot)
+    let gameData;
+    if (game.source === "creator" && game.game) {
+      // Use live game object with current categories (not stale snapshot)
+      gameData = game.game;
+    } else {
+      // For file/custom games, use gameData (may need loading)
+      gameData = game.gameData;
+    }
+
     if (game.source === "file" && !gameData && game.path) {
       try {
         gameData = await loadGameJsonFromPath(game.path);
