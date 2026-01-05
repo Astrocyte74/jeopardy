@@ -2798,7 +2798,9 @@ async function setupGameCreator() {
     let gameData;
     if (game.source === "creator" && game.game) {
       // Use live game object with current categories (not stale snapshot)
-      gameData = game.game;
+      // Note: game.game has nested structure: {id, title, game: {title, subtitle, categories}}
+      // We need the inner game object which has categories
+      gameData = game.game.game || game.game;
     } else {
       // For file/custom games, use gameData (may need loading)
       gameData = game.gameData;
