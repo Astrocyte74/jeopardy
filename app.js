@@ -2683,10 +2683,7 @@ async function setupGameCreator() {
       // Select game
       item.addEventListener("click", (e) => {
         if (!e.target.closest(".creator-game-actions")) {
-          // Reset category/clue selection when switching games
           selectedGameId = game.id;
-          selectedCategoryIndex = null;
-          selectedClueIndex = null;
           renderGames();
           renderEditor();
         }
@@ -2696,10 +2693,7 @@ async function setupGameCreator() {
       const editBtn = item.querySelector(".creator-game-edit-btn");
       editBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        // Reset category/clue selection when switching games
         selectedGameId = game.id;
-        selectedCategoryIndex = null;
-        selectedClueIndex = null;
         renderGames();
         renderEditor();
       });
@@ -2831,8 +2825,12 @@ async function setupGameCreator() {
     const categories = gameData?.categories || [];
 
     // Auto-select first category and first question if nothing is selected
-    if (selectedCategoryIndex === null && categories.length > 0) {
-      selectedCategoryIndex = 0;
+    // OR if selected index is out of bounds (safety for switching games)
+    if (selectedCategoryIndex === null || selectedCategoryIndex >= categories.length) {
+      if (categories.length > 0) {
+        selectedCategoryIndex = 0;
+        selectedClueIndex = null;  // Reset clue index when changing category
+      }
     }
     if (selectedClueIndex === null && selectedCategoryIndex !== null) {
       const category = categories[selectedCategoryIndex];
@@ -3890,11 +3888,9 @@ async function setupGameCreator() {
     // Reload allCreatorGames to include the new game
     await loadAllGames();
 
-    // Select the Custom category and the new game, reset category/clue selection
+    // Select the Custom category and the new game
     selectedCategoryId = customCategory.id;
     selectedGameId = newGame.id;
-    selectedCategoryIndex = null;
-    selectedClueIndex = null;
 
     // Re-render
     renderCategories();
