@@ -2869,10 +2869,18 @@ const GameCreator = {
 
       // Add click listeners for category selection
       categoriesList.querySelectorAll(".category-card-item").forEach((item, catIndex) => {
+        // Single click to select category
         item.addEventListener("click", (e) => {
-          // Don't select if clicking on AI button or title (title has its own handler)
+          // Don't select if clicking on AI button
           if (e.target.closest('.ai-btn')) return;
-          if (e.target.classList.contains('category-card-title')) return; // Let title click handle editing
+
+          // If clicking on title and an input exists, don't re-select
+          const titleEl = item.querySelector('.category-card-title');
+          if (e.target === titleEl || titleEl?.contains(e.target)) {
+            const input = titleEl?.querySelector('input');
+            if (input) return; // Don't select if editing title
+            // Otherwise allow selection (single click on title selects, double-click edits)
+          }
 
           GameCreator.state.selectedCategoryIndex = catIndex;
           GameCreator.state.selectedClueIndex = null; // Reset clue selection when changing category
@@ -2882,11 +2890,12 @@ const GameCreator = {
         // Add double-click handler for inline title editing
         const titleEl = item.querySelector('.category-card-title');
         if (titleEl) {
-          titleEl.style.cursor = 'pointer';
+          titleEl.style.cursor = 'text';
           titleEl.title = 'Double-click to edit';
 
           titleEl.addEventListener('dblclick', (e) => {
             e.stopPropagation();
+            e.preventDefault(); // Prevent triggering category selection
             const category = categories[catIndex];
             const currentTitle = category.title || '';
 
