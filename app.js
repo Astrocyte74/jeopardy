@@ -2859,7 +2859,7 @@ const GameCreator = {
           <div class="category-card-item ${isSelected ? 'selected' : ''}" data-category-index="${index}">
             <span class="category-card-number">${index + 1}</span>
             <div class="category-card-info">
-              <div class="category-card-title">${cat.title || '(Untitled)'}</div>
+              <div class="category-card-title" data-category-title="${index}">${cat.title || '(Untitled)'}</div>
               <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
             </div>
             <div class="category-card-actions"></div>
@@ -2867,17 +2867,80 @@ const GameCreator = {
         `;
       }).join('');
 
-      // Add click listeners
-      categoriesList.querySelectorAll(".category-card-item").forEach(item => {
+      // Add click listeners for category selection
+      categoriesList.querySelectorAll(".category-card-item").forEach((item, catIndex) => {
         item.addEventListener("click", (e) => {
-          // Don't select if clicking on AI button
+          // Don't select if clicking on AI button or title (title has its own handler)
           if (e.target.closest('.ai-btn')) return;
+          if (e.target.classList.contains('category-card-title')) return; // Let title click handle editing
 
-          const catIndex = parseInt(item.dataset.categoryIndex);
           GameCreator.state.selectedCategoryIndex = catIndex;
           GameCreator.state.selectedClueIndex = null; // Reset clue selection when changing category
           GameCreator.Render.editor();
         });
+
+        // Add double-click handler for inline title editing
+        const titleEl = item.querySelector('.category-card-title');
+        if (titleEl) {
+          titleEl.style.cursor = 'pointer';
+          titleEl.title = 'Double-click to edit';
+
+          titleEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            const category = categories[catIndex];
+            const currentTitle = category.title || '';
+
+            // Create input field
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentTitle;
+            input.className = 'category-title-input';
+            input.style.cssText = `
+              width: 100%;
+              padding: 2px 4px;
+              font-size: inherit;
+              font-weight: inherit;
+              border: 1px solid #3b82f6;
+              border-radius: 4px;
+              outline: none;
+              background: white;
+            `;
+
+            // Replace title with input
+            titleEl.innerHTML = '';
+            titleEl.appendChild(input);
+            input.focus();
+            input.select();
+
+            // Save on blur or Enter
+            const finish = (save) => {
+              const newTitle = input.value.trim();
+              input.remove();
+              titleEl.textContent = newTitle || '(Untitled)';
+
+              if (save && newTitle && newTitle !== currentTitle) {
+                const gameHeader = document.getElementById("creatorGameHeader");
+                if (gameHeader && gameHeader._gameData) {
+                  category.title = newTitle;
+                  gameHeader._game.gameData = gameHeader._gameData;
+                  GameCreator.state.autoSave();
+                  GameCreator.Render.categoriesColumn(categories);
+                }
+              }
+            };
+
+            input.addEventListener('blur', () => finish(true));
+            input.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                input.blur();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finish(false);
+              }
+            });
+          });
+        }
       });
 
       // Inject AI buttons for each category
