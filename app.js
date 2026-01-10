@@ -1843,7 +1843,10 @@ function showCategoryAIDialog(currentTitle) {
             <div class="selection-option-desc">${btn.desc}</div>
           </div>
         `;
-        btnEl.addEventListener('click', () => {
+        btnEl.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
           const theme = valueInput.value.trim() || currentTitle;
           handleActionClick(btn.action, theme, btnEl);
         });
@@ -1921,7 +1924,10 @@ function showCategoryAIDialog(currentTitle) {
 
       // Add click handlers for name suggestions
       resultsContainer.querySelectorAll('.name-suggestion-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
           valueInput.value = btn.dataset.name;
           // Auto-apply and close
           cleanup();
@@ -1930,7 +1936,9 @@ function showCategoryAIDialog(currentTitle) {
       });
 
       // Try again button
-      document.getElementById('tryAgainBtn').addEventListener('click', () => {
+      document.getElementById('tryAgainBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         renderButtons();
       });
     };
