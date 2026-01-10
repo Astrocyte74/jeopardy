@@ -534,6 +534,8 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
   switch (action) {
     case 'category-menu':
       // Use custom dialog with editable theme and action buttons
+      // Note: category-rename is now handled inline in the dialog
+      // So we only handle category-generate-smart here
       const categoryTitle = gameData.categories[catIdx].title;
       const result = await window.showCategoryAIDialog(categoryTitle);
 
@@ -541,55 +543,27 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
 
       console.log('[AI] User chose category action:', result.action, 'with theme:', result.theme);
 
-      // Handle suggest names with callback
-      if (result.action === 'category-rename' && result.onResult) {
-        const context = await buildContext('category-rename', explicitCategoryIndex, result.theme);
-        // Generate the names and pass to callback
-        const rawResult = await generateAI('category-rename', context, currentDifficulty);
-        console.log('[AI] Raw names result:', rawResult);
-        // Parse the JSON result
-        let parsed;
-        try {
-          const cleaned = rawResult?.trim() || '';
-          const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
-          parsed = JSON.parse(stripped);
-          console.log('[AI] Parsed names:', parsed);
-        } catch (e) {
-          console.error('[AI] Failed to parse names:', e);
-          result.onError();
-          return { _stayInDialog: true };
-        }
-
-        if (!parsed || !parsed.names || !Array.isArray(parsed.names)) {
-          console.error('[AI] Invalid names response:', parsed);
-          result.onError();
-          return { _stayInDialog: true };
-        }
-
-        result.onResult(parsed.names);
-        // Stay in dialog - return special marker
-        console.log('[buildContext] Returning _stayInDialog marker');
-        return { _stayInDialog: true };
-      }
-
-      // Handle smart generate - decide between fill or replace based on content
-      let actualAction = result.action;
+      // Only handle generate questions (rename is done inline)
       if (result.action === 'category-generate-smart') {
+        // Decide between fill or replace based on content
         const clues = gameData.categories[catIdx].clues;
         const hasContent = clues.some(clue => clue.clue && clue.clue.trim());
-        actualAction = hasContent ? 'category-replace-all' : 'category-generate-clues';
+        const actualAction = hasContent ? 'category-replace-all' : 'category-generate-clues';
         console.log('[AI] Smart generate: hasContent=', hasContent, '→ using', actualAction);
+
+        // Build context for the chosen action with the theme
+        const context = await buildContext(actualAction, explicitCategoryIndex, result.theme);
+
+        // Store cleanup callback for when preview is shown
+        if (result.onClose) {
+          context._onClose = result.onClose;
+        }
+
+        return { action: actualAction, context };
       }
 
-      // Build context for the chosen action with the theme
-      const context = await buildContext(actualAction, explicitCategoryIndex, result.theme);
-
-      // Store cleanup callback for when preview is shown
-      if (result.onClose) {
-        context._onClose = result.onClose;
-      }
-
-      return { action: actualAction, context };
+      // category-rename is handled inline, no action needed
+      return { _stayInDialog: true };
 
     case 'game-title':
       // Check if game has content already

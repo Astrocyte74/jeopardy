@@ -1854,9 +1854,9 @@ function showCategoryAIDialog(currentTitle) {
       });
     };
 
-    const handleActionClick = (action, theme, buttonEl) => {
+    const handleActionClick = async (action, theme, buttonEl) => {
       if (action === 'category-rename') {
-        // Show loading state
+        // Show loading state inline (above buttons, not hiding them)
         actionsContainer.style.display = 'none';
         resultsContainer.style.display = 'flex';
         resultsContainer.innerHTML = `
@@ -1866,13 +1866,27 @@ function showCategoryAIDialog(currentTitle) {
           </div>
         `;
 
-        // Trigger the action and show results when ready
-        resolve({
-          action,
-          theme,
-          onResult: (names) => showNameSuggestions(names, theme),
-          onError: () => renderButtons()
-        });
+        // Generate names directly and show them
+        try {
+          const rawResult = await window.generateAI('category-rename', {
+            currentTitle: theme,
+            theme: theme || 'general'
+          }, 'normal');
+
+          // Parse the result
+          const cleaned = rawResult?.trim() || '';
+          const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+          const parsed = JSON.parse(stripped);
+
+          if (parsed && parsed.names && Array.isArray(parsed.names)) {
+            showNameSuggestionsInline(parsed.names, theme);
+          } else {
+            renderButtons();
+          }
+        } catch (e) {
+          console.error('[CategoryAI] Failed to generate names:', e);
+          renderButtons();
+        }
       } else if (action === 'category-generate-smart') {
         // Show loading state
         actionsContainer.style.display = 'none';
@@ -1894,32 +1908,27 @@ function showCategoryAIDialog(currentTitle) {
       }
     };
 
-    const showNameSuggestions = (names, theme) => {
+    const showNameSuggestionsInline = (names, theme) => {
+      // Show suggestions above the action buttons
+      resultsContainer.style.display = 'flex';
       resultsContainer.innerHTML = `
-        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px;">
-          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">✨ Suggested names:</div>
+        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">✨ Suggested names (click to use):</div>
           ${names.map((name, i) => `
             <button
               class="name-suggestion-btn"
               data-name="${name}"
-              style="display: block; width: 100%; text-align: left; padding: 10px; margin: 4px 0;
+              style="display: inline-block; padding: 8px 12px; margin: 4px;
                      background: var(--bg-primary); border: 1px solid var(--border-color);
-                     border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+                     border-radius: 6px; cursor: pointer; transition: all 0.2s;
+                     font-size: 13px;"
               onmouseover="this.style.background='var(--bg-hover)'"
               onmouseout="this.style.background='var(--bg-primary)'"
             >
-              <strong>${i + 1}.</strong> ${name}
-              <span style="float: right; color: var(--primary);">→ Click to use</span>
+              ${name}
             </button>
           `).join('')}
         </div>
-        <button
-          id="tryAgainBtn"
-          style="padding: 10px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color);
-                 border-radius: 6px; cursor: pointer; width: 100%;"
-        >
-          ↻ Try again
-        </button>
       `;
 
       // Add click handlers for name suggestions
@@ -1928,19 +1937,39 @@ function showCategoryAIDialog(currentTitle) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
+          // Update input with chosen name
           valueInput.value = btn.dataset.name;
-          // Auto-apply and close
-          cleanup();
-          resolve({ action: 'category-rename', theme, result: [btn.dataset.name] });
+          // Apply the name change immediately
+          applyNameChange(btn.dataset.name);
+          // Clear suggestions and show main buttons again
+          resultsContainer.style.display = 'none';
+          actionsContainer.style.display = 'flex';
         });
       });
+    };
 
-      // Try again button
-      document.getElementById('tryAgainBtn').addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        renderButtons();
-      });
+    const applyNameChange = (newName) => {
+      // Apply the name change to the category
+      const gameHeader = document.getElementById('creatorGameHeader');
+      if (!gameHeader || !gameHeader._gameData) return;
+
+      const catIdx = window.selectedCategoryIndex;
+      if (catIdx === null || catIdx === undefined) return;
+
+      gameHeader._gameData.categories[catIdx].title = newName;
+      gameHeader._game.gameData = gameHeader._gameData;
+      window.GameCreatorState.state.autoSave();
+
+      // Update currentTitle so button descriptions update
+      currentTitle = newName;
+      valueInput.value = newName;
+
+      // Re-render to show the new name
+      window.GameCreatorEditor.Render.categories();
+      window.GameCreatorEditor.Render.categoriesColumn(gameHeader._gameData.categories);
+
+      // Re-render buttons with new description
+      renderButtons();
     };
 
     const cleanup = () => {
