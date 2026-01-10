@@ -433,8 +433,11 @@ async function executeAIActionClick(e, action, buttonEl = null) {
 
   try {
     console.log('[AI] Building context...');
+    // Capture category index from button if present
+    const categoryIndex = buttonEl?.dataset?.categoryIndex ? parseInt(buttonEl.dataset.categoryIndex) : null;
+    console.log('[AI] Category index from button:', categoryIndex);
     // Build context based on action (async for input dialogs)
-    const result = await buildContext(action);
+    const result = await buildContext(action, categoryIndex);
     console.log('[AI] Context built:', result);
 
     // User cancelled input dialog
@@ -477,8 +480,10 @@ async function executeAIActionClick(e, action, buttonEl = null) {
 /**
  * Build context object for AI action
  * Async to support input dialogs
+ * @param {string} action - The AI action type
+ * @param {number} explicitCategoryIndex - Optional explicit category index (from button data attribute)
  */
-async function buildContext(action) {
+async function buildContext(action, explicitCategoryIndex = null) {
   const gameHeader = document.getElementById('creatorGameHeader');
   if (!gameHeader || !gameHeader._game) {
     throw new Error('No game loaded');
@@ -486,8 +491,18 @@ async function buildContext(action) {
 
   const game = gameHeader._game;
   const gameData = gameHeader._gameData;
-  const catIdx = window.selectedCategoryIndex;
+  // Use explicit category index if provided, otherwise fall back to global selection
+  const catIdx = explicitCategoryIndex !== null ? explicitCategoryIndex : window.selectedCategoryIndex;
   const clueIdx = window.selectedClueIndex;
+
+  // Debug logging for category actions
+  if (action.startsWith('category-')) {
+    console.log('[buildContext] Category action:', action);
+    console.log('[buildContext] Explicit category index:', explicitCategoryIndex);
+    console.log('[buildContext] Global selectedCategoryIndex:', window.selectedCategoryIndex);
+    console.log('[buildContext] Using catIdx:', catIdx);
+    console.log('[buildContext] Category title:', gameData.categories[catIdx]?.title);
+  }
 
   switch (action) {
     case 'category-menu':
@@ -521,7 +536,8 @@ async function buildContext(action) {
 
       console.log('[AI] User chose category action:', choice);
       // Get the context for the chosen action and return both action and context
-      const context = await buildContext(choice);
+      // Pass through the explicit category index to use the correct category
+      const context = await buildContext(choice, explicitCategoryIndex);
       return { action: choice, context };
 
     case 'game-title':
