@@ -446,6 +446,23 @@ async function executeAIActionClick(e, action, buttonEl = null) {
       return;
     }
 
+    // Special case: category-rename with onResult means we're staying in the dialog
+    // Don't reset the button state and don't proceed with action
+    if (result._stayInDialog) {
+      console.log('[AI] Staying in dialog, not resetting button');
+      // Reset button but keep it as sparkle (not loading state)
+      if (buttonEl) {
+        buttonEl.classList.remove('loading');
+        buttonEl.disabled = false;
+        if (buttonEl.dataset.originalText) {
+          buttonEl.textContent = buttonEl.dataset.originalText;
+        } else {
+          buttonEl.textContent = '✨';
+        }
+      }
+      return;
+    }
+
     // result can be {action, context} for menu selections, or just context for direct actions
     const actualAction = result.action || action;
     const context = result.context || result;
@@ -531,18 +548,19 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
         } catch (e) {
           console.error('[AI] Failed to parse names:', e);
           result.onError();
-          return null;
+          return { _stayInDialog: true };
         }
 
         if (!parsed || !parsed.names || !Array.isArray(parsed.names)) {
           console.error('[AI] Invalid names response:', parsed);
           result.onError();
-          return null;
+          return { _stayInDialog: true };
         }
 
         result.onResult(parsed.names);
-        // Stay in dialog - don't return yet
-        return null;
+        // Stay in dialog - return special marker
+        console.log('[buildContext] Returning _stayInDialog marker');
+        return { _stayInDialog: true };
       }
 
       // Handle smart generate - decide between fill or replace based on content
