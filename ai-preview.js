@@ -102,9 +102,14 @@ class AIPreviewDialog {
   }
 
   renderCategoriesPreview(categories) {
-    return categories.map((cat, i) => `
+    return categories.map((cat, i) => {
+      const titleHtml = this.escapeHtml(cat.title);
+      const topicHtml = cat.contentTopic && cat.contentTopic !== cat.title
+        ? ` <span class="preview-topic" title="Content topic for AI generation">📝 ${this.escapeHtml(cat.contentTopic)}</span>`
+        : '';
+      return `
       <div class="preview-category">
-        <h4>${i + 1}. ${this.escapeHtml(cat.title)}</h4>
+        <h4>${i + 1}. ${titleHtml}${topicHtml}</h4>
         <ul>
           ${cat.clues.map(clue => `
             <li>
@@ -114,13 +119,18 @@ class AIPreviewDialog {
           `).join('')}
         </ul>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   renderSingleCategoryPreview(category) {
+    const titleHtml = this.escapeHtml(category.title);
+    const topicHtml = category.contentTopic && category.contentTopic !== category.title
+      ? ` <span class="preview-topic" title="Content topic for AI generation">📝 ${this.escapeHtml(category.contentTopic)}</span>`
+      : '';
     return `
       <div class="preview-category">
-        <h4>${this.escapeHtml(category.title)}</h4>
+        <h4>${titleHtml}${topicHtml}</h4>
         <ul>
           ${category.clues.map(clue => `
             <li>

@@ -1931,7 +1931,7 @@ input[type="text"]:focus {
 }
 
 .game-creator-dialog .dialogCard {
-  max-height: 92vh;
+  /* max-height: 92vh; REMOVED - allow content to overflow and scroll */
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -1942,7 +1942,7 @@ input[type="text"]:focus {
 .game-creator-workspace {
   display: flex;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* ===== LEFT SIDEBAR ===== */
@@ -4056,16 +4056,7 @@ input[type="text"]:focus {
   display: none;
 }
 
-.game-creator-dialog {
-  max-width: min(1400px, calc(100vw - 40px));
-  width: 95vw;
-}
-
-.game-creator-dialog .dialogCard {
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
+/* Duplicate .game-creator-dialog definitions removed */
 
 .game-creator-body {
   display: grid;
@@ -4073,7 +4064,7 @@ input[type="text"]:focus {
   gap: 20px;
   padding: 20px 0;
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .creator-panel {
@@ -4083,6 +4074,12 @@ input[type="text"]:focus {
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  /* Main panels (categories, clues, editor) should allow scrolling */
+}
+.creator-panel.categories-panel,
+.creator-panel.clues-panel,
+.creator-panel.editor-panel {
+  overflow-y: auto;
 }
 
 .creator-panel-header {
