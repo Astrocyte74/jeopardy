@@ -608,14 +608,27 @@ async function buildContext(action, explicitCategoryIndex = null) {
       };
 
     case 'category-generate-clues':
+      // Ask user for theme (pre-filled with category title)
+      const fillCategoryTitle = gameData.categories[catIdx].title;
+      const fillTheme = await window.showInputDialog(
+        '✨ Fill Empty Questions',
+        fillCategoryTitle,
+        'Enter a theme for this category (or use the default)',
+        'Generate'
+      );
+
+      if (fillTheme === null) return null; // User cancelled
+
       return {
-        categoryTitle: gameData.categories[catIdx].title,
+        categoryTitle: fillCategoryTitle,
+        theme: fillTheme.trim() || fillCategoryTitle,
         existingClues: gameData.categories[catIdx].clues
       };
 
     case 'category-replace-all':
       // Ask user for theme (pre-filled with category title)
       const categoryTitle = gameData.categories[catIdx].title;
+      const existingClues = gameData.categories[catIdx].clues;
       const customTheme = await window.showInputDialog(
         '✨ Replace All Questions',
         categoryTitle,
@@ -628,7 +641,8 @@ async function buildContext(action, explicitCategoryIndex = null) {
       return {
         categoryTitle: categoryTitle,
         theme: customTheme.trim() || categoryTitle,
-        count: gameData.categories[catIdx].clues.length
+        count: existingClues.length,
+        existingClues: existingClues  // Include so we can check if all empty
       };
 
     case 'questions-generate-five':

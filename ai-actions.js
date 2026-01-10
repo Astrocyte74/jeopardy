@@ -374,8 +374,8 @@ async function executeAIAction(action, context, difficulty, retryContext = null,
     const finalResult = result || parsed;
     console.log('[executeAIAction] Final result:', finalResult);
 
-    // Determine mode (preview vs direct)
-    const mode = needsPreview(action) ? 'preview' : 'direct';
+    // Determine mode (preview vs direct) - pass context to check if all empty
+    const mode = needsPreview(action, context) ? 'preview' : 'direct';
     console.log('[executeAIAction] Mode:', mode);
 
     // Determine scope
@@ -405,9 +405,21 @@ async function executeAIAction(action, context, difficulty, retryContext = null,
 
 /**
  * Determine if action needs preview (destructive operations)
+ * For category-replace-all, skip preview if all questions are empty
  */
-function needsPreview(action) {
-  return ['categories-generate', 'category-replace-all'].includes(action);
+function needsPreview(action, context = null) {
+  if (action === 'categories-generate') return true;
+
+  if (action === 'category-replace-all' && context?.existingClues) {
+    // Check if all clues are empty
+    const allEmpty = context.existingClues.every(clue =>
+      !clue.clue || !clue.clue.trim()
+    );
+    // Skip preview if all questions are empty (acts like fill empty)
+    return !allEmpty;
+  }
+
+  return false;
 }
 
 /**

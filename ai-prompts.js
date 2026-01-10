@@ -129,6 +129,7 @@ Return JSON format:
       system: SYSTEM_INSTRUCTION,
       user: `Generate missing clues for category: "${context.categoryTitle}"
 
+Theme: ${context.theme || context.categoryTitle}
 Existing clues: ${JSON.stringify(context.existingClues || [])}
 
 Fill missing values to complete [200, 400, 600, 800, 1000] set.
