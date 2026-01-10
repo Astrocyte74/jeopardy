@@ -177,11 +177,19 @@ function applyResult(action, result, game, gameData, selections) {
       if (action === 'category-replace-all') {
         gameData.categories[catIndex].clues = result.category.clues;
       } else {
-        // Merge - fill missing values
+        // Fill empty questions or add missing values
         const existingClues = gameData.categories[catIndex].clues;
         const existingValues = new Set(existingClues.map(c => c.value));
         result.clues.forEach(clue => {
-          if (!existingValues.has(clue.value)) {
+          const existingClue = existingClues.find(c => c.value === clue.value);
+          if (existingClue) {
+            // Replace if the existing clue is empty
+            if (!existingClue.clue || !existingClue.clue.trim()) {
+              existingClue.clue = clue.clue;
+              existingClue.response = clue.response;
+            }
+          } else {
+            // Add new clue for this value
             existingClues.push(clue);
           }
         });
