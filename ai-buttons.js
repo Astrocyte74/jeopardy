@@ -616,7 +616,7 @@ async function buildContext(action, explicitCategoryIndex = null) {
     case 'category-replace-all':
       return {
         categoryTitle: gameData.categories[catIdx].title,
-        theme: game.title || gameData.categories[catIdx].title,
+        // Don't send game theme - AI should focus on category title only
         count: gameData.categories[catIdx].clues.length
       };
 
