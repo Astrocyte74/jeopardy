@@ -515,6 +515,16 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
 
       console.log('[AI] User chose category action:', result.action, 'with theme:', result.theme);
 
+      // Handle suggest names with callback
+      if (result.action === 'category-rename' && result.onResult) {
+        const context = await buildContext('category-rename', explicitCategoryIndex, result.theme);
+        // Generate the names and pass to callback
+        const names = await generateAI('category-rename', context, currentDifficulty);
+        result.onResult(names.names);
+        // Stay in dialog - don't return yet
+        return null;
+      }
+
       // Handle smart generate - decide between fill or replace based on content
       let actualAction = result.action;
       if (result.action === 'category-generate-smart') {
@@ -526,6 +536,12 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
 
       // Build context for the chosen action with the theme
       const context = await buildContext(actualAction, explicitCategoryIndex, result.theme);
+
+      // Store cleanup callback for when preview is shown
+      if (result.onClose) {
+        context._onClose = result.onClose;
+      }
+
       return { action: actualAction, context };
 
     case 'game-title':

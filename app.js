@@ -1771,9 +1771,9 @@ function showSelectionDialog(title, helperText, options, defaultValue = null, sh
 window.showSelectionDialog = showSelectionDialog;
 
 /**
- * Category AI dialog - shows editable theme and 3 action options
+ * Category AI dialog - shows editable theme and 2 action options
  * @param {string} currentTitle - Current category title (pre-fills the input)
- * @returns {Promise} Resolves with {action, theme} or null if cancelled
+ * @returns {Promise} Resolves with {action, theme, result} or null if cancelled
  */
 function showCategoryAIDialog(currentTitle) {
   return new Promise((resolve) => {
@@ -1803,72 +1803,172 @@ function showCategoryAIDialog(currentTitle) {
     confirmBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
 
-    // Create custom action buttons
+    // Create action buttons container
     const actionsContainer = document.createElement('div');
+    actionsContainer.id = 'categoryAIActions';
     actionsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
 
-    const buttons = [
-      {
-        action: 'category-rename',
-        icon: '✏️',
-        title: 'Suggest better names',
-        desc: `Get creative alternatives to "${currentTitle}"`
-      },
-      {
-        action: 'category-generate-smart',
-        icon: '✨',
-        title: 'Generate questions',
-        desc: 'Create questions for this category using the theme above'
-      }
-    ];
+    // Create results container (hidden initially)
+    const resultsContainer = document.createElement('div');
+    resultsContainer.id = 'categoryAIResults';
+    resultsContainer.style.cssText = 'display: none; flex-direction: column; gap: 12px; width: 100%;';
 
-    buttons.forEach(btn => {
-      const btnEl = document.createElement('button');
-      btnEl.className = 'selection-option';
-      btnEl.innerHTML = `
-        <span class="selection-option-icon">${btn.icon}</span>
-        <div class="selection-option-content">
-          <div class="selection-option-title">${btn.title}</div>
-          <div class="selection-option-desc">${btn.desc}</div>
-        </div>
-      `;
-      btnEl.addEventListener('click', () => {
-        overlay.style.display = 'none';
-        actionsContainer.remove();
-        // Reset buttons
-        confirmBtn.style.display = '';
-        cancelBtn.style.display = '';
-        valueInput.style.marginBottom = '';
+    const renderButtons = () => {
+      actionsContainer.innerHTML = '';
+      actionsContainer.style.display = 'flex';
+      resultsContainer.style.display = 'none';
+
+      const buttons = [
+        {
+          action: 'category-rename',
+          icon: '✏️',
+          title: 'Suggest better names',
+          desc: `Get creative alternatives to "${currentTitle}"`
+        },
+        {
+          action: 'category-generate-smart',
+          icon: '✨',
+          title: 'Generate questions',
+          desc: 'Create questions for this category using the theme above'
+        }
+      ];
+
+      buttons.forEach(btn => {
+        const btnEl = document.createElement('button');
+        btnEl.className = 'selection-option';
+        btnEl.innerHTML = `
+          <span class="selection-option-icon">${btn.icon}</span>
+          <div class="selection-option-content">
+            <div class="selection-option-title">${btn.title}</div>
+            <div class="selection-option-desc">${btn.desc}</div>
+          </div>
+        `;
+        btnEl.addEventListener('click', () => {
+          const theme = valueInput.value.trim() || currentTitle;
+          handleActionClick(btn.action, theme, btnEl);
+        });
+        actionsContainer.appendChild(btnEl);
+      });
+    };
+
+    const handleActionClick = (action, theme, buttonEl) => {
+      if (action === 'category-rename') {
+        // Show loading state
+        actionsContainer.style.display = 'none';
+        resultsContainer.style.display = 'flex';
+        resultsContainer.innerHTML = `
+          <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+            <div>Generating name suggestions...</div>
+          </div>
+        `;
+
+        // Trigger the action and show results when ready
         resolve({
-          action: btn.action,
-          theme: valueInput.value.trim() || currentTitle
+          action,
+          theme,
+          onResult: (names) => showNameSuggestions(names, theme),
+          onError: () => renderButtons()
+        });
+      } else if (action === 'category-generate-smart') {
+        // Show loading state
+        actionsContainer.style.display = 'none';
+        resultsContainer.style.display = 'flex';
+        resultsContainer.innerHTML = `
+          <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+            <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+            <div>Generating questions...</div>
+            <div style="font-size: 12px; margin-top: 8px;">This may take a moment</div>
+          </div>
+        `;
+
+        // Trigger the action - dialog will close when preview is ready
+        resolve({
+          action,
+          theme,
+          onClose: () => cleanup()
+        });
+      }
+    };
+
+    const showNameSuggestions = (names, theme) => {
+      resultsContainer.innerHTML = `
+        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 12px;">
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">✨ Suggested names:</div>
+          ${names.map((name, i) => `
+            <button
+              class="name-suggestion-btn"
+              data-name="${name}"
+              style="display: block; width: 100%; text-align: left; padding: 10px; margin: 4px 0;
+                     background: var(--bg-primary); border: 1px solid var(--border-color);
+                     border-radius: 6px; cursor: pointer; transition: all 0.2s;"
+              onmouseover="this.style.background='var(--bg-hover)'"
+              onmouseout="this.style.background='var(--bg-primary)'"
+            >
+              <strong>${i + 1}.</strong> ${name}
+              <span style="float: right; color: var(--primary);">→ Click to use</span>
+            </button>
+          `).join('')}
+        </div>
+        <button
+          id="tryAgainBtn"
+          style="padding: 10px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color);
+                 border-radius: 6px; cursor: pointer; width: 100%;"
+        >
+          ↻ Try again
+        </button>
+      `;
+
+      // Add click handlers for name suggestions
+      resultsContainer.querySelectorAll('.name-suggestion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          valueInput.value = btn.dataset.name;
+          // Auto-apply and close
+          cleanup();
+          resolve({ action: 'category-rename', theme, result: [btn.dataset.name] });
         });
       });
-      actionsContainer.appendChild(btnEl);
-    });
 
-    // Insert after the input field
+      // Try again button
+      document.getElementById('tryAgainBtn').addEventListener('click', () => {
+        renderButtons();
+      });
+    };
+
+    const cleanup = () => {
+      overlay.style.display = 'none';
+      actionsContainer.remove();
+      resultsContainer.remove();
+      // Reset buttons
+      confirmBtn.style.display = '';
+      cancelBtn.style.display = '';
+      valueInput.style.marginBottom = '';
+    };
+
+    // Insert containers
     valueInput.parentNode.insertBefore(actionsContainer, valueInput.nextSibling);
+    valueInput.parentNode.insertBefore(resultsContainer, actionsContainer.nextSibling);
 
     let resolved = false;
     const abortController = new AbortController();
     const signal = abortController.signal;
 
     const doResolve = (value) => {
-      if (!resolved) {
+      if (!resolved && value !== null) {
         resolved = true;
         abortController.abort();
-        overlay.style.display = 'none';
-        actionsContainer.remove();
-        // Reset buttons
-        confirmBtn.style.display = '';
-        cancelBtn.style.display = '';
-        valueInput.style.marginBottom = '';
+        cleanup();
         resolve(value);
       }
     };
 
-    xBtn.addEventListener("click", () => doResolve(null), { signal });
+    xBtn.addEventListener("click", () => {
+      cleanup();
+      resolve(null);
+    }, { signal });
+
+    // Initial render
+    renderButtons();
 
     // Show the overlay
     overlay.style.display = 'flex';

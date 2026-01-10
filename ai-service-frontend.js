@@ -55,7 +55,7 @@ function isServerAvailable() {
  * @param {string} difficulty - 'easy', 'normal', or 'hard'
  * @returns {Promise<object>} Parsed JSON response
  */
-async function generateAI(promptType, context, difficulty = 'normal') {
+window.generateAI = async function generateAI(promptType, context, difficulty = 'normal') {
   if (!serverAvailable) {
     throw new Error('AI server is not available. Please start the AI server with: node server.js');
   }

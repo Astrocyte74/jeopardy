@@ -64,6 +64,13 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
   const snapshotId = `${action}-${Date.now()}`;
 
   if (mode === 'preview') {
+    // Close category AI dialog before showing preview
+    if (context && context._onClose) {
+      console.log('[applyAIPatch] Closing category AI dialog before preview');
+      context._onClose();
+      delete context._onClose;
+    }
+
     // Show preview dialog first
     console.log('[applyAIPatch] Showing preview dialog, window.aiPreview:', window.aiPreview, 'result:', result);
     window.aiPreview.show(result, {
