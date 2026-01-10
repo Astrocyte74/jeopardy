@@ -434,18 +434,22 @@ async function executeAIActionClick(e, action, buttonEl = null) {
   try {
     console.log('[AI] Building context...');
     // Build context based on action (async for input dialogs)
-    const context = await buildContext(action);
-    console.log('[AI] Context built:', context);
+    const result = await buildContext(action);
+    console.log('[AI] Context built:', result);
 
     // User cancelled input dialog
-    if (!context) {
+    if (!result) {
       console.log('[AI] User cancelled or empty context');
       return;
     }
 
-    console.log('[AI] Executing AI action:', action, context, currentDifficulty);
+    // result can be {action, context} for menu selections, or just context for direct actions
+    const actualAction = result.action || action;
+    const context = result.context || result;
+
+    console.log('[AI] Executing AI action:', actualAction, context, currentDifficulty);
     // Execute via ai-actions.js
-    await executeAIAction(action, context, currentDifficulty);
+    await executeAIAction(actualAction, context, currentDifficulty);
     console.log('[AI] Action completed successfully');
 
   } catch (error) {
@@ -516,8 +520,9 @@ async function buildContext(action) {
       if (!choice) return null; // User cancelled
 
       console.log('[AI] User chose category action:', choice);
-      // Execute the chosen action by re-calling buildContext with the actual action
-      return await buildContext(choice);
+      // Get the context for the chosen action and return both action and context
+      const context = await buildContext(choice);
+      return { action: choice, context };
 
     case 'game-title':
       // Check if game has content already
