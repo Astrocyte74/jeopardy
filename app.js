@@ -2138,1143 +2138,1023 @@ function showExportInstructions(filename, gameId, gameTitle, gameSubtitle) {
 }
 
 // Default creator data structure
-function getDefaultCreatorData() {
-  return {
-    categories: [
-      { id: "cat_all", name: "All Games", icon: "🎮" },
-      { id: "cat_custom", name: "Custom", icon: "✏️" }
-    ],
-    games: [],
-  };
-}
+// ================================
+// Game Creator Module
+// ================================
+// Reorganized into namespace pattern for better maintainability
+// See REFACTORING_PLAN.md for details
 
-// Load creator data from localStorage
-function loadCreatorData() {
-  try {
-    const raw = localStorage.getItem(CREATOR_DATA_KEY);
-    if (!raw) return getDefaultCreatorData();
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return getDefaultCreatorData();
-    return {
-      categories: Array.isArray(parsed.categories) ? parsed.categories : getDefaultCreatorData().categories,
-      games: Array.isArray(parsed.games) ? parsed.games : [],
-    };
-  } catch {
-    return getDefaultCreatorData();
-  }
-}
+const GameCreator = {
+  // ========================================
+  // STATE
+  // ========================================
+  state: {
+    creatorData: null,
+    selectedCategoryId: null,
+    selectedGameId: null,
+    selectedCategoryIndex: null,
+    selectedClueIndex: null,
+    pendingDeleteGameId: null,
+    pendingDeleteCategoryIndex: null,
+    pendingDeleteCategoryData: null,
+    dirty: false,
+    allCreatorGames: [],
+    autoSave: null,
+    menuTrigger: null,
+    menuDropdown: null,
+  },
 
-// Save creator data to localStorage
-function saveCreatorData(data) {
-  // Clean circular references before saving (gameData, _game, _gameData, etc.)
-  const cleanedData = {
-    categories: data.categories || [],
-    games: (data.games || []).map(game => {
-      // Only save the essential properties, avoid circular references
+  // ========================================
+  // STORAGE & PERSISTENCE
+  // ========================================
+  Storage: {
+    getDefaultCreatorData() {
       return {
-        id: game.id,
-        title: game.title,
-        subtitle: game.subtitle,
-        categoryId: game.categoryId,
-        // Save the nested game object with categories
-        game: {
-          title: game.game?.title || game.title,
-          subtitle: game.game?.subtitle || game.subtitle,
-          categories: game.game?.categories || []
-        }
+        categories: [
+          { id: "cat_all", name: "All Games", icon: "🎮" },
+          { id: "cat_custom", name: "Custom", icon: "✏️" }
+        ],
+        games: [],
       };
-    })
-  };
-  localStorage.setItem(CREATOR_DATA_KEY, JSON.stringify(cleanedData));
-}
+    },
 
-// Generate unique ID
-function generateId() {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
+    loadCreatorData() {
+      try {
+        const raw = localStorage.getItem(CREATOR_DATA_KEY);
+        if (!raw) return GameCreator.Storage.getDefaultCreatorData();
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return GameCreator.Storage.getDefaultCreatorData();
+        return {
+          categories: Array.isArray(parsed.categories) ? parsed.categories : GameCreator.Storage.getDefaultCreatorData().categories,
+          games: Array.isArray(parsed.games) ? parsed.games : [],
+        };
+      } catch {
+        return GameCreator.Storage.getDefaultCreatorData();
+      }
+    },
 
-// Auto-save with debouncing (called from Game Creator)
-// Returns a function that can be called to trigger auto-save
-function createAutoSaveFunction() {
-  let saveTimeout = null;
-  let isSaving = false;
-
-  return async () => {
-    // Clear any pending save
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-
-    // Debounce: wait 500ms after last change before saving
-    saveTimeout = setTimeout(async () => {
-      if (isSaving) return; // Prevent concurrent saves
-
-      const gameHeader = document.getElementById("creatorGameHeader");
-      if (!gameHeader || !gameHeader._game || !gameHeader._gameData) return;
-
-      isSaving = true;
-      const game = gameHeader._game;
-      const gameData = gameHeader._gameData;
-
-      // Update the game's data
-      game.gameData = gameData;
-
-      // Build proper game structure for saving (categories at top level)
-      const gameToSave = {
-        title: game.title,
-        subtitle: game.subtitle,
-        ...gameData  // This spreads {categories: [...]}
+    saveCreatorData(data) {
+      // Clean circular references before saving (gameData, _game, _gameData, etc.)
+      const cleanedData = {
+        categories: data.categories || [],
+        games: (data.games || []).map(game => {
+          // Only save the essential properties, avoid circular references
+          return {
+            id: game.id,
+            title: game.title,
+            subtitle: game.subtitle,
+            categoryId: game.categoryId,
+            // Save the nested game object with categories
+            game: {
+              title: game.game?.title || game.title,
+              subtitle: game.game?.subtitle || game.subtitle,
+              categories: game.game?.categories || []
+            }
+          };
+        })
       };
+      localStorage.setItem(CREATOR_DATA_KEY, JSON.stringify(cleanedData));
+    },
 
-      // Save to appropriate storage
-      if (game.source === "creator") {
-        const creatorData = loadCreatorData();
-        // Update in creatorData.games
-        const creatorGame = creatorData.games.find(g => g.id === game.id);
-        if (creatorGame) {
-          creatorGame.game = gameToSave;
-          creatorGame.gameData = gameData;
-          creatorGame.title = game.title;
-          creatorGame.subtitle = game.subtitle;
-          creatorGame.categoryId = game.categoryId;
+    createAutoSaveFunction() {
+      let saveTimeout = null;
+      let isSaving = false;
+
+      return async () => {
+        // Clear any pending save
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
         }
-        saveCreatorData(creatorData);
 
-        // Also save to customGames so it appears in main menu
-        const custom = loadCustomGames();
-        const existingIndex = custom.findIndex(g => g.id === game.id);
-        const customGame = {
+        // Debounce: wait 500ms after last change before saving
+        saveTimeout = setTimeout(async () => {
+          if (isSaving) return; // Prevent concurrent saves
+
+          const gameHeader = document.getElementById("creatorGameHeader");
+          if (!gameHeader || !gameHeader._game || !gameHeader._gameData) return;
+
+          isSaving = true;
+          const game = gameHeader._game;
+          const gameData = gameHeader._gameData;
+
+          // Update the game's data
+          game.gameData = gameData;
+
+          // Build proper game structure for saving (categories at top level)
+          const gameToSave = {
+            title: game.title,
+            subtitle: game.subtitle,
+            ...gameData  // This spreads {categories: [...]}
+          };
+
+          // Save to appropriate storage
+          if (game.source === "creator") {
+            const creatorData = GameCreator.Storage.loadCreatorData();
+            // Update in creatorData.games
+            const creatorGame = creatorData.games.find(g => g.id === game.id);
+            if (creatorGame) {
+              creatorGame.game = gameToSave;
+              creatorGame.gameData = gameData;
+              creatorGame.title = game.title;
+              creatorGame.subtitle = game.subtitle;
+              creatorGame.categoryId = game.categoryId;
+            }
+            GameCreator.Storage.saveCreatorData(creatorData);
+
+            // Also save to customGames so it appears in main menu
+            const custom = loadCustomGames();
+            const existingIndex = custom.findIndex(g => g.id === game.id);
+            const customGame = {
+              id: game.id,
+              title: game.title,
+              subtitle: game.subtitle,
+              categoryId: game.categoryId,
+              game: gameToSave,
+              source: "creator"
+            };
+
+            if (existingIndex >= 0) {
+              custom[existingIndex] = customGame;
+            } else {
+              custom.unshift(customGame);
+            }
+            saveCustomGames(custom);
+          } else if (game.source === "custom") {
+            // Update in custom games
+            const custom = loadCustomGames();
+            const customGame = custom.find(g => g.id === game.id);
+            if (customGame) {
+              customGame.game = gameToSave;
+              customGame.title = game.title;
+              customGame.subtitle = game.subtitle;
+              if (game.categoryId) {
+                customGame.categoryId = game.categoryId;
+              }
+              saveCustomGames(custom);
+            }
+          }
+
+          isSaving = false;
+
+          // Show subtle "Saved" indicator
+          const saveIndicator = document.getElementById("creatorSaveIndicator");
+          if (saveIndicator) {
+            saveIndicator.textContent = "✓ Saved";
+            saveIndicator.style.opacity = "1";
+            setTimeout(() => {
+              saveIndicator.style.opacity = "0.5";
+            }, 1000);
+          }
+        }, 500);
+      };
+    },
+  },
+
+  // ========================================
+  // UTILITIES
+  // ========================================
+  Utils: {
+    generateId() {
+      return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    },
+  },
+
+  // ========================================
+  // DATA ACCESS
+  // ========================================
+  Data: {
+    async loadAllGames() {
+      GameCreator.state.allCreatorGames = [];
+      const creatorData = GameCreator.state.creatorData;
+
+      // Add creator games (fully editable) - store direct references
+      creatorData.games.forEach(game => {
+        // game.game should have proper structure: {title, subtitle, categories: [...]}
+        const gameData = game.game || { categories: [] };
+        // Extract just the categories part for gameData (used internally by Game Creator)
+        const categoriesData = { categories: gameData.categories || [] };
+
+        GameCreator.state.allCreatorGames.push({
           id: game.id,
           title: game.title,
           subtitle: game.subtitle,
           categoryId: game.categoryId,
-          game: gameToSave,
+          game, // Store reference to original game object for updates
+          gameData: categoriesData, // Internal format: {categories: [...]}
+          editable: true,
           source: "creator"
-        };
-
-        if (existingIndex >= 0) {
-          custom[existingIndex] = customGame;
-        } else {
-          custom.unshift(customGame);
-        }
-        saveCustomGames(custom);
-      } else if (game.source === "custom") {
-        // Update in custom games
-        const custom = loadCustomGames();
-        const customGame = custom.find(g => g.id === game.id);
-        if (customGame) {
-          customGame.game = gameToSave;
-          customGame.title = game.title;
-          customGame.subtitle = game.subtitle;
-          if (game.categoryId) {
-            customGame.categoryId = game.categoryId;
-          }
-          saveCustomGames(custom);
-        }
-      }
-
-      isSaving = false;
-
-      // Show subtle "Saved" indicator
-      const saveIndicator = document.getElementById("creatorSaveIndicator");
-      if (saveIndicator) {
-        saveIndicator.textContent = "✓ Saved";
-        saveIndicator.style.opacity = "1";
-        setTimeout(() => {
-          saveIndicator.style.opacity = "0.5";
-        }, 1000);
-      }
-    }, 500);
-  };
-}
-
-// Setup Game Creator
-async function setupGameCreator() {
-  const dialog = document.getElementById("gameCreatorDialog");
-  const openBtn = document.getElementById("createGameBtn");
-  const categoriesList = document.getElementById("creatorCategoriesList");
-  const gamesList = document.getElementById("creatorGamesList");
-  const editorContent = document.getElementById("creatorEditorContent");
-  const searchInput = document.getElementById("creatorSearchInput");
-  const searchCount = document.getElementById("creatorSearchCount");
-  const addCategoryBtn = document.getElementById("creatorAddCategoryBtn");
-  const addGameBtn = document.getElementById("creatorAddGameBtn");
-  const saveBtn = document.getElementById("creatorSaveBtn");
-  // Note: export/import buttons are now dynamically created in renderEditor()
-  const importInput = document.getElementById("creatorImportInput");
-
-  let creatorData = loadCreatorData();
-  let selectedCategoryId = creatorData.categories[0]?.id || null;
-  let selectedGameId = null;
-  let pendingDeleteGameId = null;
-  let dirty = false;
-  let allCreatorGames = [];
-
-  // Create auto-save function (debounced, saves to both creatorData and customGames)
-  const autoSave = createAutoSaveFunction();
-
-  // Load all games (file-based, custom, and creator games)
-  async function loadAllGames() {
-    allCreatorGames = [];
-
-    // Add creator games (fully editable) - store direct references
-    creatorData.games.forEach(game => {
-      // game.game should have proper structure: {title, subtitle, categories: [...]}
-      const gameData = game.game || { categories: [] };
-      // Extract just the categories part for gameData (used internally by Game Creator)
-      const categoriesData = { categories: gameData.categories || [] };
-
-      allCreatorGames.push({
-        id: game.id,
-        title: game.title,
-        subtitle: game.subtitle,
-        categoryId: game.categoryId,
-        game, // Store reference to original game object for updates
-        gameData: categoriesData, // Internal format: {categories: [...]}
-        editable: true,
-        source: "creator"
+        });
       });
-    });
 
-    // Add file-based games (editable - changes save to localStorage)
-    try {
-      const { games: fileGames } = await getAvailableGames();
-      fileGames.forEach(game => {
-        if (game.source === "index" && !allCreatorGames.find(g => g.id === game.id)) {
-          allCreatorGames.push({
+      // Add file-based games (editable - changes save to localStorage)
+      try {
+        const { games: fileGames } = await getAvailableGames();
+        fileGames.forEach(game => {
+          if (game.source === "index" && !GameCreator.state.allCreatorGames.find(g => g.id === game.id)) {
+            GameCreator.state.allCreatorGames.push({
+              id: game.id,
+              title: game.title,
+              subtitle: game.subtitle,
+              categoryId: creatorData.categories[0]?.id || "cat_all",
+              gameData: null, // Will load on demand
+              editable: true,
+              source: "file",
+              path: game.path
+            });
+          }
+        });
+      } catch (err) {
+        console.error("Error loading file games:", err);
+      }
+
+      // Add custom imported games (fully editable)
+      const customGames = loadCustomGames();
+      customGames.forEach(game => {
+        if (!GameCreator.state.allCreatorGames.find(g => g.id === game.id)) {
+          GameCreator.state.allCreatorGames.push({
             id: game.id,
             title: game.title,
             subtitle: game.subtitle,
-            categoryId: creatorData.categories[0]?.id || "cat_all",
-            gameData: null, // Will load on demand
+            categoryId: game.categoryId || creatorData.categories[0]?.id || "cat_all",
+            gameData: game.game,
             editable: true,
-            source: "file",
-            path: game.path
+            source: "custom"
           });
         }
       });
-    } catch (err) {
-      console.error("Error loading file games:", err);
-    }
 
-    // Add custom imported games (fully editable)
-    const customGames = loadCustomGames();
-    customGames.forEach(game => {
-      if (!allCreatorGames.find(g => g.id === game.id)) {
-        allCreatorGames.push({
-          id: game.id,
-          title: game.title,
-          subtitle: game.subtitle,
-          categoryId: game.categoryId || creatorData.categories[0]?.id || "cat_all",
-          gameData: game.game,
-          editable: true,
-          source: "custom"
-        });
-      }
-    });
+      // Refresh the game list UI
+      GameCreator.Render.games();
+    },
 
-    // Refresh the game list UI
-    renderGames();
-  }
+    getCreatorData() {
+      return GameCreator.state.creatorData;
+    },
 
-  // Initial load
-  await loadAllGames();
+    getAllGames() {
+      return GameCreator.state.allCreatorGames;
+    },
 
-  // Render categories list
-  function renderCategories() {
-    categoriesList.innerHTML = "";
-    creatorData.categories.forEach((category, index) => {
-      const item = document.createElement("div");
-      item.className = `creator-category-item${category.id === selectedCategoryId ? " selected" : ""}`;
-      item.innerHTML = `
-        <div class="creator-category-header">
-          <span class="creator-category-icon">${category.icon || "📁"}</span>
-          <span class="creator-category-name">${category.name}</span>
-          <div class="creator-category-actions">
-            ${index > 0 ? `
-              <button class="creator-action-btn creator-up-btn" title="Move up" type="button">↑</button>
-              <button class="creator-action-btn creator-down-btn" title="Move down" type="button">↓</button>
-              <button class="creator-action-btn creator-rename-btn" title="Rename" type="button">✏️</button>
-              <button class="creator-action-btn creator-delete-btn" title="Delete" type="button">🗑</button>
-            ` : ""}
+    getSelectedGame() {
+      return GameCreator.state.allCreatorGames.find(g => g.id === GameCreator.state.selectedGameId);
+    },
+  },
+
+  // ========================================
+  // RENDERING
+  // ========================================
+  Render: {
+    categories() {
+      const categoriesList = document.getElementById("creatorCategoriesList");
+      if (!categoriesList) return;
+
+      categoriesList.innerHTML = "";
+      const creatorData = GameCreator.state.creatorData;
+
+      creatorData.categories.forEach((category, index) => {
+        const item = document.createElement("div");
+        item.className = `creator-category-item${category.id === GameCreator.state.selectedCategoryId ? " selected" : ""}`;
+        item.innerHTML = `
+          <div class="creator-category-header">
+            <span class="creator-category-icon">${category.icon || "📁"}</span>
+            <span class="creator-category-name">${category.name}</span>
+            <div class="creator-category-actions">
+              ${index > 0 ? `
+                <button class="creator-action-btn creator-up-btn" title="Move up" type="button">↑</button>
+                <button class="creator-action-btn creator-down-btn" title="Move down" type="button">↓</button>
+                <button class="creator-action-btn creator-rename-btn" title="Rename" type="button">✏️</button>
+                <button class="creator-action-btn creator-delete-btn" title="Delete" type="button">🗑</button>
+              ` : ""}
+            </div>
           </div>
+        `;
+
+        // Select category (only when clicking the header, not the actions)
+        const header = item.querySelector(".creator-category-header");
+        header.addEventListener("click", (e) => {
+          if (!e.target.closest(".creator-category-actions")) {
+            GameCreator.state.selectedCategoryId = category.id;
+            GameCreator.Render.categories();
+            GameCreator.Render.games();
+          }
+        });
+
+        // Up button
+        const upBtn = item.querySelector(".creator-up-btn");
+        if (upBtn) {
+          upBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (index > 0) {
+              [creatorData.categories[index - 1], creatorData.categories[index]] =
+              [creatorData.categories[index], creatorData.categories[index - 1]];
+              GameCreator.Storage.saveCreatorData(creatorData);  // Save immediately
+              GameCreator.Render.categories();
+            }
+          });
+        }
+
+        // Down button
+        const downBtn = item.querySelector(".creator-down-btn");
+        if (downBtn) {
+          downBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (index < creatorData.categories.length - 1) {
+              [creatorData.categories[index], creatorData.categories[index + 1]] =
+              [creatorData.categories[index + 1], creatorData.categories[index]];
+              GameCreator.Storage.saveCreatorData(creatorData);  // Save immediately
+              GameCreator.Render.categories();
+            }
+          });
+        }
+
+        // Rename button - inline edit
+        const renameBtn = item.querySelector(".creator-rename-btn");
+        if (renameBtn) {
+          renameBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            GameCreator.UI.showInlineRename(item, category.name, (newName) => {
+              if (newName) {
+                category.name = newName.trim();
+                GameCreator.Storage.saveCreatorData(GameCreator.state.creatorData);  // Save immediately
+                GameCreator.Render.categories();
+              }
+            });
+          });
+        }
+
+        // Delete button
+        const deleteBtn = item.querySelector(".creator-delete-btn");
+        if (deleteBtn) {
+          deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            GameCreator.UI.showDeleteCategoryDialog(category, index);
+          });
+        }
+
+        categoriesList.appendChild(item);
+      });
+    },
+
+    games() {
+      const gamesList = document.getElementById("creatorGamesList");
+      const searchInput = document.getElementById("creatorSearchInput");
+      const searchCount = document.getElementById("creatorSearchCount");
+      if (!gamesList) return;
+
+      gamesList.innerHTML = "";
+      const searchTerm = searchInput.value.toLowerCase().trim();
+
+      // Filter games by search term only (no category filtering in Game Creator)
+      // Category filtering happens on the main menu
+      let filteredGames = GameCreator.state.allCreatorGames.filter(game => {
+        // Get live title/subtitle from the game reference (not stale copied values)
+        const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
+        const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
+        const searchMatch = !searchTerm ||
+          displayTitle.toLowerCase().includes(searchTerm) ||
+          displaySubtitle.toLowerCase().includes(searchTerm);
+        return searchMatch;
+      });
+
+      searchCount.textContent = filteredGames.length;
+
+      // Add "New Game" card as first item
+      const addGameCard = document.createElement("div");
+      addGameCard.className = "creator-game-item creator-game-add";
+      addGameCard.innerHTML = `
+        <div class="creator-game-title">+ New Game</div>
+        <div class="creator-game-subtitle">Create with AI wizard</div>
+        <div class="creator-game-actions">
+          <span class="creator-game-hint">✨ Theme → Difficulty → Generate</span>
         </div>
       `;
 
-      // Select category (only when clicking the header, not the actions)
-      const header = item.querySelector(".creator-category-header");
-      header.addEventListener("click", (e) => {
-        if (!e.target.closest(".creator-category-actions")) {
-          selectedCategoryId = category.id;
-          renderCategories();
-          renderGames();
+      addGameCard.addEventListener("click", async () => {
+        const success = await runNewGameWizard();
+        if (success) {
+          // Wizard completed successfully - game will be auto-selected
+          console.log('[NewGameCard] Wizard completed, game created');
         }
       });
 
-      // Up button
-      const upBtn = item.querySelector(".creator-up-btn");
-      if (upBtn) {
-        upBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          if (index > 0) {
-            [creatorData.categories[index - 1], creatorData.categories[index]] =
-            [creatorData.categories[index], creatorData.categories[index - 1]];
-            saveCreatorData(creatorData);  // Save immediately
-            renderCategories();
+      gamesList.appendChild(addGameCard);
+
+      // Divider after add card
+      const divider = document.createElement("div");
+      divider.className = "creator-game-divider";
+      divider.innerHTML = '<div class="divider-line"></div>';
+      gamesList.appendChild(divider);
+
+      filteredGames.forEach(game => {
+        const item = document.createElement("div");
+        item.className = `creator-game-item${game.id === GameCreator.state.selectedGameId ? " selected" : ""}`;
+
+        // Get live title/subtitle from the game reference (not stale copied values)
+        // For creator games, use game.game.title (live reference)
+        // For file/custom games, use game.title (these are the actual values)
+        const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
+        const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
+
+        item.innerHTML = `
+          <div class="creator-game-title">${displayTitle}</div>
+          <div class="creator-game-subtitle">${displaySubtitle || "No subtitle"}</div>
+          <div class="creator-game-actions">
+            <button class="creator-action-btn creator-game-edit-btn" title="Edit" type="button">✏️</button>
+            <button class="creator-action-btn creator-game-delete-btn" title="Delete" type="button">🗑</button>
+          </div>
+        `;
+
+        // Select game
+        item.addEventListener("click", (e) => {
+          if (!e.target.closest(".creator-game-actions")) {
+            GameCreator.state.selectedGameId = game.id;
+            GameCreator.Render.games();
+            GameCreator.Render.editor();
           }
         });
-      }
 
-      // Down button
-      const downBtn = item.querySelector(".creator-down-btn");
-      if (downBtn) {
-        downBtn.addEventListener("click", (e) => {
+        // Edit button
+        const editBtn = item.querySelector(".creator-game-edit-btn");
+        editBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          if (index < creatorData.categories.length - 1) {
-            [creatorData.categories[index], creatorData.categories[index + 1]] =
-            [creatorData.categories[index + 1], creatorData.categories[index]];
-            saveCreatorData(creatorData);  // Save immediately
-            renderCategories();
-          }
+          GameCreator.state.selectedGameId = game.id;
+          GameCreator.Render.games();
+          GameCreator.Render.editor();
         });
-      }
 
-      // Rename button - inline edit
-      const renameBtn = item.querySelector(".creator-rename-btn");
-      if (renameBtn) {
-        renameBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          showInlineRename(item, category.name, (newName) => {
-            if (newName) {
-              category.name = newName.trim();
-              saveCreatorData(creatorData);  // Save immediately
-              renderCategories();
-            }
-          });
-        });
-      }
-
-      // Delete button
-      const deleteBtn = item.querySelector(".creator-delete-btn");
-      if (deleteBtn) {
+        // Delete button (two-step)
+        const deleteBtn = item.querySelector(".creator-game-delete-btn");
         deleteBtn.addEventListener("click", (e) => {
           e.stopPropagation();
-          showDeleteCategoryDialog(category, index);
-        });
-      }
-
-      categoriesList.appendChild(item);
-    });
-  }
-
-  // Show inline rename input
-  function showInlineRename(item, currentValue, onSave) {
-    const nameEl = item.querySelector(".creator-category-name");
-    const header = item.querySelector(".creator-category-header");
-
-    // Create inline input
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = currentValue;
-    input.className = "creator-inline-input";
-    input.autocomplete = "off";
-
-    // Replace name with input in the header
-    nameEl.style.display = "none";
-    header.insertBefore(input, nameEl.nextSibling);
-    input.focus();
-    input.select();
-
-    // Handle save/cancel
-    const finish = (save) => {
-      if (save && input.value.trim()) {
-        onSave(input.value.trim());
-      } else {
-        nameEl.style.display = "";
-        input.remove();
-      }
-    };
-
-    input.addEventListener("blur", () => finish(true));
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        input.blur();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        finish(false);
-      }
-    });
-  }
-
-  // Show inline add new category input
-  function showInlineAddCategory() {
-    // Create new item with input
-    const item = document.createElement("div");
-    item.className = "creator-category-item creator-category-item-new";
-    item.innerHTML = `
-      <div class="creator-category-header">
-        <span class="creator-category-icon">📁</span>
-        <input type="text" class="creator-inline-input" placeholder="New category name..." autocomplete="off" />
-        <div class="creator-category-actions">
-          <button class="creator-action-btn creator-save-btn" title="Save" type="button">✓</button>
-          <button class="creator-action-btn creator-cancel-btn" title="Cancel" type="button">✕</button>
-        </div>
-      </div>
-    `;
-
-    categoriesList.appendChild(item);
-
-    // Get input and focus it
-    const input = item.querySelector(".creator-inline-input");
-    input.focus();
-
-    // Handle save
-    const localSaveBtn = item.querySelector(".creator-save-btn");
-    const cancelBtn = item.querySelector(".creator-cancel-btn");
-
-    const finish = (save) => {
-      if (save && input.value.trim()) {
-        const newCategory = {
-          id: `cat_${generateId()}`,
-          name: input.value.trim(),
-          icon: "📁",
-        };
-
-        creatorData.categories.push(newCategory);
-        saveCreatorData(creatorData);  // Save immediately
-        renderCategories();
-      } else {
-        item.remove();
-      }
-    };
-
-    localSaveBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      finish(true);
-    });
-
-    cancelBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      finish(false);
-    });
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        finish(true);
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        finish(false);
-      }
-    });
-  }
-
-  // Show delete category confirmation dialog
-  let pendingDeleteCategoryIndex = null;
-  let pendingDeleteCategoryData = null;
-
-  function showDeleteCategoryDialog(category, index) {
-    const dialog = document.getElementById("deleteCategoryDialog");
-    const messageEl = document.getElementById("deleteCategoryMessage");
-    const confirmBtn = document.getElementById("confirmDeleteCategoryBtn");
-
-    messageEl.textContent = `Delete "${category.name}"? Games in this category will move to "All Games".`;
-    pendingDeleteCategoryIndex = index;
-    pendingDeleteCategoryData = category;
-
-    dialog.showModal();
-  }
-
-  // Setup delete category dialog handlers
-  const confirmDeleteCategoryBtn = document.getElementById("confirmDeleteCategoryBtn");
-  const cancelDeleteCategoryBtn = document.getElementById("cancelDeleteCategoryBtn");
-
-  confirmDeleteCategoryBtn.addEventListener("click", () => {
-    if (pendingDeleteCategoryIndex !== null && pendingDeleteCategoryData) {
-      // Move games to "All Games"
-      creatorData.games.forEach(game => {
-        if (game.categoryId === pendingDeleteCategoryData.id) {
-          game.categoryId = creatorData.categories[0].id;
-        }
-      });
-      creatorData.categories.splice(pendingDeleteCategoryIndex, 1);
-      if (selectedCategoryId === pendingDeleteCategoryData.id) {
-        selectedCategoryId = creatorData.categories[0]?.id || null;
-      }
-      saveCreatorData(creatorData);  // Save immediately
-      renderCategories();
-      renderGames();
-    }
-    pendingDeleteCategoryIndex = null;
-    pendingDeleteCategoryData = null;
-  });
-
-  cancelDeleteCategoryBtn.addEventListener("click", () => {
-    pendingDeleteCategoryIndex = null;
-    pendingDeleteCategoryData = null;
-  });
-
-  // Render games list
-  function renderGames() {
-    gamesList.innerHTML = "";
-    const searchTerm = searchInput.value.toLowerCase().trim();
-
-    // Filter games by search term only (no category filtering in Game Creator)
-    // Category filtering happens on the main menu
-    let filteredGames = allCreatorGames.filter(game => {
-      // Get live title/subtitle from the game reference (not stale copied values)
-      const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
-      const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
-      const searchMatch = !searchTerm ||
-        displayTitle.toLowerCase().includes(searchTerm) ||
-        displaySubtitle.toLowerCase().includes(searchTerm);
-      return searchMatch;
-    });
-
-    searchCount.textContent = filteredGames.length;
-
-    // Add "New Game" card as first item
-    const addGameCard = document.createElement("div");
-    addGameCard.className = "creator-game-item creator-game-add";
-    addGameCard.innerHTML = `
-      <div class="creator-game-title">+ New Game</div>
-      <div class="creator-game-subtitle">Create with AI wizard</div>
-      <div class="creator-game-actions">
-        <span class="creator-game-hint">✨ Theme → Difficulty → Generate</span>
-      </div>
-    `;
-
-    addGameCard.addEventListener("click", async () => {
-      const success = await runNewGameWizard();
-      if (success) {
-        // Wizard completed successfully - game will be auto-selected
-        console.log('[NewGameCard] Wizard completed, game created');
-      }
-    });
-
-    gamesList.appendChild(addGameCard);
-
-    // Divider after add card
-    const divider = document.createElement("div");
-    divider.className = "creator-game-divider";
-    divider.innerHTML = '<div class="divider-line"></div>';
-    gamesList.appendChild(divider);
-
-    filteredGames.forEach(game => {
-      const item = document.createElement("div");
-      item.className = `creator-game-item${game.id === selectedGameId ? " selected" : ""}`;
-
-      // Get live title/subtitle from the game reference (not stale copied values)
-      // For creator games, use game.game.title (live reference)
-      // For file/custom games, use game.title (these are the actual values)
-      const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
-      const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
-
-      item.innerHTML = `
-        <div class="creator-game-title">${displayTitle}</div>
-        <div class="creator-game-subtitle">${displaySubtitle || "No subtitle"}</div>
-        <div class="creator-game-actions">
-          <button class="creator-action-btn creator-game-edit-btn" title="Edit" type="button">✏️</button>
-          <button class="creator-action-btn creator-game-delete-btn" title="Delete" type="button">🗑</button>
-        </div>
-      `;
-
-      // Select game
-      item.addEventListener("click", (e) => {
-        if (!e.target.closest(".creator-game-actions")) {
-          selectedGameId = game.id;
-          renderGames();
-          renderEditor();
-        }
-      });
-
-      // Edit button
-      const editBtn = item.querySelector(".creator-game-edit-btn");
-      editBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        selectedGameId = game.id;
-        renderGames();
-        renderEditor();
-      });
-
-      // Delete button (two-step)
-      const deleteBtn = item.querySelector(".creator-game-delete-btn");
-      deleteBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (pendingDeleteGameId === game.id) {
-          // Confirmed delete
-          if (game.source === "creator") {
-            creatorData.games = creatorData.games.filter(g => g.id !== game.id);
-          } else if (game.source === "custom" || game.source === "file") {
-            // Remove from custom games (file games become custom when edited)
-            const custom = loadCustomGames();
-            saveCustomGames(custom.filter(g => g.id !== game.id));
+          if (GameCreator.state.pendingDeleteGameId === game.id) {
+            // Confirmed delete
+            GameCreator.Actions.deleteGame(game);
+          } else {
+            // First click - show confirmation
+            GameCreator.state.pendingDeleteGameId = game.id;
+            deleteBtn.textContent = "⚠️";
+            deleteBtn.title = "Click again to confirm";
+            setTimeout(() => {
+              if (GameCreator.state.pendingDeleteGameId === game.id) {
+                GameCreator.state.pendingDeleteGameId = null;
+                deleteBtn.textContent = "🗑";
+                deleteBtn.title = "Delete";
+              }
+            }, 3000);
           }
-          // Reload games
-          loadAllGames().then(() => {
-            if (selectedGameId === game.id) {
-              selectedGameId = null;
-              renderEditor();
-            }
-            pendingDeleteGameId = null;
-            saveCreatorData(creatorData);  // Save immediately
-            renderGames();
-          });
-        } else {
-          // First click - show confirmation
-          pendingDeleteGameId = game.id;
-          deleteBtn.textContent = "⚠️";
-          deleteBtn.title = "Click again to confirm";
-          setTimeout(() => {
-            if (pendingDeleteGameId === game.id) {
-              pendingDeleteGameId = null;
-              deleteBtn.textContent = "🗑";
-              deleteBtn.title = "Delete";
-            }
-          }, 3000);
-        }
+        });
+
+        gamesList.appendChild(item);
       });
 
-      gamesList.appendChild(item);
-    });
-
-    // Show empty state
-    if (filteredGames.length === 0) {
-      gamesList.innerHTML = `
-        <div class="creator-empty-state">
-          <div class="creator-empty-icon">🎮</div>
-          <div class="creator-empty-text">
-            ${searchTerm ? "No games match your search" : "No games yet. Click + to add one!"}
+      // Show empty state
+      if (filteredGames.length === 0) {
+        gamesList.innerHTML = `
+          <div class="creator-empty-state">
+            <div class="creator-empty-icon">🎮</div>
+            <div class="creator-empty-text">
+              ${searchTerm ? "No games match your search" : "No games yet. Click + to add one!"}
+            </div>
           </div>
-        </div>
-      `;
-    }
-  }
+        `;
+      }
+    },
 
-  // Render editor panel
-  // Track selected category and clue (for 3-column layout)
-  let selectedCategoryIndex = null;
-  let selectedClueIndex = null;
+    async editor() {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const workspaceGrid = document.getElementById("creatorWorkspaceGrid");
 
-  async function renderEditor() {
-    const gameHeader = document.getElementById("creatorGameHeader");
-    const workspaceGrid = document.getElementById("creatorWorkspaceGrid");
+      // Always show workspace grid for consistent height
+      if (workspaceGrid) workspaceGrid.style.display = "grid";
 
-    // Always show workspace grid for consistent height
-    if (workspaceGrid) workspaceGrid.style.display = "grid";
+      if (!GameCreator.state.selectedGameId) {
+        // Select first available game instead of creating blank template
+        if (GameCreator.state.allCreatorGames.length > 0) {
+          GameCreator.state.selectedGameId = GameCreator.state.allCreatorGames[0].id;
+          GameCreator.state.selectedCategoryIndex = 0;
+          GameCreator.state.selectedClueIndex = null;
+          GameCreator.Render.games();
+        } else {
+          // No games exist - show empty state
+          if (gameHeader) {
+            gameHeader.innerHTML = `
+              <div class="creator-empty-state">
+                <div class="creator-empty-icon">🎮</div>
+                <div class="creator-empty-title">No games yet</div>
+                <div class="creator-empty-text">Click + next to "Games" to create one</div>
+              </div>
+            `;
+          }
+          return;
+        }
+      }
 
-    if (!selectedGameId) {
-      // Select first available game instead of creating blank template
-      if (allCreatorGames.length > 0) {
-        selectedGameId = allCreatorGames[0].id;
-        selectedCategoryIndex = 0;
-        selectedClueIndex = null;
-        renderGames();
+      const game = GameCreator.state.allCreatorGames.find(g => g.id === GameCreator.state.selectedGameId);
+      if (!game) {
+        GameCreator.state.selectedGameId = null;
+        GameCreator.Render.editor();
+        return;
+      }
+
+      // For file-based games, load the data on demand
+      // For creator games, use live reference from game.game (not stale gameData snapshot)
+      let gameData;
+      if (game.source === "creator" && game.game) {
+        // Use live game object with current categories (not stale snapshot)
+        // Note: game.game has nested structure: {id, title, game: {title, subtitle, categories}}
+        // We need the inner game object which has categories
+        gameData = game.game.game || game.game;
       } else {
-        // No games exist - show empty state
-        if (gameHeader) {
-          gameHeader.innerHTML = `
-            <div class="creator-empty-state">
-              <div class="creator-empty-icon">🎮</div>
-              <div class="creator-empty-title">No games yet</div>
-              <div class="creator-empty-text">Click + next to "Games" to create one</div>
-            </div>
-          `;
+        // For file/custom games, use gameData (may need loading)
+        gameData = game.gameData;
+      }
+
+      if (game.source === "file" && !gameData && game.path) {
+        try {
+          gameData = await loadGameJsonFromPath(game.path);
+        } catch (err) {
+          if (gameHeader) {
+            gameHeader.innerHTML = `
+              <div class="creator-empty-state">
+                <div class="creator-empty-icon">⚠️</div>
+                <div class="creator-empty-title">Error loading game</div>
+                <div class="creator-empty-text">${err.message}</div>
+              </div>
+            `;
+          }
+          return;
         }
-        return;
       }
-    }
 
-    const game = allCreatorGames.find(g => g.id === selectedGameId);
-    if (!game) {
-      selectedGameId = null;
-      renderEditor();
-      return;
-    }
+      // Normalize game data to have categories array
+      const categories = gameData?.categories || [];
 
-    // For file-based games, load the data on demand
-    // For creator games, use live reference from game.game (not stale gameData snapshot)
-    let gameData;
-    if (game.source === "creator" && game.game) {
-      // Use live game object with current categories (not stale snapshot)
-      // Note: game.game has nested structure: {id, title, game: {title, subtitle, categories}}
-      // We need the inner game object which has categories
-      gameData = game.game.game || game.game;
-    } else {
-      // For file/custom games, use gameData (may need loading)
-      gameData = game.gameData;
-    }
-
-    if (game.source === "file" && !gameData && game.path) {
-      try {
-        gameData = await loadGameJsonFromPath(game.path);
-      } catch (err) {
-        if (gameHeader) {
-          gameHeader.innerHTML = `
-            <div class="creator-empty-state">
-              <div class="creator-empty-icon">⚠️</div>
-              <div class="creator-empty-title">Error loading game</div>
-              <div class="creator-empty-text">${err.message}</div>
-            </div>
-          `;
+      // Auto-select first category and first question if nothing is selected
+      // OR if selected index is out of bounds (safety for switching games)
+      if (GameCreator.state.selectedCategoryIndex === null || GameCreator.state.selectedCategoryIndex >= categories.length) {
+        if (categories.length > 0) {
+          GameCreator.state.selectedCategoryIndex = 0;
+          GameCreator.state.selectedClueIndex = null;  // Reset clue index when changing category
         }
-        return;
       }
-    }
-
-    // Normalize game data to have categories array
-    const categories = gameData?.categories || [];
-
-    // Auto-select first category and first question if nothing is selected
-    // OR if selected index is out of bounds (safety for switching games)
-    if (selectedCategoryIndex === null || selectedCategoryIndex >= categories.length) {
-      if (categories.length > 0) {
-        selectedCategoryIndex = 0;
-        selectedClueIndex = null;  // Reset clue index when changing category
+      if (GameCreator.state.selectedClueIndex === null && GameCreator.state.selectedCategoryIndex !== null) {
+        const category = categories[GameCreator.state.selectedCategoryIndex];
+        if (category?.clues && category.clues.length > 0) {
+          GameCreator.state.selectedClueIndex = 0;
+        }
       }
-    }
-    if (selectedClueIndex === null && selectedCategoryIndex !== null) {
-      const category = categories[selectedCategoryIndex];
-      if (category?.clues && category.clues.length > 0) {
-        selectedClueIndex = 0;
-      }
-    }
 
-    // Calculate game stats
-    const categoryCount = categories.length;
-    const cluesCount = categories.reduce((sum, cat) => sum + (cat.clues?.length || 0), 0);
+      // Calculate game stats
+      const categoryCount = categories.length;
+      const cluesCount = categories.reduce((sum, cat) => sum + (cat.clues?.length || 0), 0);
 
-    // Build category options for game-level category assignment
-    const gameCategoryId = game.categoryId || selectedCategoryId || creatorData.categories[0]?.id || "";
-    const categoryOptions = creatorData.categories.map(cat =>
-      `<option value="${cat.id}" ${cat.id === gameCategoryId ? 'selected' : ''}>${cat.name}</option>`
-    ).join('');
+      // Build category options for game-level category assignment
+      const creatorData = GameCreator.state.creatorData;
+      const gameCategoryId = game.categoryId || GameCreator.state.selectedCategoryId || creatorData.categories[0]?.id || "";
+      const categoryOptions = creatorData.categories.map(cat =>
+        `<option value="${cat.id}" ${cat.id === gameCategoryId ? 'selected' : ''}>${cat.name}</option>`
+      ).join('');
 
-    // Show game header
-    if (gameHeader) {
-      gameHeader.innerHTML = `
-        <div class="game-header">
-          <div class="game-header-main">
-            <input id="editorTitle" type="text" value="${game.title || ""}" placeholder="Untitled Game" autocomplete="off" />
-            <input id="editorSubtitle" type="text" value="${game.subtitle || ""}" placeholder="Add a description..." autocomplete="off" />
-            <div class="game-category-assign">
-              <label class="game-category-label">Folder:</label>
-              <select id="editorGameCategory" class="game-category-select" title="Assign this game to a folder">
-                ${categoryOptions}
-              </select>
+      // Show game header
+      if (gameHeader) {
+        gameHeader.innerHTML = `
+          <div class="game-header">
+            <div class="game-header-main">
+              <input id="editorTitle" type="text" value="${game.title || ""}" placeholder="Untitled Game" autocomplete="off" />
+              <input id="editorSubtitle" type="text" value="${game.subtitle || ""}" placeholder="Add a description..." autocomplete="off" />
+              <div class="game-category-assign">
+                <label class="game-category-label">Folder:</label>
+                <select id="editorGameCategory" class="game-category-select" title="Assign this game to a folder">
+                  ${categoryOptions}
+                </select>
+              </div>
+              <div class="game-stats">${categoryCount} ${categoryCount === 1 ? 'category' : 'categories'} • ${cluesCount} ${cluesCount === 1 ? 'clue' : 'clues'}</div>
             </div>
-            <div class="game-stats">${categoryCount} ${categoryCount === 1 ? 'category' : 'categories'} • ${cluesCount} ${cluesCount === 1 ? 'clue' : 'clues'}</div>
-          </div>
-          <div class="game-metadata">
-            <!-- AI Pill - single unit containing all AI controls -->
-            <div class="ai-pill">
-              <div class="ai-action-menu" data-menu-id="ai-menu-game">
-                <button class="ai-pill-trigger" data-ai-trigger="dropdown" aria-label="AI controls for this game" title="AI: Generate game content">
-                  <span class="ai-pill-icon">✨</span>
-                  <span class="ai-pill-label">AI</span>
-                  <span class="ai-pill-difficulty" id="aiPillDifficulty">Normal</span>
-                </button>
-                <div class="ai-action-dropdown" id="ai-menu-game">
-                  <div class="ai-action-dropdown-header">AI for this game</div>
-                  <button class="ai-action-item" data-ai-action="game-title" title="Smart title generation: analyzes your game content or asks for a theme">
-                    <span class="ai-action-icon">📝</span>
-                    Generate title & subtitle
+            <div class="game-metadata">
+              <!-- AI Pill - single unit containing all AI controls -->
+              <div class="ai-pill">
+                <div class="ai-action-menu" data-menu-id="ai-menu-game">
+                  <button class="ai-pill-trigger" data-ai-trigger="dropdown" aria-label="AI controls for this game" title="AI: Generate game content">
+                    <span class="ai-pill-icon">✨</span>
+                    <span class="ai-pill-label">AI</span>
+                    <span class="ai-pill-difficulty" id="aiPillDifficulty">Normal</span>
                   </button>
-                  <button class="ai-action-item" data-ai-action="categories-generate" title="Generate complete game from a theme - all categories and questions">
-                    <span class="ai-action-icon">🎯</span>
-                    Generate full game (categories & questions)
-                  </button>
-                  <div class="ai-action-divider"></div>
-                  <div class="ai-action-difficulty-section">
-                    <div class="ai-action-section-title">Difficulty</div>
-                    <div class="ai-difficulty-options" id="aiDifficultyOptions">
-                      <label class="ai-difficulty-option">
-                        <input type="radio" name="aiDifficulty" value="easy">
-                        <span class="ai-difficulty-label-text">Easy</span>
-                      </label>
-                      <label class="ai-difficulty-option">
-                        <input type="radio" name="aiDifficulty" value="normal" checked>
-                        <span class="ai-difficulty-label-text">Normal</span>
-                      </label>
-                      <label class="ai-difficulty-option">
-                        <input type="radio" name="aiDifficulty" value="hard">
-                        <span class="ai-difficulty-label-text">Hard</span>
-                      </label>
+                  <div class="ai-action-dropdown" id="ai-menu-game">
+                    <div class="ai-action-dropdown-header">AI for this game</div>
+                    <button class="ai-action-item" data-ai-action="game-title" title="Smart title generation: analyzes your game content or asks for a theme">
+                      <span class="ai-action-icon">📝</span>
+                      Generate title & subtitle
+                    </button>
+                    <button class="ai-action-item" data-ai-action="categories-generate" title="Generate complete game from a theme - all categories and questions">
+                      <span class="ai-action-icon">🎯</span>
+                      Generate full game (categories & questions)
+                    </button>
+                    <div class="ai-action-divider"></div>
+                    <div class="ai-action-difficulty-section">
+                      <div class="ai-action-section-title">Difficulty</div>
+                      <div class="ai-difficulty-options" id="aiDifficultyOptions">
+                        <label class="ai-difficulty-option">
+                          <input type="radio" name="aiDifficulty" value="easy">
+                          <span class="ai-difficulty-label-text">Easy</span>
+                        </label>
+                        <label class="ai-difficulty-option">
+                          <input type="radio" name="aiDifficulty" value="normal" checked>
+                          <span class="ai-difficulty-label-text">Normal</span>
+                        </label>
+                        <label class="ai-difficulty-option">
+                          <input type="radio" name="aiDifficulty" value="hard">
+                          <span class="ai-difficulty-label-text">Hard</span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Separator -->
-            <div class="header-zone-divider"></div>
+              <!-- Separator -->
+              <div class="header-zone-divider"></div>
 
-            <!-- System Zone (neutral, de-emphasized) -->
-            <div class="header-zone header-zone-system">
-              <div class="action-menu">
-                <button class="action-menu-trigger" id="creatorMenuTrigger" type="button" title="File options">💾</button>
-                <div class="action-menu-dropdown" id="creatorMenuDropdown">
-                  <button class="action-menu-item" id="creatorImportBtn" type="button">
-                    <span class="action-menu-icon">📥</span>
-                    <span>Import JSON</span>
-                  </button>
-                  <button class="action-menu-item" id="creatorExportBtn" type="button">
-                    <span class="action-menu-icon">📤</span>
-                    <span>Export JSON</span>
-                  </button>
+              <!-- System Zone (neutral, de-emphasized) -->
+              <div class="header-zone header-zone-system">
+                <div class="action-menu">
+                  <button class="action-menu-trigger" id="creatorMenuTrigger" type="button" title="File options">💾</button>
+                  <div class="action-menu-dropdown" id="creatorMenuDropdown">
+                    <button class="action-menu-item" id="creatorImportBtn" type="button">
+                      <span class="action-menu-icon">📥</span>
+                      <span>Import JSON</span>
+                    </button>
+                    <button class="action-menu-item" id="creatorExportBtn" type="button">
+                      <span class="action-menu-icon">📤</span>
+                      <span>Export JSON</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      `;
-    }
-
-    // Show workspace grid
-    if (workspaceGrid) workspaceGrid.style.display = "grid";
-
-    // Store game data for updates
-    gameHeader._gameData = gameData;
-    gameHeader._game = game;
-
-    // Render categories (left column)
-    renderCategoriesColumn(categories);
-
-    // Render clues (middle column)
-    renderCluesColumn(categories);
-
-    // Render editor (right column)
-    renderEditorPanel(categories);
-
-    // Setup menu listeners for the newly rendered menu
-    setupMenuListeners();
-
-    // Setup header event listeners
-    setupHeaderEventListeners(gameHeader, game, gameData);
-
-    // Initialize AI actions with Game Creator context
-    if (typeof initAIActions === 'function') {
-      initAIActions({
-        getGameHeader: () => gameHeader,
-        renderEditor: renderEditor
-      });
-    }
-
-    // Setup AI button handlers
-    if (typeof setupAIButtonHandlers === 'function') {
-      setupAIButtonHandlers();
-    }
-  }
-
-  // Render categories in left column
-  function renderCategoriesColumn(categories) {
-    const categoriesList = document.getElementById("workspaceCategoriesList");
-    const categoriesCountValueEl = document.getElementById("categoriesCountValue");
-    if (!categoriesList) return;
-
-    // Update the categories count display
-    if (categoriesCountValueEl) {
-      categoriesCountValueEl.textContent = categories.length.toString();
-    }
-
-    if (categories.length === 0) {
-      categoriesList.innerHTML = `
-        <div class="editor-empty-state">
-          <div class="editor-empty-text">No categories yet</div>
-        </div>
-      `;
-      return;
-    }
-
-    categoriesList.innerHTML = categories.map((cat, index) => {
-      const clueCount = (cat.clues || []).length;
-      const isComplete = clueCount >= 5;
-      const isSelected = selectedCategoryIndex === index;
-
-      return `
-        <div class="category-card-item ${isSelected ? 'selected' : ''}" data-category-index="${index}">
-          <span class="category-card-number">${index + 1}</span>
-          <div class="category-card-info">
-            <div class="category-card-title">${cat.title || '(Untitled)'}</div>
-            <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
-          </div>
-          <div class="category-card-actions"></div>
-        </div>
-      `;
-    }).join('');
-
-    // Add click listeners
-    categoriesList.querySelectorAll(".category-card-item").forEach(item => {
-      item.addEventListener("click", (e) => {
-        // Don't select if clicking on AI button
-        if (e.target.closest('.ai-btn')) return;
-
-        const catIndex = parseInt(item.dataset.categoryIndex);
-        selectedCategoryIndex = catIndex;
-        selectedClueIndex = null; // Reset clue selection when changing category
-        renderEditor();
-      });
-    });
-
-    // Inject AI buttons for each category
-    if (typeof injectCategoryAIButtons === 'function') {
-      categoriesList.querySelectorAll(".category-card-item").forEach((item, index) => {
-        injectCategoryAIButtons(item, index);
-      });
-    }
-  }
-
-  // Render clues in middle column
-  function renderCluesColumn(categories) {
-    const cluesList = document.getElementById("workspaceCluesList");
-    const metaEl = document.getElementById("cluesColumnMeta");
-    const countValueEl = document.getElementById("questionsCountValue");
-    if (!cluesList) return;
-
-    // Update the questions count display to show minimum across all categories
-    if (countValueEl && categories.length > 0) {
-      const minCount = Math.min(...categories.map(cat => cat.clues?.length || 0));
-      countValueEl.textContent = minCount.toString();
-    }
-
-    if (selectedCategoryIndex === null || !categories[selectedCategoryIndex]) {
-      if (metaEl) metaEl.textContent = "";
-      cluesList.innerHTML = `
-        <div class="editor-empty-state">
-          <div class="editor-empty-icon">📂</div>
-          <div class="editor-empty-text">Select a category</div>
-        </div>
-      `;
-      return;
-    }
-
-    const category = categories[selectedCategoryIndex];
-    const clues = category.clues || [];
-
-    if (metaEl) metaEl.textContent = `${clues.length} questions`;
-
-    if (clues.length === 0) {
-      cluesList.innerHTML = `
-        <div class="editor-empty-state">
-          <div class="editor-empty-text">No questions yet</div>
-        </div>
-      `;
-      return;
-    }
-
-    cluesList.innerHTML = clues.map((clue, index) => {
-      const isSelected = selectedClueIndex === index;
-      const isComplete = clue.clue && clue.response;
-
-      return `
-        <div class="clue-card-item ${isSelected ? 'selected' : ''}" data-clue-index="${index}">
-          <span class="clue-value-badge">$${clue.value || 200}</span>
-          <span class="clue-card-preview${!clue.clue ? ' empty' : ''}">${clue.clue || '(No question yet)'}</span>
-          ${isComplete ? '<span class="clue-card-complete">✔</span>' : ''}
-          <div class="clue-card-actions"></div>
-        </div>
-      `;
-    }).join('');
-
-    // Add click listeners
-    cluesList.querySelectorAll(".clue-card-item").forEach(item => {
-      item.addEventListener("click", (e) => {
-        // Don't select if clicking on AI button
-        if (e.target.closest('.ai-btn')) return;
-
-        const clueIndex = parseInt(item.dataset.clueIndex);
-        selectedClueIndex = clueIndex;
-        renderEditor();
-      });
-    });
-
-    // Inject AI buttons for each question
-    if (typeof injectQuestionAIButtons === 'function') {
-      cluesList.querySelectorAll(".clue-card-item").forEach((item) => {
-        injectQuestionAIButtons(item);
-      });
-    }
-  }
-
-  // Render editor panel in right column
-  function renderEditorPanel(categories) {
-    const editorPanel = document.getElementById("workspaceEditorPanel");
-    if (!editorPanel) return;
-
-    if (selectedCategoryIndex === null || selectedClueIndex === null) {
-      editorPanel.innerHTML = `
-        <div class="editor-empty-state">
-          <div class="editor-empty-icon">✏️</div>
-          <div class="editor-empty-text">Select a clue to edit</div>
-        </div>
-      `;
-      return;
-    }
-
-    const category = categories[selectedCategoryIndex];
-    const clue = category.clues?.[selectedClueIndex];
-
-    if (!clue) {
-      editorPanel.innerHTML = `
-        <div class="editor-empty-state">
-          <div class="editor-empty-text">Clue not found</div>
-        </div>
-      `;
-      return;
-    }
-
-    editorPanel.innerHTML = `
-      <form class="editor-form" id="clueEditorForm">
-        <div class="editor-form-row">
-          <label>Value</label>
-          <input type="number" id="clueValueInput" value="${clue.value || 200}" placeholder="200" />
-        </div>
-
-        <div class="editor-form-row">
-          <div class="editor-form-header">
-            <label>Question</label>
-            <div class="editor-field-actions" data-field="question"></div>
-          </div>
-          <textarea id="clueQuestionInput" placeholder="Enter question..." rows="3">${clue.clue || ''}</textarea>
-        </div>
-
-        <div class="editor-form-row">
-          <div class="editor-form-header">
-            <label>Answer</label>
-            <div class="editor-field-actions" data-field="answer"></div>
-          </div>
-          <textarea id="clueAnswerInput" placeholder="Enter answer..." rows="2">${clue.response || ''}</textarea>
-        </div>
-      </form>
-
-      <div class="editor-footer">
-        <button type="button" class="editor-footer-btn danger" id="deleteClueBtn">
-          <span class="btn-icon">🗑️</span>
-          Delete
-        </button>
-      </div>
-    `;
-
-    // Setup form listeners
-    setupClueEditorListeners(editorPanel, categories, category, clue);
-
-    // Inject AI buttons in editor panel
-    if (typeof injectEditorAIButtons === 'function') {
-      injectEditorAIButtons();
-    }
-  }
-
-  // Setup clue editor event listeners
-  function setupClueEditorListeners(editorPanel, categories, category, clue) {
-    const gameHeader = document.getElementById("creatorGameHeader");
-    const game = gameHeader._game;
-    const gameData = gameHeader._gameData;
-
-    // Value input
-    const valueInput = editorPanel.querySelector("#clueValueInput");
-    valueInput?.addEventListener("input", () => {
-      clue.value = parseInt(valueInput.value) || 200;
-      game.gameData = gameData;
-      autoSave();  // Auto-save on change
-      renderCluesColumn(categories);
-    });
-
-    // Question input
-    const questionInput = editorPanel.querySelector("#clueQuestionInput");
-    questionInput?.addEventListener("input", () => {
-      clue.clue = questionInput.value;
-      game.gameData = gameData;
-      autoSave();  // Auto-save on change
-      renderCluesColumn(categories);
-    });
-
-    // Answer input
-    const answerInput = editorPanel.querySelector("#clueAnswerInput");
-    answerInput?.addEventListener("input", () => {
-      clue.response = answerInput.value;
-      game.gameData = gameData;
-      autoSave();  // Auto-save on change
-      renderCluesColumn(categories);
-    });
-
-    // Delete clue button
-    const deleteBtn = editorPanel.querySelector("#deleteClueBtn");
-    deleteBtn?.addEventListener("click", () => {
-      if (confirm("Delete this question?")) {
-        category.clues.splice(selectedClueIndex, 1);
-        game.gameData = gameData;
-        autoSave();  // Auto-save on delete
-        selectedClueIndex = null;
-        renderEditor();
+        `;
       }
-    });
-  }
 
-  // Setup header event listeners
-  function setupHeaderEventListeners(gameHeader, game, gameData) {
-    // Title input
-    const titleInput = gameHeader.querySelector("#editorTitle");
-    titleInput?.addEventListener("input", () => {
-      game.title = titleInput.value;
-      autoSave();  // Auto-save on change
-      renderGames();
-    });
+      // Show workspace grid
+      if (workspaceGrid) workspaceGrid.style.display = "grid";
 
-    // Subtitle input
-    const subtitleInput = gameHeader.querySelector("#editorSubtitle");
-    subtitleInput?.addEventListener("input", () => {
-      game.subtitle = subtitleInput.value;
-      autoSave();  // Auto-save on change
-      renderGames();
-    });
+      // Store game data for updates
+      gameHeader._gameData = gameData;
+      gameHeader._game = game;
 
-    // Game category dropdown (folder assignment)
-    const categorySelect = gameHeader.querySelector("#editorGameCategory");
-    categorySelect?.addEventListener("change", (e) => {
-      const newCategoryId = e.target.value;
-      game.categoryId = newCategoryId;
-      // Update selected category in sidebar
-      selectedCategoryId = newCategoryId;
-      autoSave();  // Auto-save on change
-      renderCategories();
-      renderGames();
-    });
+      // Render categories (left column)
+      GameCreator.Render.categoriesColumn(categories);
 
-    // Difficulty radio buttons
-    const difficultyRadios = gameHeader.querySelectorAll("input[name='aiDifficulty']");
-    const pillDifficulty = gameHeader.querySelector("#aiPillDifficulty");
-    difficultyRadios.forEach(radio => {
-      radio.addEventListener("change", (e) => {
-        const newDifficulty = e.target.value;
-        // Update pill label
-        if (pillDifficulty) {
-          pillDifficulty.textContent = newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1);
-        }
-        // Trigger AI action difficulty update
-        if (typeof window !== 'undefined' && window.updateAIDifficulty) {
-          window.updateAIDifficulty(newDifficulty);
-        }
-        // Close dropdown after selection
-        const dropdown = gameHeader.querySelector(".ai-action-dropdown");
-        if (dropdown) dropdown.classList.remove("show");
+      // Render clues (middle column)
+      GameCreator.Render.cluesColumn(categories);
+
+      // Render editor (right column)
+      GameCreator.Render.editorPanel(categories);
+
+      // Setup menu listeners for the newly rendered menu
+      GameCreator.UI.setupMenuListeners();
+
+      // Setup header event listeners
+      GameCreator.UI.setupHeaderEventListeners(gameHeader, game, gameData);
+
+      // Initialize AI actions with Game Creator context
+      if (typeof initAIActions === 'function') {
+        initAIActions({
+          getGameHeader: () => gameHeader,
+          renderEditor: GameCreator.Render.editor
+        });
+      }
+
+      // Setup AI button handlers
+      if (typeof setupAIButtonHandlers === 'function') {
+        setupAIButtonHandlers();
+      }
+    },
+
+    categoriesColumn(categories) {
+      const categoriesList = document.getElementById("workspaceCategoriesList");
+      const categoriesCountValueEl = document.getElementById("categoriesCountValue");
+      if (!categoriesList) return;
+
+      // Update the categories count display
+      if (categoriesCountValueEl) {
+        categoriesCountValueEl.textContent = categories.length.toString();
+      }
+
+      if (categories.length === 0) {
+        categoriesList.innerHTML = `
+          <div class="editor-empty-state">
+            <div class="editor-empty-text">No categories yet</div>
+          </div>
+        `;
+        return;
+      }
+
+      categoriesList.innerHTML = categories.map((cat, index) => {
+        const clueCount = (cat.clues || []).length;
+        const isComplete = clueCount >= 5;
+        const isSelected = GameCreator.state.selectedCategoryIndex === index;
+
+        return `
+          <div class="category-card-item ${isSelected ? 'selected' : ''}" data-category-index="${index}">
+            <span class="category-card-number">${index + 1}</span>
+            <div class="category-card-info">
+              <div class="category-card-title">${cat.title || '(Untitled)'}</div>
+              <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
+            </div>
+            <div class="category-card-actions"></div>
+          </div>
+        `;
+      }).join('');
+
+      // Add click listeners
+      categoriesList.querySelectorAll(".category-card-item").forEach(item => {
+        item.addEventListener("click", (e) => {
+          // Don't select if clicking on AI button
+          if (e.target.closest('.ai-btn')) return;
+
+          const catIndex = parseInt(item.dataset.categoryIndex);
+          GameCreator.state.selectedCategoryIndex = catIndex;
+          GameCreator.state.selectedClueIndex = null; // Reset clue selection when changing category
+          GameCreator.Render.editor();
+        });
       });
-    });
 
-    // Setup AI button handlers
-    if (typeof setupAIButtonHandlers === 'function') {
-      setupAIButtonHandlers();
-    }
-  }
+      // Inject AI buttons for each category
+      if (typeof injectCategoryAIButtons === 'function') {
+        categoriesList.querySelectorAll(".category-card-item").forEach((item, index) => {
+          injectCategoryAIButtons(item, index);
+        });
+      }
+    },
 
-  // Setup event listeners for the workspace (add category, etc)
-  function setupWorkspaceListeners() {
-    const workspaceGrid = document.getElementById("creatorWorkspaceGrid");
-    if (!workspaceGrid) return;
+    cluesColumn(categories) {
+      const cluesList = document.getElementById("workspaceCluesList");
+      const metaEl = document.getElementById("cluesColumnMeta");
+      const countValueEl = document.getElementById("questionsCountValue");
+      if (!cluesList) return;
 
-    // Add category button
-    const addCategoryBtn = document.getElementById("workspaceAddCategoryBtn");
-    addCategoryBtn?.addEventListener("click", () => {
+      // Update the questions count display to show minimum across all categories
+      if (countValueEl && categories.length > 0) {
+        const minCount = Math.min(...categories.map(cat => cat.clues?.length || 0));
+        countValueEl.textContent = minCount.toString();
+      }
+
+      if (GameCreator.state.selectedCategoryIndex === null || !categories[GameCreator.state.selectedCategoryIndex]) {
+        if (metaEl) metaEl.textContent = "";
+        cluesList.innerHTML = `
+          <div class="editor-empty-state">
+            <div class="editor-empty-icon">📂</div>
+            <div class="editor-empty-text">Select a category</div>
+          </div>
+        `;
+        return;
+      }
+
+      const category = categories[GameCreator.state.selectedCategoryIndex];
+      const clues = category.clues || [];
+
+      if (metaEl) metaEl.textContent = `${clues.length} questions`;
+
+      if (clues.length === 0) {
+        cluesList.innerHTML = `
+          <div class="editor-empty-state">
+            <div class="editor-empty-text">No questions yet</div>
+          </div>
+        `;
+        return;
+      }
+
+      cluesList.innerHTML = clues.map((clue, index) => {
+        const isSelected = GameCreator.state.selectedClueIndex === index;
+        const isComplete = clue.clue && clue.response;
+
+        return `
+          <div class="clue-card-item ${isSelected ? 'selected' : ''}" data-clue-index="${index}">
+            <span class="clue-value-badge">$${clue.value || 200}</span>
+            <span class="clue-card-preview${!clue.clue ? ' empty' : ''}">${clue.clue || '(No question yet)'}</span>
+            ${isComplete ? '<span class="clue-card-complete">✔</span>' : ''}
+            <div class="clue-card-actions"></div>
+          </div>
+        `;
+      }).join('');
+
+      // Add click listeners
+      cluesList.querySelectorAll(".clue-card-item").forEach(item => {
+        item.addEventListener("click", (e) => {
+          // Don't select if clicking on AI button
+          if (e.target.closest('.ai-btn')) return;
+
+          const clueIndex = parseInt(item.dataset.clueIndex);
+          GameCreator.state.selectedClueIndex = clueIndex;
+          GameCreator.Render.editor();
+        });
+      });
+
+      // Inject AI buttons for each question
+      if (typeof injectQuestionAIButtons === 'function') {
+        cluesList.querySelectorAll(".clue-card-item").forEach((item) => {
+          injectQuestionAIButtons(item);
+        });
+      }
+    },
+
+    editorPanel(categories) {
+      const editorPanel = document.getElementById("workspaceEditorPanel");
+      if (!editorPanel) return;
+
+      if (GameCreator.state.selectedCategoryIndex === null || GameCreator.state.selectedClueIndex === null) {
+        editorPanel.innerHTML = `
+          <div class="editor-empty-state">
+            <div class="editor-empty-icon">✏️</div>
+            <div class="editor-empty-text">Select a clue to edit</div>
+          </div>
+        `;
+        return;
+      }
+
+      const category = categories[GameCreator.state.selectedCategoryIndex];
+      const clue = category.clues?.[GameCreator.state.selectedClueIndex];
+
+      if (!clue) {
+        editorPanel.innerHTML = `
+          <div class="editor-empty-state">
+            <div class="editor-empty-text">Clue not found</div>
+          </div>
+        `;
+        return;
+      }
+
+      editorPanel.innerHTML = `
+        <form class="editor-form" id="clueEditorForm">
+          <div class="editor-form-row">
+            <label>Value</label>
+            <input type="number" id="clueValueInput" value="${clue.value || 200}" placeholder="200" />
+          </div>
+
+          <div class="editor-form-row">
+            <div class="editor-form-header">
+              <label>Question</label>
+              <div class="editor-field-actions" data-field="question"></div>
+            </div>
+            <textarea id="clueQuestionInput" placeholder="Enter question..." rows="3">${clue.clue || ''}</textarea>
+          </div>
+
+          <div class="editor-form-row">
+            <div class="editor-form-header">
+              <label>Answer</label>
+              <div class="editor-field-actions" data-field="answer"></div>
+            </div>
+            <textarea id="clueAnswerInput" placeholder="Enter answer..." rows="2">${clue.response || ''}</textarea>
+          </div>
+        </form>
+
+        <div class="editor-footer">
+          <button type="button" class="editor-footer-btn danger" id="deleteClueBtn">
+            <span class="btn-icon">🗑️</span>
+            Delete
+          </button>
+        </div>
+      `;
+
+      // Setup form listeners
+      GameCreator.UI.setupClueEditorListeners(editorPanel, categories, category, clue);
+
+      // Inject AI buttons in editor panel
+      if (typeof injectEditorAIButtons === 'function') {
+        injectEditorAIButtons();
+      }
+    },
+  },
+
+  // ========================================
+  // ACTIONS
+  // ========================================
+  Actions: {
+    async createNewGame() {
+      const creatorData = GameCreator.state.creatorData;
+
+      // Find or create "Custom" category
+      let customCategory = creatorData.categories.find(c => c.id === "custom");
+      if (!customCategory) {
+        customCategory = {
+          id: "custom",
+          name: "Custom",
+          icon: "📁"
+        };
+        creatorData.categories.push(customCategory);
+      }
+
+      // Create new game with default structure
+      const newGame = {
+        id: `game_${GameCreator.Utils.generateId()}`,
+        title: "New Game",
+        subtitle: "",
+        categoryId: customCategory.id, // Assign to Custom category
+        game: {
+          title: "New Game",
+          subtitle: "",
+          categories: [
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]},
+            { title: "", clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]}
+          ]
+        }
+      };
+
+      // Add to creator data
+      creatorData.games.push(newGame);
+      GameCreator.Storage.saveCreatorData(creatorData);  // Save immediately
+
+      // Also save to customGames so it appears in main menu
+      const custom = loadCustomGames();
+      const customGame = {
+        id: newGame.id,
+        title: newGame.title,
+        subtitle: newGame.subtitle,
+        categoryId: newGame.categoryId,
+        game: newGame.game,  // Flat structure with title, subtitle, categories
+        source: "creator"
+      };
+      // Don't duplicate if already exists
+      if (!custom.find(g => g.id === newGame.id)) {
+        custom.unshift(customGame);
+      }
+      saveCustomGames(custom);
+
+      // Reload allCreatorGames to include the new game
+      await GameCreator.Data.loadAllGames();
+
+      // Select the Custom category and the new game
+      GameCreator.state.selectedCategoryId = customCategory.id;
+      GameCreator.state.selectedGameId = newGame.id;
+
+      // Re-render
+      GameCreator.Render.categories();
+      GameCreator.Render.games();
+      GameCreator.Render.editor();
+    },
+
+    async deleteGame(game) {
+      const creatorData = GameCreator.state.creatorData;
+      if (game.source === "creator") {
+        creatorData.games = creatorData.games.filter(g => g.id !== game.id);
+      } else if (game.source === "custom" || game.source === "file") {
+        // Remove from custom games (file games become custom when edited)
+        const custom = loadCustomGames();
+        saveCustomGames(custom.filter(g => g.id !== game.id));
+      }
+      // Reload games
+      await GameCreator.Data.loadAllGames();
+      if (GameCreator.state.selectedGameId === game.id) {
+        GameCreator.state.selectedGameId = null;
+        GameCreator.Render.editor();
+      }
+      GameCreator.state.pendingDeleteGameId = null;
+      GameCreator.Storage.saveCreatorData(creatorData);  // Save immediately
+      GameCreator.Render.games();
+    },
+
+    addCategory() {
       const gameHeader = document.getElementById("creatorGameHeader");
       const game = gameHeader._game;
       const gameData = gameHeader._gameData;
@@ -3291,22 +3171,58 @@ async function setupGameCreator() {
         ]
       });
       game.gameData = gameData;
-      autoSave();  // Auto-save
-      selectedCategoryIndex = gameData.categories.length - 1;
-      selectedClueIndex = null;
-      renderEditor();
-    });
+      GameCreator.state.autoSave();  // Auto-save
+      GameCreator.state.selectedCategoryIndex = gameData.categories.length - 1;
+      GameCreator.state.selectedClueIndex = null;
+      GameCreator.Render.editor();
+    },
 
-    // Add question button (single question to selected category)
-    const addQuestionBtn = document.getElementById("workspaceAddQuestionBtn");
-    addQuestionBtn?.addEventListener("click", () => {
+    removeCategory(index) {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const gameData = gameHeader._gameData;
+      gameData.categories.splice(index, 1);
+      GameCreator.state.autoSave();
+      GameCreator.Render.editor();
+    },
+
+    renameCategory(index, newName) {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const gameData = gameHeader._gameData;
+      gameData.categories[index].title = newName;
+      GameCreator.state.autoSave();
+      GameCreator.Render.editor();
+    },
+
+    moveCategoryUp(index) {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const gameData = gameHeader._gameData;
+      if (index > 0) {
+        [gameData.categories[index - 1], gameData.categories[index]] =
+        [gameData.categories[index], gameData.categories[index - 1]];
+        GameCreator.state.autoSave();
+        GameCreator.Render.editor();
+      }
+    },
+
+    moveCategoryDown(index) {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const gameData = gameHeader._gameData;
+      if (index < gameData.categories.length - 1) {
+        [gameData.categories[index], gameData.categories[index + 1]] =
+        [gameData.categories[index + 1], gameData.categories[index]];
+        GameCreator.state.autoSave();
+        GameCreator.Render.editor();
+      }
+    },
+
+    addClue(categoryIndex) {
       const gameHeader = document.getElementById("creatorGameHeader");
       const game = gameHeader._game;
       const gameData = gameHeader._gameData;
 
-      if (selectedCategoryIndex === null) return;
+      if (categoryIndex === null) return;
 
-      const category = gameData.categories[selectedCategoryIndex];
+      const category = gameData.categories[categoryIndex];
       if (!category.clues) category.clues = [];
 
       const existingClues = category.clues;
@@ -3319,17 +3235,81 @@ async function setupGameCreator() {
       });
 
       game.gameData = gameData;
-      autoSave();  // Auto-save
-      selectedClueIndex = category.clues.length - 1; // Select the new question
-      renderEditor();
-    });
+      GameCreator.state.autoSave();  // Auto-save
+      GameCreator.state.selectedClueIndex = category.clues.length - 1; // Select the new question
+      GameCreator.Render.editor();
+    },
 
-    // Questions count control (+/-) - affects all categories uniformly
-    const decreaseBtn = document.getElementById("questionsDecreaseBtn");
-    const increaseBtn = document.getElementById("questionsIncreaseBtn");
-    const countValue = document.getElementById("questionsCountValue");
+    deleteClue(categoryIndex, clueIndex) {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const gameData = gameHeader._gameData;
+      const category = gameData.categories[categoryIndex];
+      category.clues.splice(clueIndex, 1);
+      GameCreator.state.autoSave();
+      GameCreator.state.selectedClueIndex = null;
+      GameCreator.Render.editor();
+    },
 
-    const updateQuestionsCount = (newCount) => {
+    resizeCategories(newCount) {
+      const gameHeader = document.getElementById("creatorGameHeader");
+      const game = gameHeader._game;
+      const gameData = gameHeader._gameData;
+
+      if (!gameData.categories) gameData.categories = [];
+      const currentCount = gameData.categories.length;
+
+      // Warn if going above 6
+      if (newCount > 6) {
+        const message = `Jeopardy games typically have 6 categories. You're about to create ${newCount} categories. Continue?`;
+        if (!confirm(message)) return;
+      }
+
+      // Warn if reducing would remove categories
+      if (newCount < currentCount) {
+        const toRemove = currentCount - newCount;
+        const categoriesBeingRemoved = gameData.categories.slice(newCount);
+
+        let message = `Reducing to ${newCount} categor${newCount === 1 ? 'y' : 'ies'} will remove:\n\n`;
+        categoriesBeingRemoved.forEach((cat, i) => {
+          const cluesCount = cat.clues?.length || 0;
+          message += `• ${cat.title || '(Untitled)'}: ${cluesCount} question${cluesCount === 1 ? '' : 's'}\n`;
+        });
+        message += `\nContinue?`;
+
+        if (!confirm(message)) return;
+      }
+
+      if (newCount > currentCount) {
+        // Add categories
+        for (let i = currentCount; i < newCount; i++) {
+          gameData.categories.push({
+            title: "",
+            clues: [
+              { value: 200, clue: "", response: "" },
+              { value: 400, clue: "", response: "" },
+              { value: 600, clue: "", response: "" },
+              { value: 800, clue: "", response: "" },
+              { value: 1000, clue: "", response: "" }
+            ]
+          });
+        }
+      } else if (newCount < currentCount) {
+        // Remove categories from the end
+        gameData.categories = gameData.categories.slice(0, newCount);
+      }
+
+      // Reset selection if needed
+      if (GameCreator.state.selectedCategoryIndex !== null && GameCreator.state.selectedCategoryIndex >= newCount) {
+        GameCreator.state.selectedCategoryIndex = newCount > 0 ? newCount - 1 : null;
+        GameCreator.state.selectedClueIndex = null;
+      }
+
+      game.gameData = gameData;
+      GameCreator.state.autoSave();  // Auto-save
+      GameCreator.Render.editor();
+    },
+
+    resizeClues(newCount) {
       const gameHeader = document.getElementById("creatorGameHeader");
       const game = gameHeader._game;
       const gameData = gameHeader._gameData;
@@ -3379,540 +3359,556 @@ async function setupGameCreator() {
       });
 
       game.gameData = gameData;
-      autoSave();  // Auto-save
+      GameCreator.state.autoSave();  // Auto-save
 
       // Reset selection if the selected question was removed
-      if (selectedCategoryIndex !== null && selectedClueIndex !== null) {
-        const category = gameData.categories[selectedCategoryIndex];
-        if (category.clues.length <= selectedClueIndex) {
-          selectedClueIndex = category.clues.length > 0 ? category.clues.length - 1 : null;
+      if (GameCreator.state.selectedCategoryIndex !== null && GameCreator.state.selectedClueIndex !== null) {
+        const category = gameData.categories[GameCreator.state.selectedCategoryIndex];
+        if (category.clues.length <= GameCreator.state.selectedClueIndex) {
+          GameCreator.state.selectedClueIndex = category.clues.length > 0 ? category.clues.length - 1 : null;
         }
       }
 
-      renderEditor();
-    };
+      GameCreator.Render.editor();
+    },
+  },
 
-    decreaseBtn?.addEventListener("click", () => {
-      const countValue = document.getElementById("questionsCountValue");
-      const currentCount = parseInt(countValue.textContent) || 5;
-      if (currentCount > 1) {
-        updateQuestionsCount(currentCount - 1);
+  // ========================================
+  // UI HELPERS
+  // ========================================
+  UI: {
+    showInlineRename(item, currentValue, onSave) {
+      const nameEl = item.querySelector(".creator-category-name");
+      const header = item.querySelector(".creator-category-header");
+
+      // Create inline input
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = currentValue;
+      input.className = "creator-inline-input";
+      input.autocomplete = "off";
+
+      // Replace name with input in the header
+      nameEl.style.display = "none";
+      header.insertBefore(input, nameEl.nextSibling);
+      input.focus();
+      input.select();
+
+      // Handle save/cancel
+      const finish = (save) => {
+        if (save && input.value.trim()) {
+          onSave(input.value.trim());
+        } else {
+          nameEl.style.display = "";
+          input.remove();
+        }
+      };
+
+      input.addEventListener("blur", () => finish(true));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          input.blur();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          finish(false);
+        }
+      });
+    },
+
+    showInlineAddCategory() {
+      const categoriesList = document.getElementById("creatorCategoriesList");
+      if (!categoriesList) return;
+
+      // Create new item with input
+      const item = document.createElement("div");
+      item.className = "creator-category-item creator-category-item-new";
+      item.innerHTML = `
+        <div class="creator-category-header">
+          <span class="creator-category-icon">📁</span>
+          <input type="text" class="creator-inline-input" placeholder="New category name..." autocomplete="off" />
+          <div class="creator-category-actions">
+            <button class="creator-action-btn creator-save-btn" title="Save" type="button">✓</button>
+            <button class="creator-action-btn creator-cancel-btn" title="Cancel" type="button">✕</button>
+          </div>
+        </div>
+      `;
+
+      categoriesList.appendChild(item);
+
+      // Get input and focus it
+      const input = item.querySelector(".creator-inline-input");
+      input.focus();
+
+      // Handle save
+      const localSaveBtn = item.querySelector(".creator-save-btn");
+      const cancelBtn = item.querySelector(".creator-cancel-btn");
+
+      const finish = (save) => {
+        if (save && input.value.trim()) {
+          const newCategory = {
+            id: `cat_${GameCreator.Utils.generateId()}`,
+            name: input.value.trim(),
+            icon: "📁",
+          };
+
+          GameCreator.state.creatorData.categories.push(newCategory);
+          GameCreator.Storage.saveCreatorData(GameCreator.state.creatorData);  // Save immediately
+          GameCreator.Render.categories();
+        } else {
+          item.remove();
+        }
+      };
+
+      localSaveBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        finish(true);
+      });
+
+      cancelBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        finish(false);
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          finish(true);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          finish(false);
+        }
+      });
+    },
+
+    showDeleteCategoryDialog(category, index) {
+      const dialog = document.getElementById("deleteCategoryDialog");
+      const messageEl = document.getElementById("deleteCategoryMessage");
+      if (!dialog || !messageEl) return;
+
+      messageEl.textContent = `Delete "${category.name}"? Games in this category will move to "All Games".`;
+      GameCreator.state.pendingDeleteCategoryIndex = index;
+      GameCreator.state.pendingDeleteCategoryData = category;
+
+      dialog.showModal();
+    },
+
+    setupMenuListeners() {
+      const menuTrigger = document.getElementById("creatorMenuTrigger");
+      const menuDropdown = document.getElementById("creatorMenuDropdown");
+
+      if (!menuTrigger || !menuDropdown) return;
+
+      GameCreator.state.menuTrigger = menuTrigger;
+      GameCreator.state.menuDropdown = menuDropdown;
+
+      menuTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menuDropdown.classList.toggle("show");
+      });
+
+      // Setup export/import listeners for the newly rendered buttons
+      const newExportBtn = document.getElementById("creatorExportBtn");
+      const newImportBtn = document.getElementById("creatorImportBtn");
+
+      if (newExportBtn) {
+        newExportBtn.addEventListener("click", async () => {
+          const gameHeader = document.getElementById("creatorGameHeader");
+          if (!gameHeader || !gameHeader._game) {
+            alert('No game to export');
+            return;
+          }
+
+          const game = gameHeader._game;
+          const gameData = gameHeader._gameData;
+
+          // Build proper game structure for export
+          const gameToExport = {
+            title: game.title,
+            subtitle: game.subtitle,
+            ...gameData  // Spreads {categories: [...]}
+          };
+
+          // Create filename from title
+          const filename = game.title.trim() || 'game';
+          const safeFilename = filename.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.json';
+
+          const dataStr = JSON.stringify(gameToExport, null, 2);
+          const blob = new Blob([dataStr], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = safeFilename;
+          a.click();
+          URL.revokeObjectURL(url);
+          menuDropdown.classList.remove("show");
+
+          // Show HTML export instructions dialog
+          await showExportInstructions(safeFilename, game.id, game.title, game.subtitle);
+        });
       }
-    });
 
-    increaseBtn?.addEventListener("click", () => {
-      const countValue = document.getElementById("questionsCountValue");
-      const currentCount = parseInt(countValue.textContent) || 5;
-      if (currentCount < 10) {
-        updateQuestionsCount(currentCount + 1);
+      if (newImportBtn) {
+        newImportBtn.addEventListener("click", () => {
+          const importInput = document.getElementById("creatorImportInput");
+          if (importInput) {
+            importInput.click();
+          }
+          menuDropdown.classList.remove("show");
+        });
       }
-    });
+    },
 
-    // Categories count control (+/-)
-    const categoriesDecreaseBtn = document.getElementById("categoriesDecreaseBtn");
-    const categoriesIncreaseBtn = document.getElementById("categoriesIncreaseBtn");
-    const categoriesCountValue = document.getElementById("categoriesCountValue");
+    setupWorkspaceListeners() {
+      const workspaceGrid = document.getElementById("creatorWorkspaceGrid");
+      if (!workspaceGrid) return;
 
-    const updateCategoriesCount = (newCount) => {
+      // Add category button
+      const addCategoryBtn = document.getElementById("workspaceAddCategoryBtn");
+      addCategoryBtn?.addEventListener("click", () => {
+        GameCreator.Actions.addCategory();
+      });
+
+      // Add question button (single question to selected category)
+      const addQuestionBtn = document.getElementById("workspaceAddQuestionBtn");
+      addQuestionBtn?.addEventListener("click", () => {
+        GameCreator.Actions.addClue(GameCreator.state.selectedCategoryIndex);
+      });
+
+      // Questions count control (+/-) - affects all categories uniformly
+      const decreaseBtn = document.getElementById("questionsDecreaseBtn");
+      const increaseBtn = document.getElementById("questionsIncreaseBtn");
+
+      decreaseBtn?.addEventListener("click", () => {
+        const countValue = document.getElementById("questionsCountValue");
+        const currentCount = parseInt(countValue.textContent) || 5;
+        if (currentCount > 1) {
+          GameCreator.Actions.resizeClues(currentCount - 1);
+        }
+      });
+
+      increaseBtn?.addEventListener("click", () => {
+        const countValue = document.getElementById("questionsCountValue");
+        const currentCount = parseInt(countValue.textContent) || 5;
+        if (currentCount < 10) {
+          GameCreator.Actions.resizeClues(currentCount + 1);
+        }
+      });
+
+      // Categories count control (+/-)
+      const categoriesDecreaseBtn = document.getElementById("categoriesDecreaseBtn");
+      const categoriesIncreaseBtn = document.getElementById("categoriesIncreaseBtn");
+
+      categoriesDecreaseBtn?.addEventListener("click", () => {
+        const countValue = document.getElementById("categoriesCountValue");
+        const currentCount = parseInt(countValue.textContent) || 6;
+        if (currentCount > 1) {
+          GameCreator.Actions.resizeCategories(currentCount - 1);
+        }
+      });
+
+      categoriesIncreaseBtn?.addEventListener("click", () => {
+        const countValue = document.getElementById("categoriesCountValue");
+        const currentCount = parseInt(countValue.textContent) || 6;
+        if (currentCount < 12) {
+          GameCreator.Actions.resizeCategories(currentCount + 1);
+        }
+      });
+    },
+
+    setupHeaderEventListeners(gameHeader, game, gameData) {
+      // Title input
+      const titleInput = gameHeader.querySelector("#editorTitle");
+      titleInput?.addEventListener("input", () => {
+        game.title = titleInput.value;
+        GameCreator.state.autoSave();  // Auto-save on change
+        GameCreator.Render.games();
+      });
+
+      // Subtitle input
+      const subtitleInput = gameHeader.querySelector("#editorSubtitle");
+      subtitleInput?.addEventListener("input", () => {
+        game.subtitle = subtitleInput.value;
+        GameCreator.state.autoSave();  // Auto-save on change
+        GameCreator.Render.games();
+      });
+
+      // Game category dropdown (folder assignment)
+      const categorySelect = gameHeader.querySelector("#editorGameCategory");
+      categorySelect?.addEventListener("change", (e) => {
+        const newCategoryId = e.target.value;
+        game.categoryId = newCategoryId;
+        // Update selected category in sidebar
+        GameCreator.state.selectedCategoryId = newCategoryId;
+        GameCreator.state.autoSave();  // Auto-save on change
+        GameCreator.Render.categories();
+        GameCreator.Render.games();
+      });
+
+      // Difficulty radio buttons
+      const difficultyRadios = gameHeader.querySelectorAll("input[name='aiDifficulty']");
+      const pillDifficulty = gameHeader.querySelector("#aiPillDifficulty");
+      difficultyRadios.forEach(radio => {
+        radio.addEventListener("change", (e) => {
+          const newDifficulty = e.target.value;
+          // Update pill label
+          if (pillDifficulty) {
+            pillDifficulty.textContent = newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1);
+          }
+          // Trigger AI action difficulty update
+          if (typeof window !== 'undefined' && window.updateAIDifficulty) {
+            window.updateAIDifficulty(newDifficulty);
+          }
+          // Close dropdown after selection
+          const dropdown = gameHeader.querySelector(".ai-action-dropdown");
+          if (dropdown) dropdown.classList.remove("show");
+        });
+      });
+
+      // Setup AI button handlers
+      if (typeof setupAIButtonHandlers === 'function') {
+        setupAIButtonHandlers();
+      }
+    },
+
+    setupClueEditorListeners(editorPanel, categories, category, clue) {
       const gameHeader = document.getElementById("creatorGameHeader");
       const game = gameHeader._game;
       const gameData = gameHeader._gameData;
 
-      if (!gameData.categories) gameData.categories = [];
-      const currentCount = gameData.categories.length;
+      // Value input
+      const valueInput = editorPanel.querySelector("#clueValueInput");
+      valueInput?.addEventListener("input", () => {
+        clue.value = parseInt(valueInput.value) || 200;
+        game.gameData = gameData;
+        GameCreator.state.autoSave();  // Auto-save on change
+        GameCreator.Render.cluesColumn(categories);
+      });
 
-      // Warn if going above 6
-      if (newCount > 6) {
-        const message = `Jeopardy games typically have 6 categories. You're about to create ${newCount} categories. Continue?`;
-        if (!confirm(message)) return;
-      }
+      // Question input
+      const questionInput = editorPanel.querySelector("#clueQuestionInput");
+      questionInput?.addEventListener("input", () => {
+        clue.clue = questionInput.value;
+        game.gameData = gameData;
+        GameCreator.state.autoSave();  // Auto-save on change
+        GameCreator.Render.cluesColumn(categories);
+      });
 
-      // Warn if reducing would remove categories
-      if (newCount < currentCount) {
-        const toRemove = currentCount - newCount;
-        const categoriesBeingRemoved = gameData.categories.slice(newCount);
+      // Answer input
+      const answerInput = editorPanel.querySelector("#clueAnswerInput");
+      answerInput?.addEventListener("input", () => {
+        clue.response = answerInput.value;
+        game.gameData = gameData;
+        GameCreator.state.autoSave();  // Auto-save on change
+        GameCreator.Render.cluesColumn(categories);
+      });
 
-        let message = `Reducing to ${newCount} categor${newCount === 1 ? 'y' : 'ies'} will remove:\n\n`;
-        categoriesBeingRemoved.forEach((cat, i) => {
-          const cluesCount = cat.clues?.length || 0;
-          message += `• ${cat.title || '(Untitled)'}: ${cluesCount} question${cluesCount === 1 ? '' : 's'}\n`;
-        });
-        message += `\nContinue?`;
+      // Delete clue button
+      const deleteBtn = editorPanel.querySelector("#deleteClueBtn");
+      deleteBtn?.addEventListener("click", () => {
+        if (confirm("Delete this question?")) {
+          GameCreator.Actions.deleteClue(GameCreator.state.selectedCategoryIndex, GameCreator.state.selectedClueIndex);
+        }
+      });
+    },
+  },
 
-        if (!confirm(message)) return;
-      }
+  // ========================================
+  // SETUP - Main entry point
+  // ========================================
+  async setup() {
+    const dialog = document.getElementById("gameCreatorDialog");
+    const openBtn = document.getElementById("createGameBtn");
+    const addCategoryBtn = document.getElementById("creatorAddCategoryBtn");
+    const addGameBtn = document.getElementById("creatorAddGameBtn");
+    const importInput = document.getElementById("creatorImportInput");
+    const searchInput = document.getElementById("creatorSearchInput");
 
-      if (newCount > currentCount) {
-        // Add categories
-        for (let i = currentCount; i < newCount; i++) {
-          gameData.categories.push({
-            title: "",
-            clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]
+    // Initialize state
+    GameCreator.state.creatorData = GameCreator.Storage.loadCreatorData();
+    GameCreator.state.selectedCategoryId = GameCreator.state.creatorData.categories[0]?.id || null;
+    GameCreator.state.selectedGameId = null;
+    GameCreator.state.pendingDeleteGameId = null;
+    GameCreator.state.dirty = false;
+    GameCreator.state.allCreatorGames = [];
+
+    // Create auto-save function (debounced, saves to both creatorData and customGames)
+    GameCreator.state.autoSave = GameCreator.Storage.createAutoSaveFunction();
+
+    // Load all games (file-based, custom, and creator games)
+    await GameCreator.Data.loadAllGames();
+
+    // Setup search functionality
+    searchInput?.addEventListener("input", () => {
+      GameCreator.Render.games();
+    });
+
+    // Setup workspace listeners
+    GameCreator.UI.setupWorkspaceListeners();
+
+    // Add Category button in sidebar
+    addCategoryBtn?.addEventListener("click", GameCreator.UI.showInlineAddCategory);
+
+    // Add Game button in sidebar - creates a new blank game
+    addGameBtn?.addEventListener("click", GameCreator.Actions.createNewGame);
+
+    // Import file handler
+    importInput.addEventListener("change", async () => {
+      const file = importInput.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+
+        // Validate structure
+        if (!parsed || typeof parsed !== "object") {
+          throw new Error("Invalid JSON: expected an object");
+        }
+
+        // Merge with existing data
+        const creatorData = GameCreator.state.creatorData;
+        if (Array.isArray(parsed.categories)) {
+          // Add new categories (avoiding duplicate IDs)
+          parsed.categories.forEach(cat => {
+            if (!creatorData.categories.find(c => c.id === cat.id)) {
+              creatorData.categories.push(cat);
+            }
           });
         }
-      } else if (newCount < currentCount) {
-        // Remove categories from the end
-        gameData.categories = gameData.categories.slice(0, newCount);
-      }
 
-      // Reset selection if needed
-      if (selectedCategoryIndex !== null && selectedCategoryIndex >= newCount) {
-        selectedCategoryIndex = newCount > 0 ? newCount - 1 : null;
-        selectedClueIndex = null;
-      }
-
-      game.gameData = gameData;
-      autoSave();  // Auto-save
-      renderEditor();
-    };
-
-    categoriesDecreaseBtn?.addEventListener("click", () => {
-      const countValue = document.getElementById("categoriesCountValue");
-      const currentCount = parseInt(countValue.textContent) || 6;
-      if (currentCount > 1) {
-        updateCategoriesCount(currentCount - 1);
-      }
-    });
-
-    categoriesIncreaseBtn?.addEventListener("click", () => {
-      const countValue = document.getElementById("categoriesCountValue");
-      const currentCount = parseInt(countValue.textContent) || 6;
-      if (currentCount < 12) {
-        updateCategoriesCount(currentCount + 1);
-      }
-    });
-  }
-
-  // Legacy setupEditorEventListeners (no longer needed)
-  function setupEditorEventListeners(editorContent) {
-    // This function is deprecated - listeners are now set up inline
-  }
-
-  // Action menu toggle variables
-  let menuTrigger = null;
-  let menuDropdown = null;
-
-  // Setup menu listeners - hoisted function declaration
-  function setupMenuListeners() {
-    menuTrigger = document.getElementById("creatorMenuTrigger");
-    menuDropdown = document.getElementById("creatorMenuDropdown");
-
-    if (!menuTrigger || !menuDropdown) return;
-
-    menuTrigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      menuDropdown.classList.toggle("show");
-    });
-
-    // Setup export/import listeners for the newly rendered buttons
-    const newExportBtn = document.getElementById("creatorExportBtn");
-    const newImportBtn = document.getElementById("creatorImportBtn");
-
-    if (newExportBtn) {
-      newExportBtn.addEventListener("click", async () => {
-        const gameHeader = document.getElementById("creatorGameHeader");
-        if (!gameHeader || !gameHeader._game) {
-          alert('No game to export');
-          return;
+        if (Array.isArray(parsed.games)) {
+          // Add new games (avoiding duplicate IDs)
+          parsed.games.forEach(game => {
+            if (!creatorData.games.find(g => g.id === game.id)) {
+              creatorData.games.push(game);
+            }
+          });
         }
 
-        const game = gameHeader._game;
-        const gameData = gameHeader._gameData;
+        GameCreator.Storage.saveCreatorData(creatorData);  // Save immediately
 
-        // Build proper game structure for export
-        const gameToExport = {
-          title: game.title,
-          subtitle: game.subtitle,
-          ...gameData  // Spreads {categories: [...]}
-        };
-
-        // Create filename from title
-        const filename = game.title.trim() || 'game';
-        const safeFilename = filename.replace(/[^a-z0-9]/gi, '-').toLowerCase() + '.json';
-
-        const dataStr = JSON.stringify(gameToExport, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = safeFilename;
-        a.click();
-        URL.revokeObjectURL(url);
-        menuDropdown.classList.remove("show");
-
-        // Show HTML export instructions dialog
-        await showExportInstructions(safeFilename, game.id, game.title, game.subtitle);
-      });
-    }
-
-    if (newImportBtn) {
-      newImportBtn.addEventListener("click", () => {
-        importInput.click();
-        menuDropdown.classList.remove("show");
-      });
-    }
-  }
-
-  // Close menu when clicking outside
-  document.addEventListener("click", (e) => {
-    if (menuTrigger && menuDropdown &&
-        !menuTrigger.contains(e.target) && !menuDropdown.contains(e.target)) {
-      menuDropdown.classList.remove("show");
-    }
-  });
-
-  // Setup workspace listeners
-  setupWorkspaceListeners();
-
-  // Note: Save button removed - auto-save is now enabled
-
-  // Import file handler (shared - called from dynamically created import button)
-  importInput.addEventListener("change", async () => {
-    const file = importInput.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-
-      // Validate structure
-      if (!parsed || typeof parsed !== "object") {
-        throw new Error("Invalid JSON: expected an object");
-      }
-
-      // Merge with existing data
-      if (Array.isArray(parsed.categories)) {
-        // Add new categories (avoiding duplicate IDs)
-        parsed.categories.forEach(cat => {
-          if (!creatorData.categories.find(c => c.id === cat.id)) {
-            creatorData.categories.push(cat);
-          }
-        });
-      }
-
-      if (Array.isArray(parsed.games)) {
-        // Add new games (avoiding duplicate IDs)
-        parsed.games.forEach(game => {
-          if (!creatorData.games.find(g => g.id === game.id)) {
-            creatorData.games.push(game);
-          }
-        });
-      }
-
-      saveCreatorData(creatorData);  // Save immediately
-
-      // Reload all games to include imported ones
-      loadAllGames().then(() => {
-        renderCategories();
-        renderGames();
+        // Reload all games to include imported ones
+        await GameCreator.Data.loadAllGames();
+        GameCreator.Render.categories();
+        GameCreator.Render.games();
         alert("Games imported successfully!");
+      } catch (err) {
+        alert(`Error importing games: ${err.message}`);
+      } finally {
+        importInput.value = "";
+      }
+    });
+
+    // Open dialog
+    openBtn.addEventListener("click", () => {
+      // Reload games when opening the dialog
+      GameCreator.Data.loadAllGames().then(() => {
+        GameCreator.Render.categories();
+        GameCreator.Render.games();
+
+        // Default to first game if nothing selected (not blank template)
+        if (!GameCreator.state.selectedGameId && GameCreator.state.allCreatorGames.length > 0) {
+          GameCreator.state.selectedGameId = GameCreator.state.allCreatorGames[0].id;
+          GameCreator.Render.games();
+          GameCreator.Render.editor();
+        } else if (!GameCreator.state.selectedGameId && GameCreator.state.allCreatorGames.length === 0) {
+          // Only create blank template if no games exist at all
+          GameCreator.Actions.createNewGame();
+        } else {
+          GameCreator.Render.editor();
+        }
+
+        dialog.showModal();
       });
-    } catch (err) {
-      alert(`Error importing games: ${err.message}`);
-    } finally {
-      importInput.value = "";
-    }
-  });
-
-  // Open dialog
-  openBtn.addEventListener("click", () => {
-    // Reload games when opening the dialog
-    loadAllGames().then(() => {
-      renderCategories();
-      renderGames();
-
-      // Default to first game if nothing selected (not blank template)
-      if (!selectedGameId && allCreatorGames.length > 0) {
-        selectedGameId = allCreatorGames[0].id;
-        renderGames();
-        renderEditor();
-      } else if (!selectedGameId && allCreatorGames.length === 0) {
-        // Only create blank template if no games exist at all
-        const defaultCategoryId = creatorData.categories[0]?.id || "custom";
-        const blankGameData = {
-          categories: [
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]}
-          ]
-        };
-
-        const blankGame = {
-          id: `game_${generateId()}`,
-          title: "",
-          subtitle: "",
-          categoryId: defaultCategoryId,
-          gameData: blankGameData, // Store as gameData for renderEditor
-          editable: true,
-          source: "creator",
-          _isNew: true
-        };
-
-        allCreatorGames.push(blankGame);
-        selectedGameId = blankGame.id;
-        selectedCategoryIndex = 0;
-        selectedClueIndex = null;
-        renderGames();
-        renderEditor();
-      } else {
-        renderEditor();
-      }
-
-      dialog.showModal();
     });
-  });
 
-  // Refresh main menu when dialog closes (if changes were saved)
-  dialog.addEventListener("close", () => {
-    if (dirty) {
-      // Reload to show the changes - user can re-open to continue editing
-      creatorData = loadCreatorData();
-      dirty = false;
-
-      // Trigger a menu refresh by dispatching a custom event
-      window.dispatchEvent(new CustomEvent('jeop2:gamesUpdated'));
-    }
-    // Reload games when dialog reopens
-    loadAllGames().then(() => {
-      renderCategories();
-      renderGames();
-
-      // Default to first game if nothing selected
-      if (!selectedGameId && allCreatorGames.length > 0) {
-        selectedGameId = allCreatorGames[0].id;
-        renderGames();
-      } else if (!selectedGameId && allCreatorGames.length === 0) {
-        // Only create blank template if no games exist
-        const defaultCategoryId = creatorData.categories[0]?.id || "custom";
-        const blankGameData = {
-          categories: [
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]},
-            { title: "", clues: [
-              { value: 200, clue: "", response: "" },
-              { value: 400, clue: "", response: "" },
-              { value: 600, clue: "", response: "" },
-              { value: 800, clue: "", response: "" },
-              { value: 1000, clue: "", response: "" }
-            ]}
-          ]
-        };
-
-        const blankGame = {
-          id: `game_${generateId()}`,
-          title: "",
-          subtitle: "",
-          categoryId: defaultCategoryId,
-          gameData: blankGameData,
-          editable: true,
-          source: "creator",
-          _isNew: true
-        };
-
-        allCreatorGames.push(blankGame);
-        selectedGameId = blankGame.id;
-        selectedCategoryIndex = 0;
-        selectedClueIndex = null;
-        renderGames();
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+      if (GameCreator.state.menuTrigger && GameCreator.state.menuDropdown &&
+          !GameCreator.state.menuTrigger.contains(e.target) && !GameCreator.state.menuDropdown.contains(e.target)) {
+        GameCreator.state.menuDropdown.classList.remove("show");
       }
-
-      renderEditor();
     });
-  });
 
-  // Create new blank game
-  async function createNewGame() {
-    // Find or create "Custom" category
-    let customCategory = creatorData.categories.find(c => c.id === "custom");
-    if (!customCategory) {
-      customCategory = {
-        id: "custom",
-        name: "Custom",
-        icon: "📁"
-      };
-      creatorData.categories.push(customCategory);
-    }
+    // Setup delete category dialog handlers
+    const confirmDeleteCategoryBtn = document.getElementById("confirmDeleteCategoryBtn");
+    const cancelDeleteCategoryBtn = document.getElementById("cancelDeleteCategoryBtn");
 
-    // Create new game with default structure
-    const newGame = {
-      id: `game_${generateId()}`,
-      title: "New Game",
-      subtitle: "",
-      categoryId: customCategory.id, // Assign to Custom category
-      game: {
-        title: "New Game",
-        subtitle: "",
-        categories: [
-          { title: "", clues: [
-            { value: 200, clue: "", response: "" },
-            { value: 400, clue: "", response: "" },
-            { value: 600, clue: "", response: "" },
-            { value: 800, clue: "", response: "" },
-            { value: 1000, clue: "", response: "" }
-          ]},
-          { title: "", clues: [
-            { value: 200, clue: "", response: "" },
-            { value: 400, clue: "", response: "" },
-            { value: 600, clue: "", response: "" },
-            { value: 800, clue: "", response: "" },
-            { value: 1000, clue: "", response: "" }
-          ]},
-          { title: "", clues: [
-            { value: 200, clue: "", response: "" },
-            { value: 400, clue: "", response: "" },
-            { value: 600, clue: "", response: "" },
-            { value: 800, clue: "", response: "" },
-            { value: 1000, clue: "", response: "" }
-          ]},
-          { title: "", clues: [
-            { value: 200, clue: "", response: "" },
-            { value: 400, clue: "", response: "" },
-            { value: 600, clue: "", response: "" },
-            { value: 800, clue: "", response: "" },
-            { value: 1000, clue: "", response: "" }
-          ]},
-          { title: "", clues: [
-            { value: 200, clue: "", response: "" },
-            { value: 400, clue: "", response: "" },
-            { value: 600, clue: "", response: "" },
-            { value: 800, clue: "", response: "" },
-            { value: 1000, clue: "", response: "" }
-          ]},
-          { title: "", clues: [
-            { value: 200, clue: "", response: "" },
-            { value: 400, clue: "", response: "" },
-            { value: 600, clue: "", response: "" },
-            { value: 800, clue: "", response: "" },
-            { value: 1000, clue: "", response: "" }
-          ]}
-        ]
+    confirmDeleteCategoryBtn?.addEventListener("click", () => {
+      if (GameCreator.state.pendingDeleteCategoryIndex !== null && GameCreator.state.pendingDeleteCategoryData) {
+        const creatorData = GameCreator.state.creatorData;
+        // Move games to "All Games"
+        creatorData.games.forEach(game => {
+          if (game.categoryId === GameCreator.state.pendingDeleteCategoryData.id) {
+            game.categoryId = creatorData.categories[0].id;
+          }
+        });
+        creatorData.categories.splice(GameCreator.state.pendingDeleteCategoryIndex, 1);
+        if (GameCreator.state.selectedCategoryId === GameCreator.state.pendingDeleteCategoryData.id) {
+          GameCreator.state.selectedCategoryId = creatorData.categories[0]?.id || null;
+        }
+        GameCreator.Storage.saveCreatorData(creatorData);  // Save immediately
+        GameCreator.Render.categories();
+        GameCreator.Render.games();
       }
-    };
+      GameCreator.state.pendingDeleteCategoryIndex = null;
+      GameCreator.state.pendingDeleteCategoryData = null;
+    });
 
-    // Add to creator data
-    creatorData.games.push(newGame);
-    saveCreatorData(creatorData);  // Save immediately
+    cancelDeleteCategoryBtn?.addEventListener("click", () => {
+      GameCreator.state.pendingDeleteCategoryIndex = null;
+      GameCreator.state.pendingDeleteCategoryData = null;
+    });
 
-    // Also save to customGames so it appears in main menu
-    const custom = loadCustomGames();
-    const customGame = {
-      id: newGame.id,
-      title: newGame.title,
-      subtitle: newGame.subtitle,
-      categoryId: newGame.categoryId,
-      game: newGame.game,  // Flat structure with title, subtitle, categories
-      source: "creator"
-    };
-    // Don't duplicate if already exists
-    if (!custom.find(g => g.id === newGame.id)) {
-      custom.unshift(customGame);
-    }
-    saveCustomGames(custom);
+    // Refresh main menu when dialog closes (if changes were saved)
+    dialog.addEventListener("close", () => {
+      if (GameCreator.state.dirty) {
+        // Reload to show the changes - user can re-open to continue editing
+        GameCreator.state.creatorData = GameCreator.Storage.loadCreatorData();
+        GameCreator.state.dirty = false;
 
-    // Reload allCreatorGames to include the new game
-    await loadAllGames();
+        // Trigger a menu refresh by dispatching a custom event
+        window.dispatchEvent(new CustomEvent('jeop2:gamesUpdated'));
+      }
+      // Reload games when dialog reopens
+      GameCreator.Data.loadAllGames().then(() => {
+        GameCreator.Render.categories();
+        GameCreator.Render.games();
 
-    // Select the Custom category and the new game
-    selectedCategoryId = customCategory.id;
-    selectedGameId = newGame.id;
+        // Default to first game if nothing selected
+        if (!GameCreator.state.selectedGameId && GameCreator.state.allCreatorGames.length > 0) {
+          GameCreator.state.selectedGameId = GameCreator.state.allCreatorGames[0].id;
+          GameCreator.Render.games();
+        } else if (!GameCreator.state.selectedGameId && GameCreator.state.allCreatorGames.length === 0) {
+          // Only create blank template if no games exist
+          GameCreator.Actions.createNewGame();
+        }
 
-    // Re-render
-    renderCategories();
-    renderGames();
-    renderEditor();
-  }
+        GameCreator.Render.editor();
+      });
+    });
 
-  // Expose createNewGame globally for the wizard to use
-  window.createNewGame = createNewGame;
-  window.loadAllGames = loadAllGames;
-  window.renderEditor = renderEditor;
-  window.autoSave = autoSave;
+    // Expose functions globally for the wizard and other code to use
+    window.createNewGame = GameCreator.Actions.createNewGame;
+    window.loadAllGames = GameCreator.Data.loadAllGames;
+    window.renderEditor = GameCreator.Render.editor;
+    window.autoSave = GameCreator.state.autoSave;
 
-  // Add Game button in sidebar - creates a new blank game (if button exists)
-  addGameBtn?.addEventListener("click", createNewGame);
+    // Initial render
+    GameCreator.Render.categories();
+    GameCreator.Render.games();
+    GameCreator.Render.editor();
+  },
+};
 
-  // Initial render
-  renderCategories();
-  renderGames();
-  renderEditor();
+// Setup Game Creator (now using namespace pattern)
+async function setupGameCreator() {
+  // Expose GameCreator namespace globally
+  window.GameCreator = GameCreator;
+
+  // Initialize the Game Creator
+  await GameCreator.setup();
 }
 
 main();
