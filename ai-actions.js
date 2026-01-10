@@ -162,6 +162,12 @@ function applyResult(action, result, game, gameData, selections) {
       break;
 
     case 'categories-generate':
+      // Ensure each category has contentTopic (use AI-provided or fallback to title)
+      result.categories.forEach(cat => {
+        if (!cat.contentTopic || cat.contentTopic === '') {
+          cat.contentTopic = cat.title;
+        }
+      });
       gameData.categories = result.categories;
       game.gameData = gameData;
       // Also explicitly update nested game.categories if exists (for safety)

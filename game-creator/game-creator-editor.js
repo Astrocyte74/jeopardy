@@ -490,6 +490,7 @@
               <span class="category-card-number">${index + 1}</span>
               <div class="category-card-info">
                 <div class="category-card-title" data-category-title="${index}">${cat.title || '(Untitled)'}</div>
+                ${cat.contentTopic ? `<div class="category-card-topic" title="Content topic for AI">📝 ${cat.contentTopic}</div>` : ''}
                 <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
               </div>
               <div class="category-card-actions">
@@ -519,60 +520,31 @@
               e.stopPropagation();
               const category = categories[catIndex];
               const currentTitle = category.title || '';
+              const currentTopic = category.contentTopic || '';
 
-              // Create input field
-              const input = document.createElement('input');
-              input.type = 'text';
-              input.value = currentTitle;
-              input.className = 'category-title-input';
-              input.style.cssText = `
-                width: 100%;
-                padding: 2px 4px;
-                font-size: inherit;
-                font-weight: inherit;
-                border: 1px solid #3b82f6;
-                border-radius: 4px;
-                outline: none;
-                background: white;
-                color: black;
-              `;
+              // Show dialog with both fields
+              window.showCategoryEditDialog(currentTitle, currentTopic).then((result) => {
+                if (!result || (result.title === null && result.topic === null)) return; // User cancelled
 
-              // Find title element
-              const titleEl = item.querySelector('.category-card-title');
-              if (!titleEl) return;
+                const gameHeader = document.getElementById("creatorGameHeader");
+                if (!gameHeader || !gameHeader._gameData) return;
 
-              // Replace title with input
-              titleEl.innerHTML = '';
-              titleEl.appendChild(input);
-              input.focus();
-              input.select();
+                const newTitle = result.title;
+                const newTopic = result.topic;
 
-              // Save on blur or Enter
-              const finish = (save) => {
-                const newTitle = input.value.trim();
-                input.remove();
-                titleEl.textContent = newTitle || '(Untitled)';
-
-                if (save && newTitle && newTitle !== currentTitle) {
-                  const gameHeader = document.getElementById("creatorGameHeader");
-                  if (gameHeader && gameHeader._gameData) {
-                    category.title = newTitle;
-                    gameHeader._game.gameData = gameHeader._gameData;
-                    window.GameCreatorState.state.autoSave();
-                    window.GameCreatorEditor.Render.categoriesColumn(categories);
-                  }
+                // Update title if changed
+                if (newTitle !== undefined && newTitle !== currentTitle) {
+                  category.title = newTitle;
                 }
-              };
 
-              input.addEventListener('blur', () => finish(true));
-              input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  input.blur();
-                } else if (e.key === 'Escape') {
-                  e.preventDefault();
-                  finish(false);
+                // Update content topic if changed
+                if (newTopic !== undefined && newTopic !== currentTopic) {
+                  category.contentTopic = newTopic;
                 }
+
+                gameHeader._game.gameData = gameHeader._gameData;
+                window.GameCreatorState.state.autoSave();
+                window.GameCreatorEditor.Render.categoriesColumn(categories);
               });
             });
           }
@@ -748,7 +720,7 @@
             title: "New Game",
             subtitle: "",
             categories: [
-              { title: "", clues: [
+              { title: "", contentTopic: "", clues: [
                 { value: 200, clue: "", response: "" },
                 { value: 400, clue: "", response: "" },
                 { value: 600, clue: "", response: "" },
@@ -855,6 +827,7 @@
         if (!gameData.categories) gameData.categories = [];
         gameData.categories.push({
           title: "",
+          contentTopic: "",  // What the category is actually about (for AI generation)
           clues: [
             { value: 200, clue: "", response: "" },
             { value: 400, clue: "", response: "" },
@@ -977,6 +950,7 @@
           for (let i = currentCount; i < newCount; i++) {
             gameData.categories.push({
               title: "",
+              contentTopic: "",  // What the category is actually about (for AI generation)
               clues: [
                 { value: 200, clue: "", response: "" },
                 { value: 400, clue: "", response: "" },

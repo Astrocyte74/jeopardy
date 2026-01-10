@@ -522,6 +522,12 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
   const catIdx = explicitCategoryIndex !== null ? explicitCategoryIndex : window.selectedCategoryIndex;
   const clueIdx = window.selectedClueIndex;
 
+  // Helper to get category title for AI generation (uses contentTopic if set, otherwise title)
+  const getCategoryForAI = (idx) => {
+    const cat = gameData.categories[idx];
+    return cat?.contentTopic || cat?.title || 'Untitled';
+  };
+
   // Debug logging for category actions
   if (action.startsWith('category-')) {
     console.log('[buildContext] Category action:', action);
@@ -536,8 +542,8 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       // Use custom dialog with editable theme and action buttons
       // Note: category-rename is now handled inline in the dialog
       // So we only handle category-generate-smart here
-      const categoryTitle = gameData.categories[catIdx].title;
-      const result = await window.showCategoryAIDialog(categoryTitle);
+      const category = gameData.categories[catIdx];
+      const result = await window.showCategoryAIDialog(category.title, category.contentTopic);
 
       if (!result) return null; // User cancelled
 
@@ -629,13 +635,13 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
     case 'category-rename':
       return {
         currentTitle: gameData.categories[catIdx].title,
-        theme: explicitTheme || game.title || 'general'
+        theme: explicitTheme || getCategoryForAI(catIdx) || game.title || 'general'
       };
 
     case 'category-generate-clues':
       return {
         categoryTitle: gameData.categories[catIdx].title,
-        theme: explicitTheme || gameData.categories[catIdx].title,
+        theme: explicitTheme || getCategoryForAI(catIdx),
         existingClues: gameData.categories[catIdx].clues
       };
 
@@ -643,7 +649,7 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       const existingClues = gameData.categories[catIdx].clues;
       return {
         categoryTitle: gameData.categories[catIdx].title,
-        theme: explicitTheme || gameData.categories[catIdx].title,
+        theme: explicitTheme || getCategoryForAI(catIdx),
         count: existingClues.length,
         existingClues: existingClues  // Include so we can check if all empty
       };
@@ -651,34 +657,34 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
     case 'questions-generate-five':
       return {
         categoryTitle: gameData.categories[catIdx].title,
-        theme: game.title || gameData.categories[catIdx].title
+        theme: game.title || getCategoryForAI(catIdx)
       };
 
     case 'question-generate-single':
       return {
         categoryTitle: gameData.categories[catIdx].title,
         value: gameData.categories[catIdx].clues[clueIdx].value,
-        theme: game.title || gameData.categories[catIdx].title
+        theme: game.title || getCategoryForAI(catIdx)
       };
 
     case 'editor-generate-clue':
       return {
-        categoryTitle: gameData.categories[catIdx].title,
+        categoryTitle: getCategoryForAI(catIdx),
         value: gameData.categories[catIdx].clues[clueIdx].value,
-        theme: game.title || 'general'
+        theme: game.title || getCategoryForAI(catIdx)
       };
 
     case 'editor-rewrite-clue':
       return {
         currentClue: gameData.categories[catIdx].clues[clueIdx].clue,
-        categoryTitle: gameData.categories[catIdx].title,
+        categoryTitle: getCategoryForAI(catIdx),
         value: gameData.categories[catIdx].clues[clueIdx].value
       };
 
     case 'editor-generate-answer':
       return {
         clue: gameData.categories[catIdx].clues[clueIdx].clue,
-        categoryTitle: gameData.categories[catIdx].title,
+        categoryTitle: getCategoryForAI(catIdx),
         value: gameData.categories[catIdx].clues[clueIdx].value
       };
 
@@ -686,7 +692,7 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       return {
         clue: gameData.categories[catIdx].clues[clueIdx].clue,
         response: gameData.categories[catIdx].clues[clueIdx].response,
-        categoryTitle: gameData.categories[catIdx].title,
+        categoryTitle: getCategoryForAI(catIdx),
         value: gameData.categories[catIdx].clues[clueIdx].value
       };
 

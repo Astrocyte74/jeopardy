@@ -202,11 +202,18 @@ Value guidelines:
 - 1000: ${VALUE_GUIDANCE[1000]}
 ` : ''}
 
+IMPORTANT: Each category needs TWO names:
+1. "title" - A creative, catchy display name for players (e.g., "Geography Genius", "Word Wizards")
+2. "contentTopic" - The descriptive topic name for AI context (e.g., "World Capitals", "Literary Terms")
+
+The title should be fun and creative while the contentTopic should be clear and descriptive.
+
 Return JSON format:
 {
   "categories": [
     {
-      "title": "Category Name",
+      "title": "Creative Display Name",
+      "contentTopic": "Descriptive Topic Name",
       "clues": [
         { "value": 200, "clue": "...", "response": "..." },
         { "value": 400, "clue": "...", "response": "..." },

@@ -299,6 +299,7 @@ window.validators = {
     if (!data.categories || !Array.isArray(data.categories)) return false;
     return data.categories.every(cat =>
       typeof cat.title === 'string' &&
+      (typeof cat.contentTopic === 'string' || cat.contentTopic === undefined || cat.contentTopic === null) &&
       Array.isArray(cat.clues) &&
       cat.clues.every(clue =>
         typeof clue.value === 'number' &&

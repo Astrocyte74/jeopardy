@@ -534,7 +534,15 @@ function renderBoard(game, state, onOpenClue) {
   board.style.setProperty("--cols", String(shownCategories.length));
 
   for (const category of shownCategories) {
-    board.appendChild(el("div", { class: "cell cellHeader", role: "columnheader" }, category.title));
+    // Add title attribute for hover tooltip showing contentTopic if different from title
+    const headerAttrs = {
+      class: "cell cellHeader",
+      role: "columnheader"
+    };
+    if (category.contentTopic && category.contentTopic !== category.title) {
+      headerAttrs.title = category.contentTopic;
+    }
+    board.appendChild(el("div", headerAttrs, category.title));
   }
 
   for (let rowIndex = 0; rowIndex < game.rows; rowIndex++) {
@@ -1658,6 +1666,82 @@ function showInputDialog(title, defaultValue = "", helperText = null, confirmBut
 // Expose globally for AI modules
 window.showInputDialog = showInputDialog;
 
+// Category Edit Dialog - for editing display name and content topic
+// @param {string} currentTitle - Current display name
+// @param {string} currentTopic - Current content topic
+// @returns {Promise} Resolves with {title, topic} or null if cancelled
+function showCategoryEditDialog(currentTitle = "", currentTopic = "") {
+  console.log('[showCategoryEditDialog] Called with:', currentTitle, currentTopic);
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("categoryEditDialog");
+    const titleInput = document.getElementById("categoryEditTitleInput");
+    const topicInput = document.getElementById("categoryEditTopicInput");
+    const confirmBtn = document.getElementById("categoryEditDialogConfirm");
+    const cancelBtn = document.getElementById("categoryEditDialogCancel");
+    const xBtn = document.getElementById("categoryEditDialogXBtn");
+
+    if (!overlay) {
+      console.error('[showCategoryEditDialog] Overlay not found!');
+      resolve(null);
+      return;
+    }
+
+    titleInput.value = currentTitle;
+    topicInput.value = currentTopic;
+
+    let resolved = false;
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+
+    const doResolve = (title, topic) => {
+      if (!resolved) {
+        resolved = true;
+        abortController.abort();
+        overlay.style.display = "none";
+        console.log('[showCategoryEditDialog] Resolved with:', { title, topic });
+        resolve({ title, topic });
+      }
+    };
+
+    const confirmHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      doResolve(titleInput.value.trim(), topicInput.value.trim());
+    };
+
+    const cancelHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      doResolve(null, null); // null means cancelled
+    };
+
+    confirmBtn.addEventListener("click", confirmHandler, { signal, capture: true });
+    cancelBtn.addEventListener("click", cancelHandler, { signal, capture: true });
+    xBtn.addEventListener("click", cancelHandler, { signal, capture: true });
+
+    // Allow Enter key to confirm from either field
+    const handleEnter = (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        doResolve(titleInput.value.trim(), topicInput.value.trim());
+      }
+    };
+    titleInput.addEventListener("keydown", handleEnter, { signal, capture: true });
+    topicInput.addEventListener("keydown", handleEnter, { signal, capture: true });
+
+    overlay.style.display = "flex";
+    titleInput.focus();
+    titleInput.select();
+  });
+}
+
+// Expose globally
+window.showCategoryEditDialog = showCategoryEditDialog;
+
 // Selection dialog for choosing from options (e.g., difficulty)
 // @param {string} title - Dialog title
 // @param {string} helperText - Helper text below title
@@ -1772,10 +1856,11 @@ window.showSelectionDialog = showSelectionDialog;
 
 /**
  * Category AI dialog - shows editable theme and 2 action options
- * @param {string} currentTitle - Current category title (pre-fills the input)
+ * @param {string} currentTitle - Current category title (for display)
+ * @param {string} currentContentTopic - Current content topic (for AI generation, pre-fills input)
  * @returns {Promise} Resolves with {action, theme, result} or null if cancelled
  */
-function showCategoryAIDialog(currentTitle) {
+function showCategoryAIDialog(currentTitle, currentContentTopic = null) {
   return new Promise((resolve) => {
     const overlay = document.getElementById("inputDialog");
     const titleEl = document.getElementById("inputDialogTitle");
@@ -1795,13 +1880,44 @@ function showCategoryAIDialog(currentTitle) {
     titleEl.textContent = '✨ AI Assistant for Category';
     helperEl.innerHTML = ''; // Clear helper text
 
-    // Set input value
-    valueInput.value = currentTitle;
-    valueInput.style.marginBottom = '20px';
+    // Hide the single input field - we'll create our own dual fields
+    valueInput.style.display = 'none';
 
     // Hide default buttons
     confirmBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
+
+    // Create dual input fields container
+    const inputsContainer = document.createElement('div');
+    inputsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 16px; width: 100%; margin-bottom: 20px;';
+
+    // Display Name field
+    const titleField = document.createElement('div');
+    titleField.className = 'input-dialog-field';
+    titleField.innerHTML = `
+      <label class="input-dialog-label">Display Name</label>
+      <input id="aiDialogTitleInput" type="text" placeholder='e.g. "Bedrock Banter"' autocomplete="off" />
+      <div class="input-dialog-hint">What players see on the game board</div>
+    `;
+    inputsContainer.appendChild(titleField);
+
+    // Content Topic field
+    const topicField = document.createElement('div');
+    topicField.className = 'input-dialog-field';
+    topicField.innerHTML = `
+      <label class="input-dialog-label">Content Topic</label>
+      <input id="aiDialogTopicInput" type="text" placeholder='e.g. "Flintstones Trivia"' autocomplete="off" />
+      <div class="input-dialog-hint">What questions are actually about (for AI)</div>
+    `;
+    inputsContainer.appendChild(topicField);
+
+    // Get references to the new inputs
+    const titleInput = document.getElementById('aiDialogTitleInput');
+    const topicInput = document.getElementById('aiDialogTopicInput');
+
+    // Set initial values
+    titleInput.value = currentTitle;
+    topicInput.value = currentContentTopic || currentTitle;
 
     // Create action buttons container
     const actionsContainer = document.createElement('div');
@@ -1818,18 +1934,20 @@ function showCategoryAIDialog(currentTitle) {
       actionsContainer.style.display = 'flex';
       resultsContainer.style.display = 'none';
 
+      const topicValue = topicInput.value.trim() || currentTitle;
+
       const buttons = [
         {
           action: 'category-rename',
           icon: '✏️',
           title: 'Suggest better names',
-          desc: `Get creative alternatives to "${currentTitle}"`
+          desc: `Get creative alternatives to "${titleInput.value}"`
         },
         {
           action: 'category-generate-smart',
           icon: '✨',
           title: 'Generate questions',
-          desc: 'Create questions for this category using the theme above'
+          desc: `Create questions using "${topicValue}" as the theme`
         }
       ];
 
@@ -1847,12 +1965,25 @@ function showCategoryAIDialog(currentTitle) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
-          const theme = valueInput.value.trim() || currentTitle;
+          const theme = topicInput.value.trim() || topicValue;
           handleActionClick(btn.action, theme, btnEl);
         });
         actionsContainer.appendChild(btnEl);
       });
     };
+
+    // Update button descriptions when inputs change
+    titleInput.addEventListener('input', () => {
+      if (actionsContainer.style.display !== 'none') {
+        renderButtons();
+      }
+    });
+
+    topicInput.addEventListener('input', () => {
+      if (actionsContainer.style.display !== 'none') {
+        renderButtons();
+      }
+    });
 
     const handleActionClick = async (action, theme, buttonEl) => {
       if (action === 'category-rename') {
@@ -1888,6 +2019,18 @@ function showCategoryAIDialog(currentTitle) {
           renderButtons();
         }
       } else if (action === 'category-generate-smart') {
+        // Save any changes to the category before generating
+        const gameHeader = document.getElementById('creatorGameHeader');
+        if (gameHeader && gameHeader._gameData) {
+          const catIdx = window.selectedCategoryIndex;
+          if (catIdx !== null && catIdx !== undefined) {
+            gameHeader._gameData.categories[catIdx].title = titleInput.value.trim();
+            gameHeader._gameData.categories[catIdx].contentTopic = topicInput.value.trim() || null;
+            gameHeader._game.gameData = gameHeader._gameData;
+            window.GameCreatorState.state.autoSave();
+          }
+        }
+
         // Show loading state
         actionsContainer.style.display = 'none';
         resultsContainer.style.display = 'flex';
@@ -1937,8 +2080,8 @@ function showCategoryAIDialog(currentTitle) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
-          // Update input with chosen name
-          valueInput.value = btn.dataset.name;
+          // Don't update the input - keep the contentTopic
+          // valueInput.value = btn.dataset.name; // Removed - preserve contentTopic
           // Apply the name change immediately
           applyNameChange(btn.dataset.name);
           // Clear suggestions and show main buttons again
@@ -1956,13 +2099,19 @@ function showCategoryAIDialog(currentTitle) {
       const catIdx = window.selectedCategoryIndex;
       if (catIdx === null || catIdx === undefined) return;
 
+      // Update title but preserve contentTopic
       gameHeader._gameData.categories[catIdx].title = newName;
+      // Also save the contentTopic from the input
+      gameHeader._gameData.categories[catIdx].contentTopic = topicInput.value.trim() || null;
       gameHeader._game.gameData = gameHeader._gameData;
       window.GameCreatorState.state.autoSave();
 
-      // Update currentTitle so button descriptions update
+      // Update the display name input with the new name
+      titleInput.value = newName;
+      // Keep the content topic input as-is
+
+      // Update currentTitle for display purposes
       currentTitle = newName;
-      valueInput.value = newName;
 
       // Re-render to show the new name
       window.GameCreatorEditor.Render.categories();
@@ -1974,16 +2123,19 @@ function showCategoryAIDialog(currentTitle) {
 
     const cleanup = () => {
       overlay.style.display = 'none';
+      inputsContainer.remove();
       actionsContainer.remove();
       resultsContainer.remove();
       // Reset buttons
       confirmBtn.style.display = '';
       cancelBtn.style.display = '';
+      valueInput.style.display = '';
       valueInput.style.marginBottom = '';
     };
 
-    // Insert containers
-    valueInput.parentNode.insertBefore(actionsContainer, valueInput.nextSibling);
+    // Insert containers - inputs first, then actions, then results
+    valueInput.parentNode.insertBefore(inputsContainer, valueInput.nextSibling);
+    valueInput.parentNode.insertBefore(actionsContainer, inputsContainer.nextSibling);
     valueInput.parentNode.insertBefore(resultsContainer, actionsContainer.nextSibling);
 
     let resolved = false;
@@ -2009,8 +2161,8 @@ function showCategoryAIDialog(currentTitle) {
 
     // Show the overlay
     overlay.style.display = 'flex';
-    valueInput.focus();
-    valueInput.select();
+    titleInput.focus();
+    titleInput.select();
   });
 }
 

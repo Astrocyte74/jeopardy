@@ -466,6 +466,34 @@
           </div>
         </div>
 
+        <!-- Category Edit Dialog (for editing display name and content topic) -->
+        <div id="categoryEditDialog" class="input-dialog-overlay" style="display: none;">
+          <div class="input-dialog-card">
+            <button class="input-dialog-close" id="categoryEditDialogXBtn" aria-label="Cancel" type="button">✕</button>
+
+            <h2 class="input-dialog-title" id="categoryEditDialogTitle">Edit Category</h2>
+
+            <p class="input-dialog-helper" id="categoryEditDialogHelper">Update the category name and topic</p>
+
+            <div class="input-dialog-field">
+              <label for="categoryEditTitleInput" class="input-dialog-label">Display Name</label>
+              <input id="categoryEditTitleInput" type="text" placeholder='e.g. "Bedrock Banter"' autocomplete="off" autofocus />
+              <div class="input-dialog-hint">What players see on the game board</div>
+            </div>
+
+            <div class="input-dialog-field">
+              <label for="categoryEditTopicInput" class="input-dialog-label">Content Topic</label>
+              <input id="categoryEditTopicInput" type="text" placeholder='e.g. "Flintstones Trivia"' autocomplete="off" />
+              <div class="input-dialog-hint">What questions are actually about (for AI)</div>
+            </div>
+
+            <div class="input-dialog-actions">
+              <button id="categoryEditDialogCancel" class="btn btnSecondary" type="button">Cancel</button>
+              <button id="categoryEditDialogConfirm" class="btn btnPrimary" type="button">Save</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Selection Dialog (for radio/tile choices like difficulty) -->
         <div id="selectionDialog" class="input-dialog-overlay" style="display: none;">
           <div class="input-dialog-card">
