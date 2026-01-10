@@ -519,8 +519,19 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       if (result.action === 'category-rename' && result.onResult) {
         const context = await buildContext('category-rename', explicitCategoryIndex, result.theme);
         // Generate the names and pass to callback
-        const names = await generateAI('category-rename', context, currentDifficulty);
-        result.onResult(names.names);
+        const rawResult = await generateAI('category-rename', context, currentDifficulty);
+        // Parse the JSON result
+        let parsed;
+        try {
+          const cleaned = rawResult?.trim() || '';
+          const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+          parsed = JSON.parse(stripped);
+        } catch (e) {
+          console.error('[AI] Failed to parse names:', e);
+          result.onError();
+          return null;
+        }
+        result.onResult(parsed.names);
         // Stay in dialog - don't return yet
         return null;
       }
