@@ -614,9 +614,20 @@ async function buildContext(action, explicitCategoryIndex = null) {
       };
 
     case 'category-replace-all':
+      // Ask user for theme (pre-filled with category title)
+      const categoryTitle = gameData.categories[catIdx].title;
+      const customTheme = await window.showInputDialog(
+        '✨ Replace All Questions',
+        categoryTitle,
+        'Enter a theme for this category (or use the default)',
+        'Generate'
+      );
+
+      if (customTheme === null) return null; // User cancelled
+
       return {
-        categoryTitle: gameData.categories[catIdx].title,
-        // Don't send game theme - AI should focus on category title only
+        categoryTitle: categoryTitle,
+        theme: customTheme.trim() || categoryTitle,
         count: gameData.categories[catIdx].clues.length
       };
 
