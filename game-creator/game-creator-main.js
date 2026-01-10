@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  console.log('[GameCreatorMain] Module loading...');
+
   const GameCreatorMain = {
     // ========================================
     // SETUP - Main entry point
@@ -13,33 +15,22 @@
       const importInput = document.getElementById("creatorImportInput");
       const searchInput = document.getElementById("creatorSearchInput");
 
-      // Initialize state
-      GameCreatorState.state.creatorData = GameCreatorStorage.loadCreatorData();
-      GameCreatorState.state.selectedCategoryId = GameCreatorState.state.creatorData.categories[0]?.id || null;
-      GameCreatorState.state.selectedGameId = null;
-      GameCreatorState.state.pendingDeleteGameId = null;
-      GameCreatorState.state.dirty = false;
-      GameCreatorState.state.allCreatorGames = [];
-
-      // Create auto-save function (debounced, saves to both creatorData and customGames)
-      GameCreatorState.state.autoSave = GameCreatorStorage.createAutoSaveFunction();
-
-      // Load all games (file-based, custom, and creator games)
-      await GameCreatorState.loadAllGames();
+      // Note: State is already initialized by app.js (initialize() and loadAllGames())
+      // This function only sets up event listeners and DOM elements
 
       // Setup search functionality
       searchInput?.addEventListener("input", () => {
-        GameCreatorEditor.Render.games();
+        window.GameCreatorEditor.Render.games();
       });
 
       // Setup workspace listeners
-      GameCreatorUI.setupWorkspaceListeners();
+      window.GameCreatorUI.setupWorkspaceListeners();
 
       // Add Category button in sidebar
-      addCategoryBtn?.addEventListener("click", GameCreatorUI.showInlineAddCategory);
+      addCategoryBtn?.addEventListener("click", window.GameCreatorUI.showInlineAddCategory);
 
       // Add Game button in sidebar - creates a new blank game
-      addGameBtn?.addEventListener("click", GameCreatorEditor.Actions.createNewGame);
+      addGameBtn?.addEventListener("click", window.GameCreatorEditor.Actions.createNewGame);
 
       // Import file handler
       importInput.addEventListener("change", async () => {
@@ -56,7 +47,7 @@
           }
 
           // Merge with existing data
-          const creatorData = GameCreatorState.state.creatorData;
+          const creatorData = window.GameCreatorState.state.creatorData;
           if (Array.isArray(parsed.categories)) {
             // Add new categories (avoiding duplicate IDs)
             parsed.categories.forEach(cat => {
@@ -75,12 +66,12 @@
             });
           }
 
-          GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+          window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
 
           // Reload all games to include imported ones
-          await GameCreatorState.loadAllGames();
-          GameCreatorEditor.Render.categories();
-          GameCreatorEditor.Render.games();
+          await window.GameCreatorState.loadAllGames();
+          window.GameCreatorEditor.Render.categories();
+          window.GameCreatorEditor.Render.games();
           alert("Games imported successfully!");
         } catch (err) {
           alert(`Error importing games: ${err.message}`);
@@ -92,20 +83,20 @@
       // Open dialog
       openBtn.addEventListener("click", () => {
         // Reload games when opening the dialog
-        GameCreatorState.loadAllGames().then(() => {
-          GameCreatorEditor.Render.categories();
-          GameCreatorEditor.Render.games();
+        window.GameCreatorState.loadAllGames().then(() => {
+          window.GameCreatorEditor.Render.categories();
+          window.GameCreatorEditor.Render.games();
 
           // Default to first game if nothing selected (not blank template)
-          if (!GameCreatorState.state.selectedGameId && GameCreatorState.state.allCreatorGames.length > 0) {
-            GameCreatorState.state.selectedGameId = GameCreatorState.state.allCreatorGames[0].id;
-            GameCreatorEditor.Render.games();
-            GameCreatorEditor.Render.editor();
-          } else if (!GameCreatorState.state.selectedGameId && GameCreatorState.state.allCreatorGames.length === 0) {
+          if (!window.GameCreatorState.state.selectedGameId && window.GameCreatorState.state.allCreatorGames.length > 0) {
+            window.GameCreatorState.state.selectedGameId = window.GameCreatorState.state.allCreatorGames[0].id;
+            window.GameCreatorEditor.Render.games();
+            window.GameCreatorEditor.Render.editor();
+          } else if (!window.GameCreatorState.state.selectedGameId && window.GameCreatorState.state.allCreatorGames.length === 0) {
             // Only create blank template if no games exist at all
-            GameCreatorEditor.Actions.createNewGame();
+            window.GameCreatorEditor.Actions.createNewGame();
           } else {
-            GameCreatorEditor.Render.editor();
+            window.GameCreatorEditor.Render.editor();
           }
 
           dialog.showModal();
@@ -114,9 +105,9 @@
 
       // Close menu when clicking outside
       document.addEventListener("click", (e) => {
-        if (GameCreatorState.state.menuTrigger && GameCreatorState.state.menuDropdown &&
-            !GameCreatorState.state.menuTrigger.contains(e.target) && !GameCreatorState.state.menuDropdown.contains(e.target)) {
-          GameCreatorState.state.menuDropdown.classList.remove("show");
+        if (window.GameCreatorState.state.menuTrigger && window.GameCreatorState.state.menuDropdown &&
+            !window.GameCreatorState.state.menuTrigger.contains(e.target) && !window.GameCreatorState.state.menuDropdown.contains(e.target)) {
+          window.GameCreatorState.state.menuDropdown.classList.remove("show");
         }
       });
 
@@ -125,73 +116,90 @@
       const cancelDeleteCategoryBtn = document.getElementById("cancelDeleteCategoryBtn");
 
       confirmDeleteCategoryBtn?.addEventListener("click", () => {
-        if (GameCreatorState.state.pendingDeleteCategoryIndex !== null && GameCreatorState.state.pendingDeleteCategoryData) {
-          const creatorData = GameCreatorState.state.creatorData;
+        if (window.GameCreatorState.state.pendingDeleteCategoryIndex !== null && window.GameCreatorState.state.pendingDeleteCategoryData) {
+          const creatorData = window.GameCreatorState.state.creatorData;
           // Move games to "All Games"
           creatorData.games.forEach(game => {
-            if (game.categoryId === GameCreatorState.state.pendingDeleteCategoryData.id) {
+            if (game.categoryId === window.GameCreatorState.state.pendingDeleteCategoryData.id) {
               game.categoryId = creatorData.categories[0].id;
             }
           });
-          creatorData.categories.splice(GameCreatorState.state.pendingDeleteCategoryIndex, 1);
-          if (GameCreatorState.state.selectedCategoryId === GameCreatorState.state.pendingDeleteCategoryData.id) {
-            GameCreatorState.state.selectedCategoryId = creatorData.categories[0]?.id || null;
+          creatorData.categories.splice(window.GameCreatorState.state.pendingDeleteCategoryIndex, 1);
+          if (window.GameCreatorState.state.selectedCategoryId === window.GameCreatorState.state.pendingDeleteCategoryData.id) {
+            window.GameCreatorState.state.selectedCategoryId = creatorData.categories[0]?.id || null;
           }
-          GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
-          GameCreatorEditor.Render.categories();
-          GameCreatorEditor.Render.games();
+          window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+          window.GameCreatorEditor.Render.categories();
+          window.GameCreatorEditor.Render.games();
         }
-        GameCreatorState.state.pendingDeleteCategoryIndex = null;
-        GameCreatorState.state.pendingDeleteCategoryData = null;
+        window.GameCreatorState.state.pendingDeleteCategoryIndex = null;
+        window.GameCreatorState.state.pendingDeleteCategoryData = null;
       });
 
       cancelDeleteCategoryBtn?.addEventListener("click", () => {
-        GameCreatorState.state.pendingDeleteCategoryIndex = null;
-        GameCreatorState.state.pendingDeleteCategoryData = null;
+        window.GameCreatorState.state.pendingDeleteCategoryIndex = null;
+        window.GameCreatorState.state.pendingDeleteCategoryData = null;
       });
 
       // Refresh main menu when dialog closes (if changes were saved)
       dialog.addEventListener("close", () => {
-        if (GameCreatorState.state.dirty) {
+        if (window.GameCreatorState.state.dirty) {
           // Reload to show the changes - user can re-open to continue editing
-          GameCreatorState.state.creatorData = GameCreatorStorage.loadCreatorData();
-          GameCreatorState.state.dirty = false;
+          window.GameCreatorState.state.creatorData = window.GameCreatorStorage.loadCreatorData();
+          window.GameCreatorState.state.dirty = false;
 
           // Trigger a menu refresh by dispatching a custom event
           window.dispatchEvent(new CustomEvent('jeop2:gamesUpdated'));
         }
         // Reload games when dialog reopens
-        GameCreatorState.loadAllGames().then(() => {
-          GameCreatorEditor.Render.categories();
-          GameCreatorEditor.Render.games();
+        window.GameCreatorState.loadAllGames().then(() => {
+          window.GameCreatorEditor.Render.categories();
+          window.GameCreatorEditor.Render.games();
 
           // Default to first game if nothing selected
-          if (!GameCreatorState.state.selectedGameId && GameCreatorState.state.allCreatorGames.length > 0) {
-            GameCreatorState.state.selectedGameId = GameCreatorState.state.allCreatorGames[0].id;
-            GameCreatorEditor.Render.games();
-          } else if (!GameCreatorState.state.selectedGameId && GameCreatorState.state.allCreatorGames.length === 0) {
+          if (!window.GameCreatorState.state.selectedGameId && window.GameCreatorState.state.allCreatorGames.length > 0) {
+            window.GameCreatorState.state.selectedGameId = window.GameCreatorState.state.allCreatorGames[0].id;
+            window.GameCreatorEditor.Render.games();
+          } else if (!window.GameCreatorState.state.selectedGameId && window.GameCreatorState.state.allCreatorGames.length === 0) {
             // Only create blank template if no games exist
-            GameCreatorEditor.Actions.createNewGame();
+            window.GameCreatorEditor.Actions.createNewGame();
           }
 
-          GameCreatorEditor.Render.editor();
+          window.GameCreatorEditor.Render.editor();
         });
       });
 
       // Expose functions globally for the wizard and other code to use
-      window.createNewGame = GameCreatorEditor.Actions.createNewGame;
-      window.loadAllGames = GameCreatorState.loadAllGames;
-      window.renderEditor = GameCreatorEditor.Render.editor;
-      window.autoSave = GameCreatorState.state.autoSave;
+      window.createNewGame = window.GameCreatorEditor.Actions.createNewGame.bind(window.GameCreatorEditor.Actions);
+      window.loadAllGames = window.GameCreatorState.loadAllGames.bind(window.GameCreatorState);
+      window.renderEditor = window.GameCreatorEditor.Render.editor.bind(window.GameCreatorEditor.Render);
+      window.autoSave = window.GameCreatorState.state.autoSave;
+
+      // Expose state properties as globals for AI actions compatibility
+      Object.defineProperties(window, {
+        selectedCategoryIndex: {
+          get() { return window.GameCreatorState.state.selectedCategoryIndex; },
+          set(value) { window.GameCreatorState.state.selectedCategoryIndex = value; },
+          enumerable: true,
+          configurable: true
+        },
+        selectedClueIndex: {
+          get() { return window.GameCreatorState.state.selectedClueIndex; },
+          set(value) { window.GameCreatorState.state.selectedClueIndex = value; },
+          enumerable: true,
+          configurable: true
+        }
+      });
 
       // Initial render
-      GameCreatorEditor.Render.categories();
-      GameCreatorEditor.Render.games();
-      GameCreatorEditor.Render.editor();
+      window.GameCreatorEditor.Render.categories();
+      window.GameCreatorEditor.Render.games();
+      window.GameCreatorEditor.Render.editor();
     },
   };
 
   // Export setup function and also window globals for backward compatibility
   window.GameCreatorMain = GameCreatorMain;
   window.setupGameCreator = GameCreatorMain.setup.bind(GameCreatorMain);
+  console.log('[GameCreatorMain] Module loaded successfully');
 })();

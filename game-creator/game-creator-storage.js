@@ -5,6 +5,8 @@
 (function() {
   'use strict';
 
+  console.log('[GameCreatorStorage] Module loading...');
+
   const CREATOR_DATA_KEY = 'jeop2_creator_data';
 
   const GameCreatorStorage = {
@@ -171,5 +173,6 @@
 
   // Export to global scope
   window.GameCreatorStorage = GameCreatorStorage;
+  console.log('[GameCreatorStorage] Module loaded successfully');
 
 })();

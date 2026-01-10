@@ -5,6 +5,8 @@
 (function() {
   'use strict';
 
+  console.log('[GameCreatorUtils] Module loading...');
+
   const GameCreatorUtils = {
     // ========================================
     // PUBLIC API
@@ -21,5 +23,6 @@
 
   // Export to global scope
   window.GameCreatorUtils = GameCreatorUtils;
+  console.log('[GameCreatorUtils] Module loaded successfully');
 
 })();

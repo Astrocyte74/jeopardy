@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  console.log('[GameCreatorUI] Module loading...');
+
   const GameCreatorUI = {
     showInlineRename(item, currentValue, onSave) {
       const nameEl = item.querySelector(".creator-category-name");
@@ -72,14 +74,14 @@
       const finish = (save) => {
         if (save && input.value.trim()) {
           const newCategory = {
-            id: `cat_${GameCreatorUtils.generateId()}`,
+            id: `cat_${window.GameCreatorUtils.generateId()}`,
             name: input.value.trim(),
             icon: "📁",
           };
 
-          GameCreatorState.state.creatorData.categories.push(newCategory);
-          GameCreatorStorage.saveCreatorData(GameCreatorState.state.creatorData);  // Save immediately
-          GameCreatorEditor.Render.categories();
+          window.GameCreatorState.state.creatorData.categories.push(newCategory);
+          window.GameCreatorStorage.saveCreatorData(window.GameCreatorState.state.creatorData);  // Save immediately
+          window.GameCreatorEditor.Render.categories();
         } else {
           item.remove();
         }
@@ -112,8 +114,8 @@
       if (!dialog || !messageEl) return;
 
       messageEl.textContent = `Delete "${category.name}"? Games in this category will move to "All Games".`;
-      GameCreatorState.state.pendingDeleteCategoryIndex = index;
-      GameCreatorState.state.pendingDeleteCategoryData = category;
+      window.GameCreatorState.state.pendingDeleteCategoryIndex = index;
+      window.GameCreatorState.state.pendingDeleteCategoryData = category;
 
       dialog.showModal();
     },
@@ -124,8 +126,8 @@
 
       if (!menuTrigger || !menuDropdown) return;
 
-      GameCreatorState.state.menuTrigger = menuTrigger;
-      GameCreatorState.state.menuDropdown = menuDropdown;
+      window.GameCreatorState.state.menuTrigger = menuTrigger;
+      window.GameCreatorState.state.menuDropdown = menuDropdown;
 
       menuTrigger.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -191,13 +193,13 @@
       // Add category button
       const addCategoryBtn = document.getElementById("workspaceAddCategoryBtn");
       addCategoryBtn?.addEventListener("click", () => {
-        GameCreatorEditor.Actions.addCategory();
+        window.GameCreatorEditor.Actions.addCategory();
       });
 
       // Add question button (single question to selected category)
       const addQuestionBtn = document.getElementById("workspaceAddQuestionBtn");
       addQuestionBtn?.addEventListener("click", () => {
-        GameCreatorEditor.Actions.addClue(GameCreatorState.state.selectedCategoryIndex);
+        window.GameCreatorEditor.Actions.addClue(window.GameCreatorState.state.selectedCategoryIndex);
       });
 
       // Questions count control (+/-) - affects all categories uniformly
@@ -208,7 +210,7 @@
         const countValue = document.getElementById("questionsCountValue");
         const currentCount = parseInt(countValue.textContent) || 5;
         if (currentCount > 1) {
-          GameCreatorEditor.Actions.resizeClues(currentCount - 1);
+          window.GameCreatorEditor.Actions.resizeClues(currentCount - 1);
         }
       });
 
@@ -216,7 +218,7 @@
         const countValue = document.getElementById("questionsCountValue");
         const currentCount = parseInt(countValue.textContent) || 5;
         if (currentCount < 10) {
-          GameCreatorEditor.Actions.resizeClues(currentCount + 1);
+          window.GameCreatorEditor.Actions.resizeClues(currentCount + 1);
         }
       });
 
@@ -228,7 +230,7 @@
         const countValue = document.getElementById("categoriesCountValue");
         const currentCount = parseInt(countValue.textContent) || 6;
         if (currentCount > 1) {
-          GameCreatorEditor.Actions.resizeCategories(currentCount - 1);
+          window.GameCreatorEditor.Actions.resizeCategories(currentCount - 1);
         }
       });
 
@@ -236,7 +238,7 @@
         const countValue = document.getElementById("categoriesCountValue");
         const currentCount = parseInt(countValue.textContent) || 6;
         if (currentCount < 12) {
-          GameCreatorEditor.Actions.resizeCategories(currentCount + 1);
+          window.GameCreatorEditor.Actions.resizeCategories(currentCount + 1);
         }
       });
     },
@@ -246,16 +248,16 @@
       const titleInput = gameHeader.querySelector("#editorTitle");
       titleInput?.addEventListener("input", () => {
         game.title = titleInput.value;
-        GameCreatorState.state.autoSave();  // Auto-save on change
-        GameCreatorEditor.Render.games();
+        window.GameCreatorState.state.autoSave();  // Auto-save on change
+        window.GameCreatorEditor.Render.games();
       });
 
       // Subtitle input
       const subtitleInput = gameHeader.querySelector("#editorSubtitle");
       subtitleInput?.addEventListener("input", () => {
         game.subtitle = subtitleInput.value;
-        GameCreatorState.state.autoSave();  // Auto-save on change
-        GameCreatorEditor.Render.games();
+        window.GameCreatorState.state.autoSave();  // Auto-save on change
+        window.GameCreatorEditor.Render.games();
       });
 
       // Game category dropdown (folder assignment)
@@ -264,10 +266,10 @@
         const newCategoryId = e.target.value;
         game.categoryId = newCategoryId;
         // Update selected category in sidebar
-        GameCreatorState.state.selectedCategoryId = newCategoryId;
-        GameCreatorState.state.autoSave();  // Auto-save on change
-        GameCreatorEditor.Render.categories();
-        GameCreatorEditor.Render.games();
+        window.GameCreatorState.state.selectedCategoryId = newCategoryId;
+        window.GameCreatorState.state.autoSave();  // Auto-save on change
+        window.GameCreatorEditor.Render.categories();
+        window.GameCreatorEditor.Render.games();
       });
 
       // Difficulty radio buttons
@@ -306,8 +308,8 @@
       valueInput?.addEventListener("input", () => {
         clue.value = parseInt(valueInput.value) || 200;
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save on change
-        GameCreatorEditor.Render.cluesColumn(categories);
+        window.GameCreatorState.state.autoSave();  // Auto-save on change
+        window.GameCreatorEditor.Render.cluesColumn(categories);
       });
 
       // Question input
@@ -315,8 +317,8 @@
       questionInput?.addEventListener("input", () => {
         clue.clue = questionInput.value;
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save on change
-        GameCreatorEditor.Render.cluesColumn(categories);
+        window.GameCreatorState.state.autoSave();  // Auto-save on change
+        window.GameCreatorEditor.Render.cluesColumn(categories);
       });
 
       // Answer input
@@ -324,19 +326,20 @@
       answerInput?.addEventListener("input", () => {
         clue.response = answerInput.value;
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save on change
-        GameCreatorEditor.Render.cluesColumn(categories);
+        window.GameCreatorState.state.autoSave();  // Auto-save on change
+        window.GameCreatorEditor.Render.cluesColumn(categories);
       });
 
       // Delete clue button
       const deleteBtn = editorPanel.querySelector("#deleteClueBtn");
       deleteBtn?.addEventListener("click", () => {
         if (confirm("Delete this question?")) {
-          GameCreatorEditor.Actions.deleteClue(GameCreatorState.state.selectedCategoryIndex, GameCreatorState.state.selectedClueIndex);
+          window.GameCreatorEditor.Actions.deleteClue(window.GameCreatorState.state.selectedCategoryIndex, window.GameCreatorState.state.selectedClueIndex);
         }
       });
     },
   };
 
   window.GameCreatorUI = GameCreatorUI;
+  console.log('[GameCreatorUI] Module loaded successfully');
 })();

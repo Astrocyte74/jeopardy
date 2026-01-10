@@ -1325,6 +1325,8 @@ async function setCurrentGame(gameRef) {
 }
 
 async function main() {
+  console.log('[main] Application starting...');
+
   // Apply saved theme
   applyTheme(currentTheme);
 
@@ -2153,16 +2155,55 @@ function showExportInstructions(filename, gameId, gameTitle, gameSubtitle) {
 
 // Setup Game Creator using modular system
 async function setupGameCreator() {
-  // Expose backward-compatible global functions for external code
-  window.loadCreatorData = window.GameCreatorStorage.loadCreatorData.bind(window.GameCreatorStorage);
-  window.saveCreatorData = window.GameCreatorStorage.saveCreatorData.bind(window.GameCreatorStorage);
-  window.getDefaultCreatorData = window.GameCreatorStorage.getDefaultCreatorData.bind(window.GameCreatorStorage);
-  window.generateId = window.GameCreatorUtils.generateId.bind(window.GameCreatorUtils);
+  try {
+    console.log('[setupGameCreator] Starting...');
 
-  // Initialize state
-  await window.GameCreatorState.initialize();
-  await window.GameCreatorState.loadAllGames();
+    // Check if modules are loaded
+    if (!window.GameCreatorStorage) {
+      console.error('[setupGameCreator] GameCreatorStorage not loaded!');
+      return;
+    }
+    if (!window.GameCreatorUtils) {
+      console.error('[setupGameCreator] GameCreatorUtils not loaded!');
+      return;
+    }
+    if (!window.GameCreatorState) {
+      console.error('[setupGameCreator] GameCreatorState not loaded!');
+      return;
+    }
+    if (!window.GameCreatorMain) {
+      console.error('[setupGameCreator] GameCreatorMain not loaded!');
+      return;
+    }
 
-  // Initialize the Game Creator UI and event listeners
-  await window.GameCreatorMain.setup();
+    console.log('[setupGameCreator] All modules loaded successfully');
+
+    // Expose backward-compatible global functions for external code
+    window.loadCreatorData = window.GameCreatorStorage.loadCreatorData.bind(window.GameCreatorStorage);
+    window.saveCreatorData = window.GameCreatorStorage.saveCreatorData.bind(window.GameCreatorStorage);
+    window.getDefaultCreatorData = window.GameCreatorStorage.getDefaultCreatorData.bind(window.GameCreatorStorage);
+    window.generateId = window.GameCreatorUtils.generateId.bind(window.GameCreatorUtils);
+
+    console.log('[setupGameCreator] Backward-compatible globals exposed');
+
+    // Initialize state
+    await window.GameCreatorState.initialize();
+    console.log('[setupGameCreator] State initialized');
+
+    await window.GameCreatorState.loadAllGames();
+    console.log('[setupGameCreator] Games loaded:', window.GameCreatorState.state.allCreatorGames.length);
+
+    // Initialize the Game Creator UI and event listeners
+    await window.GameCreatorMain.setup();
+    console.log('[setupGameCreator] Setup complete');
+  } catch (err) {
+    console.error('[setupGameCreator] Error:', err);
+    throw err;
+  }
 }
+
+// Start the application
+main().catch((err) => {
+  console.error('[main] Fatal error:', err);
+});
+

@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  console.log('[GameCreatorEditor] Module loading...');
+
   const GameCreatorEditor = {
     Render: {
       categories() {
@@ -8,11 +10,11 @@
         if (!categoriesList) return;
 
         categoriesList.innerHTML = "";
-        const creatorData = GameCreatorState.state.creatorData;
+        const creatorData = window.GameCreatorState.state.creatorData;
 
         creatorData.categories.forEach((category, index) => {
           const item = document.createElement("div");
-          item.className = `creator-category-item${category.id === GameCreatorState.state.selectedCategoryId ? " selected" : ""}`;
+          item.className = `creator-category-item${category.id === window.GameCreatorState.state.selectedCategoryId ? " selected" : ""}`;
           item.innerHTML = `
             <div class="creator-category-header">
               <span class="creator-category-icon">${category.icon || "📁"}</span>
@@ -32,9 +34,9 @@
           const header = item.querySelector(".creator-category-header");
           header.addEventListener("click", (e) => {
             if (!e.target.closest(".creator-category-actions")) {
-              GameCreatorState.state.selectedCategoryId = category.id;
-              this.categories();
-              this.games();
+              window.GameCreatorState.state.selectedCategoryId = category.id;
+              window.GameCreatorEditor.Render.categories();
+              window.GameCreatorEditor.Render.games();
             }
           });
 
@@ -46,8 +48,8 @@
               if (index > 0) {
                 [creatorData.categories[index - 1], creatorData.categories[index]] =
                 [creatorData.categories[index], creatorData.categories[index - 1]];
-                GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
-                this.categories();
+                window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+                window.GameCreatorEditor.Render.categories();
               }
             });
           }
@@ -60,8 +62,8 @@
               if (index < creatorData.categories.length - 1) {
                 [creatorData.categories[index], creatorData.categories[index + 1]] =
                 [creatorData.categories[index + 1], creatorData.categories[index]];
-                GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
-                this.categories();
+                window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+                window.GameCreatorEditor.Render.categories();
               }
             });
           }
@@ -71,11 +73,11 @@
           if (renameBtn) {
             renameBtn.addEventListener("click", (e) => {
               e.stopPropagation();
-              GameCreatorUI.showInlineRename(item, category.name, (newName) => {
+              window.GameCreatorUI.showInlineRename(item, category.name, (newName) => {
                 if (newName) {
                   category.name = newName.trim();
-                  GameCreatorStorage.saveCreatorData(GameCreatorState.state.creatorData);  // Save immediately
-                  this.categories();
+                  window.GameCreatorStorage.saveCreatorData(window.GameCreatorState.state.creatorData);  // Save immediately
+                  window.GameCreatorEditor.Render.categories();
                 }
               });
             });
@@ -86,7 +88,7 @@
           if (deleteBtn) {
             deleteBtn.addEventListener("click", (e) => {
               e.stopPropagation();
-              GameCreatorUI.showDeleteCategoryDialog(category, index);
+              window.GameCreatorUI.showDeleteCategoryDialog(category, index);
             });
           }
 
@@ -105,7 +107,7 @@
 
         // Filter games by search term only (no category filtering in Game Creator)
         // Category filtering happens on the main menu
-        let filteredGames = GameCreatorState.state.allCreatorGames.filter(game => {
+        let filteredGames = window.GameCreatorState.state.allCreatorGames.filter(game => {
           // Get live title/subtitle from the game reference (not stale copied values)
           const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
           const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
@@ -146,7 +148,7 @@
 
         filteredGames.forEach(game => {
           const item = document.createElement("div");
-          item.className = `creator-game-item${game.id === GameCreatorState.state.selectedGameId ? " selected" : ""}`;
+          item.className = `creator-game-item${game.id === window.GameCreatorState.state.selectedGameId ? " selected" : ""}`;
 
           // Get live title/subtitle from the game reference (not stale copied values)
           // For creator games, use game.game.title (live reference)
@@ -168,36 +170,58 @@
           // Select game
           item.addEventListener("click", (e) => {
             if (!e.target.closest(".creator-game-actions")) {
-              GameCreatorState.state.selectedGameId = game.id;
-              this.games();
-              this.editor();
+              window.GameCreatorState.state.selectedGameId = game.id;
+              window.GameCreatorEditor.Render.games();
+              window.GameCreatorEditor.Render.editor();
             }
           });
 
-          // Edit button
+          // Edit button - inline edit for game title
           const editBtn = item.querySelector(".creator-game-edit-btn");
           editBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            GameCreatorState.state.selectedGameId = game.id;
-            this.games();
-            this.editor();
+            window.GameCreatorUI.showInlineRename(item, game.title, (newTitle) => {
+              if (newTitle) {
+                game.title = newTitle.trim();
+                // Update in creatorData if it's a creator game
+                if (game.source === "creator") {
+                  const creatorData = window.GameCreatorState.state.creatorData;
+                  const creatorGame = creatorData.games.find(g => g.id === game.id);
+                  if (creatorGame) {
+                    creatorGame.title = newTitle.trim();
+                  }
+                  window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+                }
+                // Update in custom games if applicable
+                if (game.source === "custom" || game.source === "file") {
+                  const custom = window.loadCustomGames();
+                  const customGame = custom.find(g => g.id === game.id);
+                  if (customGame) {
+                    customGame.title = newTitle.trim();
+                    window.saveCustomGames(custom);
+                  }
+                }
+                window.GameCreatorState.state.autoSave();  // Auto-save on change
+                window.GameCreatorEditor.Render.games();
+              }
+            });
           });
 
           // Delete button (two-step)
           const deleteBtn = item.querySelector(".creator-game-delete-btn");
           deleteBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            if (GameCreatorState.state.pendingDeleteGameId === game.id) {
+            if (window.GameCreatorState.state.pendingDeleteGameId === game.id) {
               // Confirmed delete
-              this.deleteGame(game);
+              window.GameCreatorEditor.Actions.deleteGame(game);
             } else {
               // First click - show confirmation
-              GameCreatorState.state.pendingDeleteGameId = game.id;
+              window.GameCreatorState.state.pendingDeleteGameId = game.id;
               deleteBtn.textContent = "⚠️";
               deleteBtn.title = "Click again to confirm";
               setTimeout(() => {
-                if (GameCreatorState.state.pendingDeleteGameId === game.id) {
-                  GameCreatorState.state.pendingDeleteGameId = null;
+                if (window.GameCreatorState.state.pendingDeleteGameId === game.id) {
+                  window.GameCreatorState.state.pendingDeleteGameId = null;
                   deleteBtn.textContent = "🗑";
                   deleteBtn.title = "Delete";
                 }
@@ -228,13 +252,13 @@
         // Always show workspace grid for consistent height
         if (workspaceGrid) workspaceGrid.style.display = "grid";
 
-        if (!GameCreatorState.state.selectedGameId) {
+        if (!window.GameCreatorState.state.selectedGameId) {
           // Select first available game instead of creating blank template
-          if (GameCreatorState.state.allCreatorGames.length > 0) {
-            GameCreatorState.state.selectedGameId = GameCreatorState.state.allCreatorGames[0].id;
-            GameCreatorState.state.selectedCategoryIndex = 0;
-            GameCreatorState.state.selectedClueIndex = null;
-            this.games();
+          if (window.GameCreatorState.state.allCreatorGames.length > 0) {
+            window.GameCreatorState.state.selectedGameId = window.GameCreatorState.state.allCreatorGames[0].id;
+            window.GameCreatorState.state.selectedCategoryIndex = 0;
+            window.GameCreatorState.state.selectedClueIndex = null;
+            window.GameCreatorEditor.Render.games();
           } else {
             // No games exist - show empty state
             if (gameHeader) {
@@ -250,10 +274,10 @@
           }
         }
 
-        const game = GameCreatorState.state.allCreatorGames.find(g => g.id === GameCreatorState.state.selectedGameId);
+        const game = window.GameCreatorState.state.allCreatorGames.find(g => g.id === window.GameCreatorState.state.selectedGameId);
         if (!game) {
-          GameCreatorState.state.selectedGameId = null;
-          this.editor();
+          window.GameCreatorState.state.selectedGameId = null;
+          window.GameCreatorEditor.Render.editor();
           return;
         }
 
@@ -292,16 +316,16 @@
 
         // Auto-select first category and first question if nothing is selected
         // OR if selected index is out of bounds (safety for switching games)
-        if (GameCreatorState.state.selectedCategoryIndex === null || GameCreatorState.state.selectedCategoryIndex >= categories.length) {
+        if (window.GameCreatorState.state.selectedCategoryIndex === null || window.GameCreatorState.state.selectedCategoryIndex >= categories.length) {
           if (categories.length > 0) {
-            GameCreatorState.state.selectedCategoryIndex = 0;
-            GameCreatorState.state.selectedClueIndex = null;  // Reset clue index when changing category
+            window.GameCreatorState.state.selectedCategoryIndex = 0;
+            window.GameCreatorState.state.selectedClueIndex = null;  // Reset clue index when changing category
           }
         }
-        if (GameCreatorState.state.selectedClueIndex === null && GameCreatorState.state.selectedCategoryIndex !== null) {
-          const category = categories[GameCreatorState.state.selectedCategoryIndex];
+        if (window.GameCreatorState.state.selectedClueIndex === null && window.GameCreatorState.state.selectedCategoryIndex !== null) {
+          const category = categories[window.GameCreatorState.state.selectedCategoryIndex];
           if (category?.clues && category.clues.length > 0) {
-            GameCreatorState.state.selectedClueIndex = 0;
+            window.GameCreatorState.state.selectedClueIndex = 0;
           }
         }
 
@@ -310,8 +334,8 @@
         const cluesCount = categories.reduce((sum, cat) => sum + (cat.clues?.length || 0), 0);
 
         // Build category options for game-level category assignment
-        const creatorData = GameCreatorState.state.creatorData;
-        const gameCategoryId = game.categoryId || GameCreatorState.state.selectedCategoryId || creatorData.categories[0]?.id || "";
+        const creatorData = window.GameCreatorState.state.creatorData;
+        const gameCategoryId = game.categoryId || window.GameCreatorState.state.selectedCategoryId || creatorData.categories[0]?.id || "";
         const categoryOptions = creatorData.categories.map(cat =>
           `<option value="${cat.id}" ${cat.id === gameCategoryId ? 'selected' : ''}>${cat.name}</option>`
         ).join('');
@@ -404,25 +428,25 @@
         gameHeader._game = game;
 
         // Render categories (left column)
-        this.categoriesColumn(categories);
+        window.GameCreatorEditor.Render.categoriesColumn(categories);
 
         // Render clues (middle column)
-        this.cluesColumn(categories);
+        window.GameCreatorEditor.Render.cluesColumn(categories);
 
         // Render editor (right column)
-        this.editorPanel(categories);
+        window.GameCreatorEditor.Render.editorPanel(categories);
 
         // Setup menu listeners for the newly rendered menu
-        GameCreatorUI.setupMenuListeners();
+        window.GameCreatorUI.setupMenuListeners();
 
         // Setup header event listeners
-        GameCreatorUI.setupHeaderEventListeners(gameHeader, game, gameData);
+        window.GameCreatorUI.setupHeaderEventListeners(gameHeader, game, gameData);
 
         // Initialize AI actions with Game Creator context
         if (typeof initAIActions === 'function') {
           initAIActions({
             getGameHeader: () => gameHeader,
-            renderEditor: this.editor
+            renderEditor: window.GameCreatorEditor.Render.editor
           });
         }
 
@@ -454,7 +478,7 @@
         categoriesList.innerHTML = categories.map((cat, index) => {
           const clueCount = (cat.clues || []).length;
           const isComplete = clueCount >= 5;
-          const isSelected = GameCreatorState.state.selectedCategoryIndex === index;
+          const isSelected = window.GameCreatorState.state.selectedCategoryIndex === index;
 
           return `
             <div class="category-card-item ${isSelected ? 'selected' : ''}" data-category-index="${index}">
@@ -478,9 +502,9 @@
             if (e.target.closest('.ai-btn')) return;
             if (e.target.closest('.category-card-edit-btn')) return;
 
-            GameCreatorState.state.selectedCategoryIndex = catIndex;
-            GameCreatorState.state.selectedClueIndex = null; // Reset clue selection when changing category
-            this.editor();
+            window.GameCreatorState.state.selectedCategoryIndex = catIndex;
+            window.GameCreatorState.state.selectedClueIndex = null; // Reset clue selection when changing category
+            window.GameCreatorEditor.Render.editor();
           });
 
           // Edit button click handler
@@ -529,8 +553,8 @@
                   if (gameHeader && gameHeader._gameData) {
                     category.title = newTitle;
                     gameHeader._game.gameData = gameHeader._gameData;
-                    GameCreatorState.state.autoSave();
-                    this.categoriesColumn(categories);
+                    window.GameCreatorState.state.autoSave();
+                    window.GameCreatorEditor.Render.categoriesColumn(categories);
                   }
                 }
               };
@@ -569,7 +593,7 @@
           countValueEl.textContent = minCount.toString();
         }
 
-        if (GameCreatorState.state.selectedCategoryIndex === null || !categories[GameCreatorState.state.selectedCategoryIndex]) {
+        if (window.GameCreatorState.state.selectedCategoryIndex === null || !categories[window.GameCreatorState.state.selectedCategoryIndex]) {
           if (metaEl) metaEl.textContent = "";
           cluesList.innerHTML = `
             <div class="editor-empty-state">
@@ -580,7 +604,7 @@
           return;
         }
 
-        const category = categories[GameCreatorState.state.selectedCategoryIndex];
+        const category = categories[window.GameCreatorState.state.selectedCategoryIndex];
         const clues = category.clues || [];
 
         if (metaEl) metaEl.textContent = `${clues.length} questions`;
@@ -595,7 +619,7 @@
         }
 
         cluesList.innerHTML = clues.map((clue, index) => {
-          const isSelected = GameCreatorState.state.selectedClueIndex === index;
+          const isSelected = window.GameCreatorState.state.selectedClueIndex === index;
           const isComplete = clue.clue && clue.response;
 
           return `
@@ -615,8 +639,8 @@
             if (e.target.closest('.ai-btn')) return;
 
             const clueIndex = parseInt(item.dataset.clueIndex);
-            GameCreatorState.state.selectedClueIndex = clueIndex;
-            this.editor();
+            window.GameCreatorState.state.selectedClueIndex = clueIndex;
+            window.GameCreatorEditor.Render.editor();
           });
         });
 
@@ -632,7 +656,7 @@
         const editorPanel = document.getElementById("workspaceEditorPanel");
         if (!editorPanel) return;
 
-        if (GameCreatorState.state.selectedCategoryIndex === null || GameCreatorState.state.selectedClueIndex === null) {
+        if (window.GameCreatorState.state.selectedCategoryIndex === null || window.GameCreatorState.state.selectedClueIndex === null) {
           editorPanel.innerHTML = `
             <div class="editor-empty-state">
               <div class="editor-empty-icon">✏️</div>
@@ -642,8 +666,8 @@
           return;
         }
 
-        const category = categories[GameCreatorState.state.selectedCategoryIndex];
-        const clue = category.clues?.[GameCreatorState.state.selectedClueIndex];
+        const category = categories[window.GameCreatorState.state.selectedCategoryIndex];
+        const clue = category.clues?.[window.GameCreatorState.state.selectedClueIndex];
 
         if (!clue) {
           editorPanel.innerHTML = `
@@ -687,7 +711,7 @@
         `;
 
         // Setup form listeners
-        GameCreatorUI.setupClueEditorListeners(editorPanel, categories, category, clue);
+        window.GameCreatorUI.setupClueEditorListeners(editorPanel, categories, category, clue);
 
         // Inject AI buttons in editor panel
         if (typeof injectEditorAIButtons === 'function') {
@@ -698,7 +722,7 @@
 
     Actions: {
       async createNewGame() {
-        const creatorData = GameCreatorState.state.creatorData;
+        const creatorData = window.GameCreatorState.state.creatorData;
 
         // Find or create "Custom" category
         let customCategory = creatorData.categories.find(c => c.id === "custom");
@@ -713,7 +737,7 @@
 
         // Create new game with default structure
         const newGame = {
-          id: `game_${GameCreatorUtils.generateId()}`,
+          id: `game_${window.GameCreatorUtils.generateId()}`,
           title: "New Game",
           subtitle: "",
           categoryId: customCategory.id, // Assign to Custom category
@@ -769,7 +793,7 @@
 
         // Add to creator data
         creatorData.games.push(newGame);
-        GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+        window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
 
         // Also save to customGames so it appears in main menu
         const custom = loadCustomGames();
@@ -788,20 +812,20 @@
         saveCustomGames(custom);
 
         // Reload allCreatorGames to include the new game
-        await GameCreatorData.loadAllGames();
+        await window.GameCreatorState.loadAllGames();
 
         // Select the Custom category and the new game
-        GameCreatorState.state.selectedCategoryId = customCategory.id;
-        GameCreatorState.state.selectedGameId = newGame.id;
+        window.GameCreatorState.state.selectedCategoryId = customCategory.id;
+        window.GameCreatorState.state.selectedGameId = newGame.id;
 
         // Re-render
-        GameCreatorEditor.Render.categories();
-        GameCreatorEditor.Render.games();
-        GameCreatorEditor.Render.editor();
+        window.window.GameCreatorEditor.Render.categories();
+        window.window.GameCreatorEditor.Render.games();
+        window.window.GameCreatorEditor.Render.editor();
       },
 
       async deleteGame(game) {
-        const creatorData = GameCreatorState.state.creatorData;
+        const creatorData = window.GameCreatorState.state.creatorData;
         if (game.source === "creator") {
           creatorData.games = creatorData.games.filter(g => g.id !== game.id);
         } else if (game.source === "custom" || game.source === "file") {
@@ -810,14 +834,14 @@
           saveCustomGames(custom.filter(g => g.id !== game.id));
         }
         // Reload games
-        await GameCreatorData.loadAllGames();
-        if (GameCreatorState.state.selectedGameId === game.id) {
-          GameCreatorState.state.selectedGameId = null;
-          GameCreatorEditor.Render.editor();
+        await window.GameCreatorState.loadAllGames();
+        if (window.GameCreatorState.state.selectedGameId === game.id) {
+          window.GameCreatorState.state.selectedGameId = null;
+          window.GameCreatorEditor.Render.editor();
         }
-        GameCreatorState.state.pendingDeleteGameId = null;
-        GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
-        GameCreatorEditor.Render.games();
+        window.GameCreatorState.state.pendingDeleteGameId = null;
+        window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
+        window.GameCreatorEditor.Render.games();
       },
 
       addCategory() {
@@ -837,26 +861,26 @@
           ]
         });
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save
-        GameCreatorState.state.selectedCategoryIndex = gameData.categories.length - 1;
-        GameCreatorState.state.selectedClueIndex = null;
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorState.state.autoSave();  // Auto-save
+        window.GameCreatorState.state.selectedCategoryIndex = gameData.categories.length - 1;
+        window.GameCreatorState.state.selectedClueIndex = null;
+        window.GameCreatorEditor.Render.editor();
       },
 
       removeCategory(index) {
         const gameHeader = document.getElementById("creatorGameHeader");
         const gameData = gameHeader._gameData;
         gameData.categories.splice(index, 1);
-        GameCreatorState.state.autoSave();
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorState.state.autoSave();
+        window.GameCreatorEditor.Render.editor();
       },
 
       renameCategory(index, newName) {
         const gameHeader = document.getElementById("creatorGameHeader");
         const gameData = gameHeader._gameData;
         gameData.categories[index].title = newName;
-        GameCreatorState.state.autoSave();
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorState.state.autoSave();
+        window.GameCreatorEditor.Render.editor();
       },
 
       moveCategoryUp(index) {
@@ -865,8 +889,8 @@
         if (index > 0) {
           [gameData.categories[index - 1], gameData.categories[index]] =
           [gameData.categories[index], gameData.categories[index - 1]];
-          GameCreatorState.state.autoSave();
-          GameCreatorEditor.Render.editor();
+          window.GameCreatorState.state.autoSave();
+          window.GameCreatorEditor.Render.editor();
         }
       },
 
@@ -876,8 +900,8 @@
         if (index < gameData.categories.length - 1) {
           [gameData.categories[index], gameData.categories[index + 1]] =
           [gameData.categories[index + 1], gameData.categories[index]];
-          GameCreatorState.state.autoSave();
-          GameCreatorEditor.Render.editor();
+          window.GameCreatorState.state.autoSave();
+          window.GameCreatorEditor.Render.editor();
         }
       },
 
@@ -901,9 +925,9 @@
         });
 
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save
-        GameCreatorState.state.selectedClueIndex = category.clues.length - 1; // Select the new question
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorState.state.autoSave();  // Auto-save
+        window.GameCreatorState.state.selectedClueIndex = category.clues.length - 1; // Select the new question
+        window.GameCreatorEditor.Render.editor();
       },
 
       deleteClue(categoryIndex, clueIndex) {
@@ -911,9 +935,9 @@
         const gameData = gameHeader._gameData;
         const category = gameData.categories[categoryIndex];
         category.clues.splice(clueIndex, 1);
-        GameCreatorState.state.autoSave();
-        GameCreatorState.state.selectedClueIndex = null;
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorState.state.autoSave();
+        window.GameCreatorState.state.selectedClueIndex = null;
+        window.GameCreatorEditor.Render.editor();
       },
 
       resizeCategories(newCount) {
@@ -965,14 +989,14 @@
         }
 
         // Reset selection if needed
-        if (GameCreatorState.state.selectedCategoryIndex !== null && GameCreatorState.state.selectedCategoryIndex >= newCount) {
-          GameCreatorState.state.selectedCategoryIndex = newCount > 0 ? newCount - 1 : null;
-          GameCreatorState.state.selectedClueIndex = null;
+        if (window.GameCreatorState.state.selectedCategoryIndex !== null && window.GameCreatorState.state.selectedCategoryIndex >= newCount) {
+          window.GameCreatorState.state.selectedCategoryIndex = newCount > 0 ? newCount - 1 : null;
+          window.GameCreatorState.state.selectedClueIndex = null;
         }
 
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorState.state.autoSave();  // Auto-save
+        window.GameCreatorEditor.Render.editor();
       },
 
       resizeClues(newCount) {
@@ -1025,20 +1049,21 @@
         });
 
         game.gameData = gameData;
-        GameCreatorState.state.autoSave();  // Auto-save
+        window.GameCreatorState.state.autoSave();  // Auto-save
 
         // Reset selection if the selected question was removed
-        if (GameCreatorState.state.selectedCategoryIndex !== null && GameCreatorState.state.selectedClueIndex !== null) {
-          const category = gameData.categories[GameCreatorState.state.selectedCategoryIndex];
-          if (category.clues.length <= GameCreatorState.state.selectedClueIndex) {
-            GameCreatorState.state.selectedClueIndex = category.clues.length > 0 ? category.clues.length - 1 : null;
+        if (window.GameCreatorState.state.selectedCategoryIndex !== null && window.GameCreatorState.state.selectedClueIndex !== null) {
+          const category = gameData.categories[window.GameCreatorState.state.selectedCategoryIndex];
+          if (category.clues.length <= window.GameCreatorState.state.selectedClueIndex) {
+            window.GameCreatorState.state.selectedClueIndex = category.clues.length > 0 ? category.clues.length - 1 : null;
           }
         }
 
-        GameCreatorEditor.Render.editor();
+        window.GameCreatorEditor.Render.editor();
       },
     },
   };
 
   window.GameCreatorEditor = GameCreatorEditor;
+  console.log('[GameCreatorEditor] Module loaded successfully');
 })();

@@ -5,6 +5,8 @@
 (function() {
   'use strict';
 
+  console.log('[GameCreatorState] Module loading...');
+
   const GameCreatorState = {
     // ========================================
     // STATE OBJECT
@@ -33,6 +35,25 @@
      * Initialize state with data from storage
      */
     initialize() {
+      // Ensure state object exists and is properly initialized
+      if (!this.state) {
+        this.state = {
+          creatorData: null,
+          selectedCategoryId: null,
+          selectedGameId: null,
+          selectedCategoryIndex: null,
+          selectedClueIndex: null,
+          pendingDeleteGameId: null,
+          pendingDeleteCategoryIndex: null,
+          pendingDeleteCategoryData: null,
+          dirty: false,
+          allCreatorGames: [],
+          autoSave: null,
+          menuTrigger: null,
+          menuDropdown: null,
+        };
+      }
+
       this.state.creatorData = window.GameCreatorStorage.loadCreatorData();
       this.state.selectedCategoryId = this.state.creatorData.categories[0]?.id || null;
       this.state.autoSave = window.GameCreatorStorage.createAutoSaveFunction();
@@ -102,8 +123,8 @@
       });
 
       // Refresh the game list UI
-      if (window.GameCreatorRender) {
-        window.GameCreatorRender.games();
+      if (window.GameCreatorEditor && window.GameCreatorEditor.Render) {
+        window.GameCreatorEditor.Render.games();
       }
     },
 
@@ -134,5 +155,13 @@
 
   // Export to global scope
   window.GameCreatorState = GameCreatorState;
+  console.log('[GameCreatorState] Module loaded successfully');
+
+  // Export state object directly for easier access
+  Object.defineProperty(window.GameCreatorState, 'data', {
+    get() { return window.GameCreatorState.state; },
+    enumerable: false,
+    configurable: false
+  });
 
 })();
