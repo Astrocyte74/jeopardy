@@ -487,40 +487,33 @@ async function buildContext(action) {
 
   switch (action) {
     case 'category-menu':
-      // Show a simple prompt to choose the AI action
-      const actionNum = await window.showInputDialog(
+      // Use selection dialog for better UX
+      const choice = await window.showSelectionDialog(
         '✨ AI Assistant for Category',
-        '',
-        'Choose an action:\n\n' +
-        '1️⃣ Suggest better names\n' +
-        '   Get creative category name suggestions\n' +
-        '   (e.g., "World Capitals" → "Around the World")\n\n' +
-        '2️⃣ Fill empty questions\n' +
-        '   Generate questions only for blank spots\n' +
-        '   Keeps your existing content intact\n\n' +
-        '3️⃣ Replace all questions\n' +
-        '   Generate all new questions for this category\n' +
-        '   Replaces everything with fresh content\n\n' +
-        'Enter 1, 2, or 3:'
+        'What would you like AI to do?',
+        [
+          {
+            value: 'category-rename',
+            icon: '✏️',
+            title: 'Suggest better names',
+            desc: 'Get creative category name suggestions (e.g., "World Capitals" → "Around the World")'
+          },
+          {
+            value: 'category-generate-clues',
+            icon: '➕',
+            title: 'Fill empty questions',
+            desc: 'Generate questions only for blank spots. Keeps your existing content intact.'
+          },
+          {
+            value: 'category-replace-all',
+            icon: '🔄',
+            title: 'Replace all questions',
+            desc: 'Generate all new questions for this category. Replaces everything with fresh content.'
+          }
+        ]
       );
 
-      if (!actionNum) return null; // User cancelled
-
-      const actionMap = {
-        '1': 'category-rename',
-        '2': 'category-generate-clues',
-        '3': 'category-replace-all'
-      };
-
-      const choice = actionMap[actionNum.trim()];
-      if (!choice) {
-        aiToast.show({
-          message: 'Please enter 1, 2, or 3 to choose an action',
-          type: 'error',
-          duration: 3000
-        });
-        return null;
-      }
+      if (!choice) return null; // User cancelled
 
       console.log('[AI] User chose category action:', choice);
       // Execute the chosen action by re-calling buildContext with the actual action
