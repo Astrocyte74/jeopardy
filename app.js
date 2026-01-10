@@ -1815,16 +1815,10 @@ function showCategoryAIDialog(currentTitle) {
         desc: `Get creative alternatives to "${currentTitle}"`
       },
       {
-        action: 'category-generate-clues',
-        icon: '➕',
-        title: 'Fill empty questions',
-        desc: 'Generate questions for blank spots only'
-      },
-      {
-        action: 'category-replace-all',
-        icon: '🔄',
-        title: 'Replace all questions',
-        desc: 'Generate all new questions for this category'
+        action: 'category-generate-smart',
+        icon: '✨',
+        title: 'Generate questions',
+        desc: 'Create questions for this category using the theme above'
       }
     ];
 

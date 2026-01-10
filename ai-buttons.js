@@ -514,9 +514,19 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       if (!result) return null; // User cancelled
 
       console.log('[AI] User chose category action:', result.action, 'with theme:', result.theme);
+
+      // Handle smart generate - decide between fill or replace based on content
+      let actualAction = result.action;
+      if (result.action === 'category-generate-smart') {
+        const clues = gameData.categories[catIdx].clues;
+        const hasContent = clues.some(clue => clue.clue && clue.clue.trim());
+        actualAction = hasContent ? 'category-replace-all' : 'category-generate-clues';
+        console.log('[AI] Smart generate: hasContent=', hasContent, '→ using', actualAction);
+      }
+
       // Build context for the chosen action with the theme
-      const context = await buildContext(result.action, explicitCategoryIndex, result.theme);
-      return { action: result.action, context };
+      const context = await buildContext(actualAction, explicitCategoryIndex, result.theme);
+      return { action: actualAction, context };
 
     case 'game-title':
       // Check if game has content already
