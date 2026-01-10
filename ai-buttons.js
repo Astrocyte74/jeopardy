@@ -482,8 +482,9 @@ async function executeAIActionClick(e, action, buttonEl = null) {
  * Async to support input dialogs
  * @param {string} action - The AI action type
  * @param {number} explicitCategoryIndex - Optional explicit category index (from button data attribute)
+ * @param {string} explicitTheme - Optional explicit theme (from dialog input)
  */
-async function buildContext(action, explicitCategoryIndex = null) {
+async function buildContext(action, explicitCategoryIndex = null, explicitTheme = null) {
   const gameHeader = document.getElementById('creatorGameHeader');
   if (!gameHeader || !gameHeader._game) {
     throw new Error('No game loaded');
@@ -506,39 +507,16 @@ async function buildContext(action, explicitCategoryIndex = null) {
 
   switch (action) {
     case 'category-menu':
-      // Use selection dialog for better UX
-      const choice = await window.showSelectionDialog(
-        '✨ AI Assistant for Category',
-        'What would you like AI to do?',
-        [
-          {
-            value: 'category-rename',
-            icon: '✏️',
-            title: 'Suggest better names',
-            desc: 'Get creative category name suggestions (e.g., "World Capitals" → "Around the World")'
-          },
-          {
-            value: 'category-generate-clues',
-            icon: '➕',
-            title: 'Fill empty questions',
-            desc: 'Generate questions only for blank spots. Keeps your existing content intact.'
-          },
-          {
-            value: 'category-replace-all',
-            icon: '🔄',
-            title: 'Replace all questions',
-            desc: 'Generate all new questions for this category. Replaces everything with fresh content.'
-          }
-        ]
-      );
+      // Use custom dialog with editable theme and action buttons
+      const categoryTitle = gameData.categories[catIdx].title;
+      const result = await window.showCategoryAIDialog(categoryTitle);
 
-      if (!choice) return null; // User cancelled
+      if (!result) return null; // User cancelled
 
-      console.log('[AI] User chose category action:', choice);
-      // Get the context for the chosen action and return both action and context
-      // Pass through the explicit category index to use the correct category
-      const context = await buildContext(choice, explicitCategoryIndex);
-      return { action: choice, context };
+      console.log('[AI] User chose category action:', result.action, 'with theme:', result.theme);
+      // Build context for the chosen action with the theme
+      const context = await buildContext(result.action, explicitCategoryIndex, result.theme);
+      return { action: result.action, context };
 
     case 'game-title':
       // Check if game has content already
@@ -604,43 +582,21 @@ async function buildContext(action, explicitCategoryIndex = null) {
     case 'category-rename':
       return {
         currentTitle: gameData.categories[catIdx].title,
-        theme: game.title || 'general'
+        theme: explicitTheme || game.title || 'general'
       };
 
     case 'category-generate-clues':
-      // Ask user for theme (pre-filled with category title)
-      const fillCategoryTitle = gameData.categories[catIdx].title;
-      const fillTheme = await window.showInputDialog(
-        '✨ Fill Empty Questions',
-        fillCategoryTitle,
-        'Enter a theme for this category (or use the default)',
-        'Generate'
-      );
-
-      if (fillTheme === null) return null; // User cancelled
-
       return {
-        categoryTitle: fillCategoryTitle,
-        theme: fillTheme.trim() || fillCategoryTitle,
+        categoryTitle: gameData.categories[catIdx].title,
+        theme: explicitTheme || gameData.categories[catIdx].title,
         existingClues: gameData.categories[catIdx].clues
       };
 
     case 'category-replace-all':
-      // Ask user for theme (pre-filled with category title)
-      const categoryTitle = gameData.categories[catIdx].title;
       const existingClues = gameData.categories[catIdx].clues;
-      const customTheme = await window.showInputDialog(
-        '✨ Replace All Questions',
-        categoryTitle,
-        'Enter a theme for this category (or use the default)',
-        'Generate'
-      );
-
-      if (customTheme === null) return null; // User cancelled
-
       return {
-        categoryTitle: categoryTitle,
-        theme: customTheme.trim() || categoryTitle,
+        categoryTitle: gameData.categories[catIdx].title,
+        theme: explicitTheme || gameData.categories[catIdx].title,
         count: existingClues.length,
         existingClues: existingClues  // Include so we can check if all empty
       };

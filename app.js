@@ -1770,6 +1770,122 @@ function showSelectionDialog(title, helperText, options, defaultValue = null, sh
 // Expose globally
 window.showSelectionDialog = showSelectionDialog;
 
+/**
+ * Category AI dialog - shows editable theme and 3 action options
+ * @param {string} currentTitle - Current category title (pre-fills the input)
+ * @returns {Promise} Resolves with {action, theme} or null if cancelled
+ */
+function showCategoryAIDialog(currentTitle) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("inputDialog");
+    const titleEl = document.getElementById("inputDialogTitle");
+    const helperEl = document.getElementById("inputDialogHelper");
+    const valueInput = document.getElementById("inputDialogValue");
+    const confirmBtn = document.getElementById("inputDialogConfirm");
+    const cancelBtn = document.getElementById("inputDialogCancel");
+    const xBtn = document.getElementById("inputDialogXBtn");
+
+    if (!overlay) {
+      console.error('[showCategoryAIDialog] Overlay not found!');
+      resolve(null);
+      return;
+    }
+
+    // Set content
+    titleEl.textContent = '✨ AI Assistant for Category';
+    helperEl.innerHTML = ''; // Clear helper text
+
+    // Set input value
+    valueInput.value = currentTitle;
+    valueInput.style.marginBottom = '20px';
+
+    // Hide default buttons
+    confirmBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+
+    // Create custom action buttons
+    const actionsContainer = document.createElement('div');
+    actionsContainer.style.cssText = 'display: flex; flex-direction: column; gap: 12px; width: 100%;';
+
+    const buttons = [
+      {
+        action: 'category-rename',
+        icon: '✏️',
+        title: 'Suggest better names',
+        desc: `Get creative alternatives to "${currentTitle}"`
+      },
+      {
+        action: 'category-generate-clues',
+        icon: '➕',
+        title: 'Fill empty questions',
+        desc: 'Generate questions for blank spots only'
+      },
+      {
+        action: 'category-replace-all',
+        icon: '🔄',
+        title: 'Replace all questions',
+        desc: 'Generate all new questions for this category'
+      }
+    ];
+
+    buttons.forEach(btn => {
+      const btnEl = document.createElement('button');
+      btnEl.className = 'selection-option';
+      btnEl.innerHTML = `
+        <span class="selection-option-icon">${btn.icon}</span>
+        <div class="selection-option-content">
+          <div class="selection-option-title">${btn.title}</div>
+          <div class="selection-option-desc">${btn.desc}</div>
+        </div>
+      `;
+      btnEl.addEventListener('click', () => {
+        overlay.style.display = 'none';
+        actionsContainer.remove();
+        // Reset buttons
+        confirmBtn.style.display = '';
+        cancelBtn.style.display = '';
+        valueInput.style.marginBottom = '';
+        resolve({
+          action: btn.action,
+          theme: valueInput.value.trim() || currentTitle
+        });
+      });
+      actionsContainer.appendChild(btnEl);
+    });
+
+    // Insert after the input field
+    valueInput.parentNode.insertBefore(actionsContainer, valueInput.nextSibling);
+
+    let resolved = false;
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+
+    const doResolve = (value) => {
+      if (!resolved) {
+        resolved = true;
+        abortController.abort();
+        overlay.style.display = 'none';
+        actionsContainer.remove();
+        // Reset buttons
+        confirmBtn.style.display = '';
+        cancelBtn.style.display = '';
+        valueInput.style.marginBottom = '';
+        resolve(value);
+      }
+    };
+
+    xBtn.addEventListener("click", () => doResolve(null), { signal });
+
+    // Show the overlay
+    overlay.style.display = 'flex';
+    valueInput.focus();
+    valueInput.select();
+  });
+}
+
+// Expose globally
+window.showCategoryAIDialog = showCategoryAIDialog;
+
 // ==================== NEW GAME WIZARD ====================
 /**
  * Run the New Game Wizard - walks user through creating a game with AI
