@@ -2556,11 +2556,13 @@ const GameCreator = {
         const displaySubtitle = game.source === "creator" && game.game ? game.game.subtitle : game.subtitle;
 
         item.innerHTML = `
-          <div class="creator-game-title">${displayTitle}</div>
-          <div class="creator-game-subtitle">${displaySubtitle || "No subtitle"}</div>
+          <div class="creator-game-info">
+            <div class="creator-game-title">${displayTitle}</div>
+            <div class="creator-game-subtitle">${displaySubtitle || "No subtitle"}</div>
+          </div>
           <div class="creator-game-actions">
-            <button class="creator-action-btn creator-game-edit-btn" title="Edit" type="button">✏️</button>
-            <button class="creator-action-btn creator-game-delete-btn" title="Delete" type="button">🗑</button>
+            <button class="row-action-btn creator-game-edit-btn" title="Edit game" type="button">✏️</button>
+            <button class="row-action-btn creator-game-delete-btn" title="Delete game" type="button">🗑</button>
           </div>
         `;
 

@@ -2209,6 +2209,9 @@ input[type="text"]:focus {
 
 /* ===== GAME ITEMS (Card Style) ===== */
 .creator-game-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s12);
   padding: 12px;
   margin-bottom: 6px;
   border-radius: 10px;
@@ -2216,6 +2219,11 @@ input[type="text"]:focus {
   transition: all 0.15s ease;
   background: transparent;
   border: 1px solid transparent;
+}
+
+.creator-game-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .creator-game-item:hover {
@@ -2241,18 +2249,26 @@ input[type="text"]:focus {
 
 .creator-game-actions {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: var(--s6);
+  align-items: center;
+  margin-left: auto;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  pointer-events: none;
+  transition: opacity 120ms ease;
 }
 
 .creator-game-item:hover .creator-game-actions {
-  opacity: 0.5;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .creator-game-item.selected .creator-game-actions {
-  opacity: 0.8;
+  opacity: 0.3;
+  pointer-events: auto;
+}
+
+.creator-game-item.selected:hover .creator-game-actions {
+  opacity: 1;
 }
 
 /* ===== "NEW GAME" CARD ===== */
@@ -4265,6 +4281,9 @@ input[type="text"]:focus {
 }
 
 .creator-game-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s12);
   padding: 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -4272,6 +4291,11 @@ input[type="text"]:focus {
   margin-bottom: 6px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid transparent;
+}
+
+.creator-game-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .creator-game-item:hover {
@@ -4298,13 +4322,25 @@ input[type="text"]:focus {
 /* Game action buttons (edit/delete) */
 .creator-game-actions {
   display: flex;
-  gap: 6px;
-  opacity: 0.6;
-  transition: all 0.2s ease;
-  margin-top: 8px;
+  gap: var(--s6);
+  align-items: center;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
 }
 
 .creator-game-item:hover .creator-game-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.creator-game-item.selected .creator-game-actions {
+  opacity: 0.3;
+  pointer-events: auto;
+}
+
+.creator-game-item.selected:hover .creator-game-actions {
   opacity: 1;
 }
 
