@@ -112,6 +112,8 @@ function injectCategoryAIButtons(categoryItem, categoryIndex) {
 
   // Check if AI button already exists for this category
   const existingButton = actionsDiv.querySelector('.ai-sparkle[data-category-index="' + categoryIndex + '"]');
+  const allSparkles = actionsDiv.querySelectorAll('.ai-sparkle');
+  console.log('[injectCategoryAIButtons] Category', categoryIndex, 'existingButton:', !!existingButton, 'allSparkles:', allSparkles.length);
   if (existingButton) {
     // Button already exists, skip injection
     return;
