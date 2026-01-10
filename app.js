@@ -2904,6 +2904,7 @@ const GameCreator = {
               border-radius: 4px;
               outline: none;
               background: white;
+              color: black;
             `;
 
             // Find title element
