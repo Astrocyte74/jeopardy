@@ -2862,7 +2862,9 @@ const GameCreator = {
               <div class="category-card-title" data-category-title="${index}">${cat.title || '(Untitled)'}</div>
               <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
             </div>
-            <div class="category-card-actions"></div>
+            <div class="category-card-actions">
+              <button class="row-action-btn category-card-edit-btn" data-category-index="${index}" title="Edit category name">✏️</button>
+            </div>
           </div>
         `;
       }).join('');
@@ -2871,31 +2873,20 @@ const GameCreator = {
       categoriesList.querySelectorAll(".category-card-item").forEach((item, catIndex) => {
         // Single click to select category
         item.addEventListener("click", (e) => {
-          // Don't select if clicking on AI button
+          // Don't select if clicking on AI button or edit button
           if (e.target.closest('.ai-btn')) return;
-
-          // If clicking on title and an input exists, don't re-select
-          const titleEl = item.querySelector('.category-card-title');
-          if (e.target === titleEl || titleEl?.contains(e.target)) {
-            const input = titleEl?.querySelector('input');
-            if (input) return; // Don't select if editing title
-            // Otherwise allow selection (single click on title selects, double-click edits)
-          }
+          if (e.target.closest('.category-card-edit-btn')) return;
 
           GameCreator.state.selectedCategoryIndex = catIndex;
           GameCreator.state.selectedClueIndex = null; // Reset clue selection when changing category
           GameCreator.Render.editor();
         });
 
-        // Add double-click handler for inline title editing
-        const titleEl = item.querySelector('.category-card-title');
-        if (titleEl) {
-          titleEl.style.cursor = 'text';
-          titleEl.title = 'Double-click to edit';
-
-          titleEl.addEventListener('dblclick', (e) => {
+        // Edit button click handler
+        const editBtn = item.querySelector('.category-card-edit-btn');
+        if (editBtn) {
+          editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            e.preventDefault(); // Prevent triggering category selection
             const category = categories[catIndex];
             const currentTitle = category.title || '';
 
@@ -2914,6 +2905,10 @@ const GameCreator = {
               outline: none;
               background: white;
             `;
+
+            // Find title element
+            const titleEl = item.querySelector('.category-card-title');
+            if (!titleEl) return;
 
             // Replace title with input
             titleEl.innerHTML = '';
