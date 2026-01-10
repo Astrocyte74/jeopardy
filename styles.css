@@ -2697,7 +2697,7 @@ input[type="text"]:focus {
 .ai-action-dropdown {
   position: absolute;
   top: calc(100% + var(--s6));
-  left: 0;
+  right: 0;
   min-width: 200px;
   background: rgba(20, 20, 35, 0.98);
   border: 1px solid var(--border2);
@@ -2707,12 +2707,13 @@ input[type="text"]:focus {
   display: none;
   flex-direction: column;
   gap: 0;
-  z-index: 100;
+  z-index: 10000;
   backdrop-filter: blur(10px);
 }
 
 .ai-action-dropdown.show {
   display: flex;
+  position: fixed;
   animation: dropdownFadeIn 0.15s ease;
 }
 

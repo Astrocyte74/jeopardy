@@ -105,35 +105,22 @@ function injectAIButtons() {
  */
 function injectCategoryAIButtons(categoryItem, categoryIndex) {
   const actionsDiv = categoryItem.querySelector('.category-card-actions');
-  if (!actionsDiv) return;
+  if (!actionsDiv) {
+    console.error('[injectCategoryAIButtons] No .category-card-actions found for category', categoryIndex);
+    return;
+  }
 
-  // Unique menu ID for this category
-  const menuId = `ai-menu-category-${categoryIndex}`;
+  console.log('[injectCategoryAIButtons] Injecting for category', categoryIndex);
 
+  // Simple sparkle button that opens a modal/dialog with actions
   const aiMenuHTML = `
-    <div class="ai-action-menu" data-menu-id="${menuId}">
-      <button class="row-action-btn ai-sparkle" data-ai-trigger="dropdown" aria-label="AI actions">
-        ✨
-      </button>
-      <div class="ai-action-dropdown" id="${menuId}">
-        <button class="ai-action-item" data-ai-action="category-rename">
-          <span class="ai-action-icon">✏️</span>
-          Suggest names
-        </button>
-        <button class="ai-action-item" data-ai-action="category-generate-clues">
-          <span class="ai-action-icon">➕</span>
-          Fill missing clues
-        </button>
-        <div class="ai-action-divider"></div>
-        <button class="ai-action-item danger" data-ai-action="category-replace-all">
-          <span class="ai-action-icon">🔄</span>
-          Replace all clues
-        </button>
-      </div>
-    </div>
+    <button class="row-action-btn ai-sparkle" data-ai-action="category-menu" data-category-index="${categoryIndex}" aria-label="AI actions for this category">
+      ✨
+    </button>
   `;
 
   actionsDiv.insertAdjacentHTML('beforeend', aiMenuHTML);
+  console.log('[injectCategoryAIButtons] Added sparkle button for category', categoryIndex);
 }
 
 /**
@@ -273,8 +260,88 @@ function setupAIButtonHandlers() {
 
       // Toggle this dropdown
       if (dropdown) {
-        dropdown.classList.toggle('show');
-        console.log('[AI Event] Sparkle dropdown toggled:', dropdown.classList.contains('show'));
+        const isShown = dropdown.classList.contains('show');
+
+        if (!isShown) {
+          // Show the dropdown and position it near the mouse click
+          dropdown.classList.add('show');
+          dropdown.style.position = 'fixed';
+          dropdown.style.top = `${e.clientY + 8}px`;
+          dropdown.style.left = `${e.clientX - 100}px`;
+
+          console.log('[AI Event] Dropdown positioned at click coordinates:', {
+            top: dropdown.style.top,
+            left: dropdown.style.left,
+            clickX: e.clientX,
+            clickY: e.clientY
+          });
+
+          // Check if dropdown is off-screen and adjust
+          requestAnimationFrame(() => {
+            const dropdownRect = dropdown.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            console.log('[AI Event] Dropdown rect details:', {
+              x: dropdownRect.x,
+              y: dropdownRect.y,
+              width: dropdownRect.width,
+              height: dropdownRect.height,
+              top: dropdownRect.top,
+              left: dropdownRect.left,
+              bottom: dropdownRect.bottom,
+              right: dropdownRect.right
+            });
+            console.log('[AI Event] Dropdown classes:', dropdown.className);
+            console.log('[AI Event] Dropdown ID:', dropdown.id);
+
+            const computedStyle = window.getComputedStyle(dropdown);
+            console.log('[AI Event] Dropdown display:', computedStyle.display);
+            console.log('[AI Event] Dropdown position:', computedStyle.position);
+            console.log('[AI Event] Dropdown visibility:', computedStyle.visibility);
+            console.log('[AI Event] Dropdown opacity:', computedStyle.opacity);
+            console.log('[AI Event] Dropdown width (computed):', computedStyle.width);
+            console.log('[AI Event] Dropdown height (computed):', computedStyle.height);
+
+            console.log('[AI Event] Dropdown innerHTML:', dropdown.innerHTML);
+            console.log('[AI Event] Dropdown children count:', dropdown.children.length);
+
+            // Check if .show class is working
+            console.log('[AI Event] Has show class:', dropdown.classList.contains('show'));
+
+            // Try forcing display and position inline
+            console.log('[AI Event] Forcing inline styles...');
+            dropdown.style.display = 'flex';
+            dropdown.style.position = 'fixed';
+            dropdown.style.minWidth = '200px';
+
+            const newRect = dropdown.getBoundingClientRect();
+            console.log('[AI Event] Dropdown rect after forcing:', {
+              width: newRect.width,
+              height: newRect.height
+            });
+
+            if (dropdownRect.right > viewportWidth) {
+              dropdown.style.left = `${e.clientX - dropdownRect.width}px`;
+            }
+            if (dropdownRect.bottom > viewportHeight) {
+              dropdown.style.top = `${e.clientY - dropdownRect.height - 8}px`;
+            }
+          });
+        } else {
+          // Just hide it
+          dropdown.classList.remove('show');
+        }
+      } else {
+        // No dropdown - check if this is a direct action button
+        const action = sparkleBtn.dataset.aiAction;
+        if (action) {
+          console.log('[AI Event] Direct action button, action:', action);
+          // Execute the action directly
+          executeAIActionClick(e, action, sparkleBtn);
+        } else {
+          console.log('[AI Event] No dropdown and no action - nothing to do');
+        }
       }
       return;
     }
@@ -290,6 +357,8 @@ function setupAIButtonHandlers() {
         console.error('[AI Event] No action data attribute found');
         return;
       }
+
+      console.log('[AI Event] Executing action:', action, 'item:', aiActionItem);
 
       // Close dropdown
       const dropdown = aiActionItem.closest('.ai-action-dropdown');
@@ -417,6 +486,46 @@ async function buildContext(action) {
   const clueIdx = window.selectedClueIndex;
 
   switch (action) {
+    case 'category-menu':
+      // Show a simple prompt to choose the AI action
+      const actionNum = await window.showInputDialog(
+        '✨ AI Assistant for Category',
+        '',
+        'Choose an action:\n\n' +
+        '1️⃣ Suggest better names\n' +
+        '   Get creative category name suggestions\n' +
+        '   (e.g., "World Capitals" → "Around the World")\n\n' +
+        '2️⃣ Fill empty questions\n' +
+        '   Generate questions only for blank spots\n' +
+        '   Keeps your existing content intact\n\n' +
+        '3️⃣ Replace all questions\n' +
+        '   Generate all new questions for this category\n' +
+        '   Replaces everything with fresh content\n\n' +
+        'Enter 1, 2, or 3:'
+      );
+
+      if (!actionNum) return null; // User cancelled
+
+      const actionMap = {
+        '1': 'category-rename',
+        '2': 'category-generate-clues',
+        '3': 'category-replace-all'
+      };
+
+      const choice = actionMap[actionNum.trim()];
+      if (!choice) {
+        aiToast.show({
+          message: 'Please enter 1, 2, or 3 to choose an action',
+          type: 'error',
+          duration: 3000
+        });
+        return null;
+      }
+
+      console.log('[AI] User chose category action:', choice);
+      // Execute the chosen action by re-calling buildContext with the actual action
+      return await buildContext(choice);
+
     case 'game-title':
       // Check if game has content already
       const hasContent = gameData.categories.some(cat =>

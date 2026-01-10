@@ -5,8 +5,14 @@
 
   const GameCreatorUI = {
     showInlineRename(item, currentValue, onSave) {
-      const nameEl = item.querySelector(".creator-category-name");
-      const header = item.querySelector(".creator-category-header");
+      // Handle both category names and game titles
+      const nameEl = item.querySelector(".creator-category-name") || item.querySelector(".creator-game-title");
+      const header = item.querySelector(".creator-category-header") || item.querySelector(".creator-game-info") || item;
+
+      if (!nameEl) {
+        console.error('[showInlineRename] No name element found');
+        return;
+      }
 
       // Create inline input
       const input = document.createElement("input");

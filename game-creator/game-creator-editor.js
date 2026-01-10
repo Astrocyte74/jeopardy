@@ -180,7 +180,8 @@
           const editBtn = item.querySelector(".creator-game-edit-btn");
           editBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            window.GameCreatorUI.showInlineRename(item, game.title, (newTitle) => {
+            const displayTitle = game.source === "creator" && game.game ? game.game.title : game.title;
+            window.GameCreatorUI.showInlineRename(item, displayTitle, (newTitle) => {
               if (newTitle) {
                 game.title = newTitle.trim();
                 // Update in creatorData if it's a creator game
@@ -189,6 +190,10 @@
                   const creatorGame = creatorData.games.find(g => g.id === game.id);
                   if (creatorGame) {
                     creatorGame.title = newTitle.trim();
+                    // Also update the nested game.game.title
+                    if (creatorGame.game) {
+                      creatorGame.game.title = newTitle.trim();
+                    }
                   }
                   window.GameCreatorStorage.saveCreatorData(creatorData);  // Save immediately
                 }
@@ -498,10 +503,10 @@
         categoriesList.querySelectorAll(".category-card-item").forEach((item, catIndex) => {
           // Single click to select category
           item.addEventListener("click", (e) => {
-            // Don't select if clicking on AI button or edit button
-            if (e.target.closest('.ai-btn')) return;
+            // Don't select if clicking on edit button
             if (e.target.closest('.category-card-edit-btn')) return;
 
+            // Always select the category (even when clicking AI button)
             window.GameCreatorState.state.selectedCategoryIndex = catIndex;
             window.GameCreatorState.state.selectedClueIndex = null; // Reset clue selection when changing category
             window.GameCreatorEditor.Render.editor();
@@ -635,9 +640,7 @@
         // Add click listeners
         cluesList.querySelectorAll(".clue-card-item").forEach(item => {
           item.addEventListener("click", (e) => {
-            // Don't select if clicking on AI button
-            if (e.target.closest('.ai-btn')) return;
-
+            // Always select the clue (even when clicking AI button)
             const clueIndex = parseInt(item.dataset.clueIndex);
             window.GameCreatorState.state.selectedClueIndex = clueIndex;
             window.GameCreatorEditor.Render.editor();
