@@ -110,6 +110,13 @@ function injectCategoryAIButtons(categoryItem, categoryIndex) {
     return;
   }
 
+  // Check if AI button already exists for this category
+  const existingButton = actionsDiv.querySelector('.ai-sparkle[data-category-index="' + categoryIndex + '"]');
+  if (existingButton) {
+    // Button already exists, skip injection
+    return;
+  }
+
   console.log('[injectCategoryAIButtons] Injecting for category', categoryIndex);
 
   // Simple sparkle button that opens a modal/dialog with actions
