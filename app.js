@@ -2863,7 +2863,7 @@ const GameCreator = {
               <div class="category-card-count">${clueCount} ${clueCount === 1 ? 'clue' : 'clues'}${isComplete ? ' • ✔' : ''}</div>
             </div>
             <div class="category-card-actions">
-              <button class="row-action-btn category-card-edit-btn" data-category-index="${index}" title="Edit category name">✏️</button>
+              <button type="button" class="row-action-btn category-card-edit-btn" data-category-index="${index}" title="Edit category name">✏️</button>
             </div>
           </div>
         `;
