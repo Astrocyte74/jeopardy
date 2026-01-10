@@ -1324,7 +1324,7 @@ async function setCurrentGame(gameRef) {
   });
 }
 
-function main() {
+async function main() {
   // Apply saved theme
   applyTheme(currentTheme);
 
@@ -1344,7 +1344,7 @@ function main() {
 
   setupSettingsDialog(rerenderAll);
   setupResetDialog(rerenderAll);
-  setupGameCreator();
+  await setupGameCreator();  // Wait for Game Creator to initialize and expose global functions
 
   const gamesDialog = setupGamesDialog((picked) => {
     setCurrentGame(picked).catch((err) => {
@@ -3969,6 +3969,12 @@ const GameCreator = {
 async function setupGameCreator() {
   // Expose GameCreator namespace globally
   window.GameCreator = GameCreator;
+
+  // Expose backward-compatible global functions for external code
+  window.loadCreatorData = GameCreator.Storage.loadCreatorData;
+  window.saveCreatorData = GameCreator.Storage.saveCreatorData;
+  window.getDefaultCreatorData = GameCreator.Storage.getDefaultCreatorData;
+  window.generateId = GameCreator.Utils.generateId;
 
   // Initialize the Game Creator
   await GameCreator.setup();
