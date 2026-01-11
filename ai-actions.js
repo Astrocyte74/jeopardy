@@ -229,26 +229,27 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
       if (acceptedItems && acceptedItems instanceof Set) {
         categoriesToApply = result.categories.filter((cat, i) => {
           const catId = `cat-${i}`;
-          // Check if category is accepted
-          if (!acceptedItems.has(catId)) return false;
-
-          // Check if any clues are accepted
-          const catClues = cat.clues || [];
-          return catClues.some((clue, j) => {
-            const clueId = `cat-${i}-clue-${j}`;
-            return acceptedItems.has(clueId);
-          });
+          // Only filter out if the category itself is rejected
+          // (individual clue rejections are handled below)
+          return acceptedItems.has(catId);
         }).map(cat => {
           // Filter clues within each category
           const catIdx = result.categories.indexOf(cat);
+          const acceptedClues = cat.clues.filter((clue, j) => {
+            const clueId = `cat-${catIdx}-clue-${j}`;
+            return acceptedItems.has(clueId);
+          });
+
+          // If no clues are accepted, exclude the category entirely
+          if (acceptedClues.length === 0) {
+            return null;
+          }
+
           return {
             ...cat,
-            clues: cat.clues.filter((clue, j) => {
-              const clueId = `cat-${catIdx}-clue-${j}`;
-              return acceptedItems.has(clueId);
-            })
+            clues: acceptedClues
           };
-        });
+        }).filter(cat => cat !== null);
       }
 
       // Ensure each category has contentTopic (use AI-provided or fallback to title)

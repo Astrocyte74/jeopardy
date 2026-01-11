@@ -45,7 +45,12 @@ class AIPreviewDialog {
       // Auto-accept all items by default for better UX
       if (type === 'categories-generate') {
         previewData.categories.forEach((cat, i) => {
-          this.acceptedItems.add(`cat-${i}`);
+          const catId = `cat-${i}`;
+          this.acceptedItems.add(catId);
+          // Also auto-accept all clues
+          (cat.clues || []).forEach((_, j) => {
+            this.acceptedItems.add(`cat-${i}-clue-${j}`);
+          });
         });
       }
 
