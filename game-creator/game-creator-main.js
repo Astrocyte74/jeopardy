@@ -141,16 +141,12 @@
         window.GameCreatorState.state.pendingDeleteCategoryData = null;
       });
 
-      // Refresh main menu when dialog closes (if changes were saved)
+      // Refresh main menu when dialog closes (always, to show new/updated games)
       dialog.addEventListener("close", () => {
-        if (window.GameCreatorState.state.dirty) {
-          // Reload to show the changes - user can re-open to continue editing
-          window.GameCreatorState.state.creatorData = window.GameCreatorStorage.loadCreatorData();
-          window.GameCreatorState.state.dirty = false;
+        // Always trigger a menu refresh when Game Creator closes
+        // This ensures new games created via wizard, title changes, etc. appear in main menu
+        window.dispatchEvent(new CustomEvent('jeop2:gamesUpdated'));
 
-          // Trigger a menu refresh by dispatching a custom event
-          window.dispatchEvent(new CustomEvent('jeop2:gamesUpdated'));
-        }
         // Reload games when dialog reopens
         window.GameCreatorState.loadAllGames().then(() => {
           window.GameCreatorEditor.Render.categories();
