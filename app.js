@@ -1097,6 +1097,7 @@ async function initMainMenu() {
         menuGameSettings.title = "";
         menuGameSettings.subtitle = "";
         renderGameList();
+        updateStartButton();
       });
       gameList.appendChild(option);
     });
@@ -1143,6 +1144,7 @@ async function initMainMenu() {
         if (menuTeams.length > 1) {
           menuTeams.splice(index, 1);
           renderTeamInputs();
+          updateStartButton();
         }
       });
 
@@ -1155,6 +1157,7 @@ async function initMainMenu() {
     const newIndex = menuTeams.length + 1;
     menuTeams.push({ name: `Team ${newIndex}` });
     renderTeamInputs();
+    updateStartButton();
   });
 
   // Collapsible game settings
@@ -1223,13 +1226,53 @@ async function initMainMenu() {
 
   // Start button - pass the team names and game settings to startGame
   startBtn.addEventListener("click", () => {
-    if (!menuSelectedGame) {
-      // No game selected - show error
-      alert("Please create or select a game first!");
+    // Check if ready to start
+    const ready = isReadyToStart();
+
+    if (!ready.hasGame) {
+      // No game selected - show error and guide user
+      alert("Please select a game first!");
+      // Highlight the game section
+      document.querySelector('.menu-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    if (!ready.hasTeams) {
+      // No teams - show error and guide user
+      alert("Please add at least one team!");
+      // Scroll to teams section
+      document.getElementById('teamsSetup')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     startGame(menuSelectedGame, menuTeams, menuGameSettings);
   });
+
+  // Function to check if ready to start and update button
+  function isReadyToStart() {
+    const hasGame = !!menuSelectedGame;
+    const hasTeams = menuTeams.length >= 1;
+    return { hasGame, hasTeams };
+  }
+
+  function updateStartButton() {
+    const ready = isReadyToStart();
+    const btn = document.getElementById('startGameBtn');
+
+    if (!ready.hasGame) {
+      btn.textContent = '▶ Select a Game';
+      btn.disabled = true;
+      btn.classList.remove('ready');
+    } else if (!ready.hasTeams) {
+      btn.textContent = '▶ Add at Least One Team';
+      btn.disabled = true;
+      btn.classList.remove('ready');
+    } else {
+      btn.textContent = '▶ Start Game';
+      btn.disabled = false;
+      btn.classList.add('ready');
+    }
+  }
 
   // Category select change
   categorySelect.addEventListener("change", () => {
@@ -1244,6 +1287,7 @@ async function initMainMenu() {
 
   renderGameList();
   renderThemeGrid();
+  updateStartButton();
 }
 
 function showMainMenu() {

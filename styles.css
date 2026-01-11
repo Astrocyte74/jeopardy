@@ -235,6 +235,22 @@ body {
 
 .menu-section {
   margin-bottom: 20px;
+  transition: opacity 0.3s ease;
+}
+
+/* Section states for visual hierarchy */
+.menu-section.inactive {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.menu-section.active {
+  opacity: 1;
+}
+
+/* Emphasize the active section */
+.menu-section:has(.game-option.selected) ~ .menu-section:not(.active) {
+  opacity: 0.5;
 }
 
 .section-title {
@@ -325,6 +341,7 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
+  position: relative;
 }
 
 .game-option:hover {
@@ -337,6 +354,25 @@ body {
   background: rgba(255, 204, 0, 0.15);
   border-color: var(--theme-accent);
   box-shadow: 0 0 12px rgba(255, 204, 0, 0.25);
+  transform: scale(1.02);
+}
+
+/* Selected badge for game cards */
+.game-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background: var(--theme-accent);
+  color: #000;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(255, 204, 0, 0.4);
 }
 
 .game-option-icon {
@@ -612,6 +648,26 @@ body {
 @keyframes gameFadeIn {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
+}
+
+/* Pulse animation for ready state */
+@keyframes subtlePulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(var(--theme-accent-rgb, 255, 204, 0), 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(var(--theme-accent-rgb, 255, 204, 0), 0.5);
+  }
+}
+
+.btn-large.ready {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+.btn-large:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
 }
 
 /* ==================== TOPBAR ==================== */
