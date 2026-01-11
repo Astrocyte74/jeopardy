@@ -2730,7 +2730,6 @@ input[type="text"]:focus {
 
 .ai-action-dropdown.show {
   display: flex;
-  position: fixed;
   animation: dropdownFadeIn 0.15s ease;
 }
 
