@@ -123,11 +123,7 @@
         const addGameCard = document.createElement("div");
         addGameCard.className = "creator-game-item creator-game-add";
         addGameCard.innerHTML = `
-          <div class="creator-game-title">+ New Game</div>
-          <div class="creator-game-subtitle">Create with AI wizard</div>
-          <div class="creator-game-actions">
-            <span class="creator-game-hint">✨ Theme → Difficulty → Generate</span>
-          </div>
+          <div class="creator-game-title">✨ New Game</div>
         `;
 
         addGameCard.addEventListener("click", async () => {

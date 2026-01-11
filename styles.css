@@ -2290,31 +2290,26 @@ input[type="text"]:focus {
 
 /* ===== "NEW GAME" CARD ===== */
 .creator-game-add {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px dashed rgba(168, 85, 247, 0.3);
+  cursor: pointer;
 }
 
 .creator-game-add:hover {
-  background: rgba(46, 213, 115, 0.1);
-  border-color: rgba(46, 213, 115, 0.3);
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.5);
+  transform: translateY(-1px);
 }
 
 .creator-game-add .creator-game-title {
-  color: rgba(255, 255, 255, 0.7);
-  transition: color 0.15s ease;
-}
-
-.creator-game-add .creator-game-subtitle {
-  color: rgba(255, 255, 255, 0.3);
+  color: #a855f7;
+  font-weight: 600;
+  font-size: 15px;
   transition: color 0.15s ease;
 }
 
 .creator-game-add:hover .creator-game-title {
-  color: #2ed573;
-}
-
-.creator-game-add:hover .creator-game-subtitle {
-  color: rgba(46, 213, 115, 0.5);
+  color: #c084fc;
 }
 
 .creator-game-hint {
@@ -4377,42 +4372,6 @@ input[type="text"]:focus {
 
 .creator-game-item.selected:hover .creator-game-actions {
   opacity: 1;
-}
-
-/* "New Game" Card */
-.creator-game-add {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-}
-
-.creator-game-add:hover {
-  background: rgba(46, 213, 115, 0.1);
-  border-color: rgba(46, 213, 115, 0.3);
-}
-
-.creator-game-add .creator-game-title {
-  color: rgba(255, 255, 255, 0.6);
-  transition: color 0.2s ease;
-}
-
-.creator-game-add .creator-game-subtitle {
-  color: var(--muted);
-  transition: color 0.2s ease;
-}
-
-.creator-game-add:hover .creator-game-title {
-  color: #2ed573;
-}
-
-.creator-game-add:hover .creator-game-subtitle {
-  color: rgba(46, 213, 115, 0.5);
-}
-
-.creator-game-hint {
-  font-size: 11px;
-  color: var(--muted);
-  font-style: italic;
-  opacity: 0.6;
 }
 
 /* Divider */
