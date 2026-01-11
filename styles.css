@@ -449,6 +449,68 @@ body {
   align-items: center;
 }
 
+.team-input-wrapper {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  position: relative;
+}
+
+.team-ai-buttons {
+  display: flex;
+  gap: 2px;
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.team-input-wrapper:hover .team-ai-buttons {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.team-ai-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: rgba(168, 85, 247, 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+}
+
+.team-ai-btn:hover {
+  background: rgba(168, 85, 247, 0.25);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.team-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.team-ai-btn.sparkle {
+  background: rgba(168, 85, 247, 0.2);
+}
+
+.team-ai-btn.sparkle:hover {
+  background: rgba(168, 85, 247, 0.35);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+}
+
 .team-color-chip {
   width: 8px;
   height: 24px;
@@ -460,7 +522,7 @@ body {
 
 .team-input-row input {
   flex: 1;
-  padding: 10px 14px;
+  padding: 10px 70px 10px 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;

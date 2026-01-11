@@ -1168,7 +1168,13 @@ async function initMainMenu() {
       row.innerHTML = `
         <span class="team-color-chip" style="background: ${currentColor}"></span>
         <span class="team-number">${index + 1}</span>
-        <input type="text" value="${team.name}" placeholder="Team name" data-index="${index}">
+        <div class="team-input-wrapper">
+          <input type="text" value="${team.name}" placeholder="Team name" data-index="${index}">
+          <div class="team-ai-buttons">
+            <button class="team-ai-btn" data-action="random" data-index="${index}" title="Generate random name">🎲</button>
+            <button class="team-ai-btn sparkle" data-action="enhance" data-index="${index}" title="Enhance this name">✨</button>
+          </div>
+        </div>
         <button class="remove-team-btn" data-index="${index}" ${menuTeams.length <= 1 ? 'disabled' : ''}>✕</button>
       `;
 
@@ -1176,6 +1182,68 @@ async function initMainMenu() {
       const input = row.querySelector("input");
       input.addEventListener("input", () => {
         menuTeams[index].name = input.value || `Team ${index + 1}`;
+      });
+
+      // AI buttons
+      row.querySelectorAll(".team-ai-btn").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const action = btn.dataset.action;
+          const teamIndex = parseInt(btn.dataset.index);
+          const currentName = menuTeams[teamIndex].name;
+          const inputField = row.querySelector("input");
+
+          // Show loading state
+          btn.disabled = true;
+          btn.style.opacity = "0.5";
+
+          try {
+            let promptType, context;
+
+            if (action === "random") {
+              promptType = 'team-name-random';
+              context = { count: 1 };
+            } else {
+              promptType = 'team-name-enhance';
+              context = { currentName: currentName };
+            }
+
+            const rawResult = await window.generateAI(promptType, context, 'normal');
+
+            // Parse the result - strip markdown and extract the name
+            const cleaned = rawResult?.trim() || '';
+            let result = cleaned;
+
+            // Try to extract from JSON if present
+            if (cleaned.includes('```')) {
+              const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+              try {
+                const parsed = JSON.parse(stripped);
+                if (action === "random") {
+                  result = parsed.names && parsed.names[0] ? parsed.names[0] : result;
+                } else {
+                  result = parsed.name || result;
+                }
+              } catch (e) {
+                result = stripped;
+              }
+            }
+
+            // Clean up any quotes or extra text
+            result = result.replace(/^["']|["']$/g, '').trim();
+
+            if (result && result.length > 0) {
+              menuTeams[teamIndex].name = result;
+              inputField.value = result;
+            }
+          } catch (error) {
+            console.error("AI team name error:", error);
+            alert("Could not generate team name. Please try again.");
+          } finally {
+            // Restore button state
+            btn.disabled = false;
+            btn.style.opacity = "1";
+          }
+        });
       });
 
       // Remove team button

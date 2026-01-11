@@ -297,6 +297,32 @@ Return JSON format:
   "suggestions": ["...", "..."]
 }`
     },
+
+    // ==================== TEAM NAMES ====================
+
+    'team-name-random': {
+      system: `You are a creative team name generator. Always respond with valid JSON only, no prose.`,
+      user: `Generate ${context.count || 1} creative and fun team name(s) for a trivia game.
+
+Make them memorable, clever, and fun. Use wordplay, puns, or creative concepts related to knowledge, trivia, or competition.
+
+Return JSON format:
+{
+  "names": ["Team Name 1"${context.count && context.count > 1 ? ', "Team Name 2", "Team Name 3"' : ''}]
+}`
+    },
+
+    'team-name-enhance': {
+      system: `You are a creative team name enhancer. Always respond with valid JSON only, no prose.`,
+      user: `Make this team name more creative and fun for a trivia game: "${context.currentName}"
+
+Transform it into something more memorable, clever, or humorous. Keep the spirit of the original but make it better.
+
+Return JSON format:
+{
+  "name": "Enhanced Team Name"
+}`
+    },
   };
 
   return prompts[type] || { system: SYSTEM_INSTRUCTION, user: 'Generate Jeopardy content.' };
@@ -379,5 +405,13 @@ window.validators = {
     return typeof data.valid === 'boolean' &&
       Array.isArray(data.issues) &&
       Array.isArray(data.suggestions);
+  },
+
+  'team-name-random': (data) => {
+    return Array.isArray(data.names) && data.names.length > 0 && data.names.every(n => typeof n === 'string');
+  },
+
+  'team-name-enhance': (data) => {
+    return typeof data.name === 'string' && data.name.length > 0;
   },
 };
