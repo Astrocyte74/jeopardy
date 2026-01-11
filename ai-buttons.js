@@ -166,17 +166,33 @@ function injectEditorAIButtons(editorPanel) {
     console.log('[injectEditorAIButtons] ERROR: No editorPanel provided!');
     return;
   }
-  console.log('[injectEditorAIButtons] editorPanel.innerHTML:', editorPanel.innerHTML.substring(0, 200));
+  console.log('[injectEditorAIButtons] editorPanel.innerHTML (first 300 chars):', editorPanel.innerHTML.substring(0, 300));
   console.log('[injectEditorAIButtons] editorPanel children:', editorPanel.children.length);
+  console.log('[injectEditorAIButtons] editorPanel.children[0]:', editorPanel.children[0]?.className);
 
-  // Search within editorPanel if provided, otherwise search entire document
+  // Check if form exists by ID
+  const formById = document.getElementById('clueEditorForm');
+  console.log('[injectEditorAIButtons] Form by ID:', !!formById, 'location:', formById?.parentNode?.id);
+
+  if (formById) {
+    // Form exists, use it directly
+    injectButtonsIntoForm(formById);
+    return;
+  }
+
+  // Try to find form by class as fallback
   const searchScope = editorPanel || document;
   const editorForm = searchScope.querySelector('.editor-form');
-  console.log('[injectEditorAIButtons] editorForm found:', !!editorForm);
+  console.log('[injectEditorAIButtons] editorForm found by class:', !!editorForm);
   if (!editorForm) {
     console.log('[injectEditorAIButtons] WARNING: .editor-form not found in editorPanel');
     return;
   }
+  injectButtonsIntoForm(editorForm);
+}
+
+function injectButtonsIntoForm(editorForm) {
+  console.log('[injectButtonsIntoForm] Injecting buttons into form');
 
   // Question field actions (Generate new, Enhance current)
   const questionActions = editorForm.querySelector('.editor-field-actions[data-field="question"]');
