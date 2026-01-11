@@ -437,6 +437,7 @@ async function executeAIAction(action, context, difficulty, retryContext = null,
  * For category-replace-all, skip preview if all questions are empty
  */
 function needsPreview(action, context = null) {
+  if (action === 'game-title') return true;
   if (action === 'categories-generate') return true;
 
   if (action === 'category-replace-all' && context?.existingClues) {

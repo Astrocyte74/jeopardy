@@ -371,7 +371,7 @@
                     </button>
                     <div class="ai-action-dropdown" id="ai-menu-game">
                       <div class="ai-action-dropdown-header">AI for this game</div>
-                      <button class="ai-action-item" data-ai-action="game-title" title="Smart title generation: analyzes your game content or asks for a theme">
+                      <button class="ai-action-item" data-ai-action="game-title" title="Generate 3 title options - shows preview with choices (analyzes your content or uses game theme)">
                         <span class="ai-action-icon">📝</span>
                         Generate title & subtitle
                       </button>

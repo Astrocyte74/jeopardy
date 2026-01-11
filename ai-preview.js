@@ -74,6 +74,7 @@ class AIPreviewDialog {
 
   getTypeLabel(type) {
     const labels = {
+      'game-title': 'Generate Title & Subtitle',
       'categories-generate': 'Generate All Categories',
       'category-replace-all': 'Replace All Clues',
       'category-generate-clues': 'Generate Missing Clues',
@@ -84,6 +85,9 @@ class AIPreviewDialog {
 
   renderPreview(type, data) {
     switch (type) {
+      case 'game-title':
+        return this.renderTitlesPreview(data.titles);
+
       case 'categories-generate':
         return this.renderCategoriesPreview(data.categories);
 
@@ -121,6 +125,24 @@ class AIPreviewDialog {
       </div>
     `;
     }).join('');
+  }
+
+  renderTitlesPreview(titles) {
+    return `
+      <div class="preview-titles">
+        <div style="margin-bottom: 16px; color: var(--muted); font-size: 14px;">Choose a title for your game:</div>
+        ${titles.map((titleOption, i) => `
+          <div class="preview-title-option">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
+              ${this.escapeHtml(titleOption.title)}
+            </div>
+            <div style="font-size: 14px; color: var(--muted);">
+              ${this.escapeHtml(titleOption.subtitle)}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   renderSingleCategoryPreview(category) {
