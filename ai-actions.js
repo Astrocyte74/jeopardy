@@ -73,6 +73,13 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
 
     // Show preview dialog first
     console.log('[applyAIPatch] Showing preview dialog, window.aiPreview:', window.aiPreview, 'result:', result);
+
+    if (!result) {
+      console.error('[applyAIPatch] ERROR: result is undefined, cannot show preview');
+      aiToast.show({ message: 'AI returned no data. Check server connection.', type: 'error', duration: 5000 });
+      return;
+    }
+
     window.aiPreview.show(result, {
       type: action,
       data: result,
