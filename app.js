@@ -1028,11 +1028,17 @@ async function initMainMenu() {
     }
   });
 
-  menuSelectedGame = allGames[0];
+  menuSelectedGame = allGames[0] || null;
 
-  // Initialize game settings with the first game's data
-  menuGameTitle.value = menuSelectedGame.title || "";
-  menuGameSubtitle.value = menuSelectedGame.subtitle || "";
+  // Initialize game settings with the first game's data (if any games exist)
+  if (menuSelectedGame) {
+    menuGameTitle.value = menuSelectedGame.title || "";
+    menuGameSubtitle.value = menuSelectedGame.subtitle || "";
+  } else {
+    // No games exist - clear the form
+    menuGameTitle.value = "";
+    menuGameSubtitle.value = "";
+  }
 
   // Populate category selector from Game Creator data
   creatorData.categories.forEach(cat => {
@@ -1069,7 +1075,7 @@ async function initMainMenu() {
 
     filteredGames.forEach(game => {
       const option = document.createElement("div");
-      option.className = `game-option${game.id === menuSelectedGame.id ? " selected" : ""}`;
+      option.className = `game-option${menuSelectedGame && game.id === menuSelectedGame.id ? " selected" : ""}`;
 
       // Choose icon based on source
       const icon = game.source === "creator" ? "✏️" :
@@ -1209,7 +1215,7 @@ async function initMainMenu() {
 
     // Keep the current selection if it still exists
     if (!allGames.find(g => g.id === menuSelectedGame?.id)) {
-      menuSelectedGame = allGames[0];
+      menuSelectedGame = allGames[0] || null;
     }
 
     renderGameList();
@@ -1217,6 +1223,11 @@ async function initMainMenu() {
 
   // Start button - pass the team names and game settings to startGame
   startBtn.addEventListener("click", () => {
+    if (!menuSelectedGame) {
+      // No game selected - show error
+      alert("Please create or select a game first!");
+      return;
+    }
     startGame(menuSelectedGame, menuTeams, menuGameSettings);
   });
 
