@@ -160,9 +160,11 @@ function injectQuestionAIButtons(questionItem) {
  * Inject editor panel AI buttons (called from renderEditorPanel)
  * Injects field-specific AI actions into each field's action area
  */
-function injectEditorAIButtons() {
-  console.log('[injectEditorAIButtons] Function called');
-  const editorForm = document.querySelector('.editor-form');
+function injectEditorAIButtons(editorPanel) {
+  console.log('[injectEditorAIButtons] Function called, editorPanel:', !!editorPanel);
+  // Search within editorPanel if provided, otherwise search entire document
+  const searchScope = editorPanel || document;
+  const editorForm = searchScope.querySelector('.editor-form');
   console.log('[injectEditorAIButtons] editorForm found:', !!editorForm);
   if (!editorForm) return;
 
