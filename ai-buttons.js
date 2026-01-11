@@ -199,11 +199,11 @@ function injectButtonsIntoForm(editorForm) {
   console.log('[injectEditorAIButtons] questionActions found:', !!questionActions);
   if (questionActions) {
     questionActions.innerHTML = `
-      <button class="field-action-btn" data-ai-action="editor-generate-clue" title="Generate new question (uses category topic, avoids duplicates)">
-        <span>✨ New</span>
+      <button class="field-action-btn" data-ai-action="editor-generate-clue" title="✨ Generate new question (uses category topic, avoids duplicates)">
+        <span>🆕</span>
       </button>
-      <button class="field-action-btn" data-ai-action="editor-rewrite-clue" title="Enhance current question (improves writing while keeping meaning)">
-        <span>✨ Enhance</span>
+      <button class="field-action-btn" data-ai-action="editor-rewrite-clue" title="✏️ Enhance current question (improves writing while keeping meaning)">
+        <span>🌟</span>
       </button>
     `;
     console.log('[injectEditorAIButtons] Question buttons injected');
