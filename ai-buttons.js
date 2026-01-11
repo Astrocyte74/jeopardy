@@ -649,12 +649,12 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       };
 
     case 'category-replace-all':
-      const existingClues = gameData.categories[catIdx].clues;
+      const catClues = gameData.categories[catIdx].clues;
       return {
         categoryTitle: gameData.categories[catIdx].title,
         theme: explicitTheme || getCategoryForAI(catIdx),
-        count: existingClues.length,
-        existingClues: existingClues  // Include so we can check if all empty
+        count: catClues.length,
+        existingClues: catClues  // Include so we can check if all empty
       };
 
     case 'questions-generate-five':
@@ -665,13 +665,12 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
       };
 
     case 'question-generate-single':
-      const existingClues = gameData.categories[catIdx].clues;
       return {
         categoryTitle: gameData.categories[catIdx].title,
         contentTopic: gameData.categories[catIdx].contentTopic,
         value: gameData.categories[catIdx].clues[clueIdx].value,
         theme: getCategoryForAI(catIdx),
-        existingClues: existingClues
+        existingClues: gameData.categories[catIdx].clues
       };
 
     case 'editor-generate-clue':
