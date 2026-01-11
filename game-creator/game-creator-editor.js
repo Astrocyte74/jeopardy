@@ -654,7 +654,7 @@
         }
 
         editorPanel.innerHTML = `
-          <form class="editor-form" id="clueEditorForm">
+          <div class="editor-form" id="clueEditorForm">
             <div class="editor-form-row">
               <label>Value</label>
               <input type="number" id="clueValueInput" value="${clue.value || 200}" placeholder="200" />
@@ -675,7 +675,7 @@
               </div>
               <textarea id="clueAnswerInput" placeholder="Enter answer..." rows="2">${clue.response || ''}</textarea>
             </div>
-          </form>
+          </div>
 
           <div class="editor-footer">
             <button type="button" class="editor-footer-btn danger" id="deleteClueBtn">
