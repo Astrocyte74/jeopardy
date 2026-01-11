@@ -584,7 +584,9 @@
         const category = categories[window.GameCreatorState.state.selectedCategoryIndex];
         const clues = category.clues || [];
 
-        if (metaEl) metaEl.textContent = `${clues.length} questions`;
+        // Show category name and question count in column header
+        const categoryTitle = category.title || '(Untitled)';
+        if (metaEl) metaEl.textContent = `${categoryTitle} • ${clues.length} question${clues.length === 1 ? '' : 's'}`;
 
         if (clues.length === 0) {
           cluesList.innerHTML = `
