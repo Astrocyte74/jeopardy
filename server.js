@@ -116,7 +116,7 @@ app.post('/api/ai/generate', async (req, res) => {
 
     // Call OpenRouter API
     const model = selectModel({ difficulty });
-    const result = await callOpenRouter(model, prompt);
+    const result = await callOpenRouter(model, prompt, promptType);
 
     res.json({ result, model });
   } catch (error) {
@@ -403,8 +403,21 @@ Return JSON format:
   return prompts[type] || { system: SYSTEM_INSTRUCTION, user: 'Generate Jeopardy content.' };
 }
 
+// Get max tokens based on prompt type
+function getMaxTokens(promptType) {
+  const tokenLimits = {
+    'categories-generate': 8000,  // Full game with 6 categories × 5 clues
+    'category-replace-all': 4000, // Single category with 5 clues
+    'questions-generate-five': 3000, // 5 clues
+    'category-generate-clues': 3000, // Fill missing clues
+    'game-title': 500, // Title options
+    'default': 2000, // Single clue operations
+  };
+  return tokenLimits[promptType] || tokenLimits['default'];
+}
+
 // Call OpenRouter API
-async function callOpenRouter(model, prompt) {
+async function callOpenRouter(model, prompt, promptType) {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
@@ -425,7 +438,7 @@ async function callOpenRouter(model, prompt) {
         { role: 'user', content: prompt.user },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_tokens: getMaxTokens(promptType),
     }),
   });
 

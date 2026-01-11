@@ -4961,6 +4961,22 @@ input[type="text"]:focus {
 
 .ai-toast-loading {
   border-left: 3px solid rgba(168, 85, 247, 0.7);
+  background: rgba(30, 20, 50, 0.95);
+  animation: toastPulse 1.5s ease-in-out infinite;
+}
+
+.ai-toast-loading .toast-message {
+  font-weight: 500;
+  color: #fff;
+}
+
+@keyframes toastPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(168, 85, 247, 0);
+  }
 }
 
 .toast-icon {

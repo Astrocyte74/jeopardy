@@ -377,6 +377,22 @@ function undoSnapshot(snapshotId) {
  */
 async function executeAIAction(action, context, difficulty, retryContext = null, onRetry = null, onCancel = null, onConfirm = null) {
   console.log('[executeAIAction] Starting:', action, context, difficulty);
+
+  // Get appropriate loading message for the action
+  const loadingMessages = {
+    'categories-generate': '⏳ Generating full game... This may take a moment...',
+    'game-title': '⏳ Generating title options...',
+    'category-generate-clues': '⏳ Generating clues...',
+    'category-replace-all': '⏳ Replacing all clues...',
+    'questions-generate-five': '⏳ Generating 5 questions...',
+    'editor-generate-clue': '⏳ Generating question...',
+    'editor-rewrite-clue': '⏳ Enhancing question...',
+    'editor-generate-answer': '⏳ Generating answer...',
+  };
+
+  const loadingMsg = loadingMessages[action] || '⏳ Generating...';
+  const loader = aiToast.loading(loadingMsg);
+
   try {
     // Call AI service (server-side has prompts)
     console.log('[executeAIAction] Calling generateAI...');
@@ -422,10 +438,15 @@ async function executeAIAction(action, context, difficulty, retryContext = null,
     console.log('[executeAIAction] Calling applyAIPatch...');
     applyAIPatch({ scope, action, result: finalResult, mode, context, retryContext, onRetry, onCancel, onConfirm });
     console.log('[executeAIAction] Done');
+
+    // Dismiss loading toast - success will be shown by showUndoToast
+    loader.dismiss();
     return true; // Return true to indicate success
 
   } catch (error) {
     console.error('[executeAIAction] Error:', error);
+    loader.dismiss();
+
     if (error instanceof AISchemaError) {
       error.showDialog();
     } else {

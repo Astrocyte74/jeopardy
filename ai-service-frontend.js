@@ -79,7 +79,12 @@ window.generateAI = async function generateAI(promptType, context, difficulty = 
   }
 
   const data = await response.json();
-  return data.result; // Raw JSON string from AI
+  const result = data.result; // Raw JSON string from AI
+
+  // Log result size for debugging
+  console.log('[generateAI] Result length:', result?.length, 'last 50 chars:', result?.slice(-50));
+
+  return result;
 }
 
 /**
