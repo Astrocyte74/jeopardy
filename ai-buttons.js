@@ -162,11 +162,21 @@ function injectQuestionAIButtons(questionItem) {
  */
 function injectEditorAIButtons(editorPanel) {
   console.log('[injectEditorAIButtons] Function called, editorPanel:', !!editorPanel);
+  if (!editorPanel) {
+    console.log('[injectEditorAIButtons] ERROR: No editorPanel provided!');
+    return;
+  }
+  console.log('[injectEditorAIButtons] editorPanel.innerHTML:', editorPanel.innerHTML.substring(0, 200));
+  console.log('[injectEditorAIButtons] editorPanel children:', editorPanel.children.length);
+
   // Search within editorPanel if provided, otherwise search entire document
   const searchScope = editorPanel || document;
   const editorForm = searchScope.querySelector('.editor-form');
   console.log('[injectEditorAIButtons] editorForm found:', !!editorForm);
-  if (!editorForm) return;
+  if (!editorForm) {
+    console.log('[injectEditorAIButtons] WARNING: .editor-form not found in editorPanel');
+    return;
+  }
 
   // Question field actions (Generate new, Enhance current)
   const questionActions = editorForm.querySelector('.editor-field-actions[data-field="question"]');
