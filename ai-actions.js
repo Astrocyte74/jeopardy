@@ -84,42 +84,23 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
       type: action,
       data: result,
       context: context,
-      onRetry: onRetry,
-      onRegenerateItem: async (itemType, catIndex, clueIndexOrContext, itemContext) => {
-        console.log('[applyAIPatch] Regenerating item:', itemType, catIndex, clueIndexOrContext);
-        // Regenerate individual category or clue
-        const regenResult = await handleRegenerateItem(action, itemType, catIndex, clueIndexOrContext, itemContext || context);
+      onRegenerateAll: onRetry, // Renamed from onRetry for clarity
+      onRegenerateSelected: async (checkedItems) => {
+        console.log('[applyAIPatch] Regenerating selected items:', checkedItems);
+        // Regenerate all checked items (items marked for regeneration)
+        const regenResult = await handleRegenerateSelectedItems(action, checkedItems, result, context);
 
         if (regenResult) {
-          // Update the preview data with the regenerated item
-          if (itemType === 'category' && regenResult.result.category) {
-            // category-replace-all returns { category: { title, clues } }
-            result.categories[catIndex] = regenResult.result.category;
-            // Update preview
-            window.aiPreview.updatePreview(result);
-            // Keep this category and all its clues accepted
-            const catId = `cat-${catIndex}`;
-            window.aiPreview.acceptedItems.add(catId);
-            regenResult.result.category.clues.forEach((_, j) => {
-              window.aiPreview.acceptedItems.add(`cat-${catIndex}-clue-${j}`);
-            });
-          } else if (itemType === 'clue' && regenResult.result.clue) {
-            // question-generate-single returns { clue: {...} }
-            result.categories[catIndex].clues[clueIndexOrContext] = regenResult.result.clue;
-            // Update preview
-            window.aiPreview.updatePreview(result);
-            // Keep this clue accepted
-            const clueId = `cat-${catIndex}-clue-${clueIndexOrContext}`;
-            window.aiPreview.acceptedItems.add(clueId);
-            // Also make sure the parent category is accepted
-            window.aiPreview.acceptedItems.add(`cat-${catIndex}`);
-          }
+          console.log('[applyAIPatch] Regeneration complete, updating preview');
+          // Update preview with new data
+          window.aiPreview.updatePreview(result);
+          console.log('[applyAIPatch] Preview update called');
         }
 
         return regenResult;
       },
-      onConfirm: async (selectedIndexOrAcceptedItems = 0) => {
-        console.log('[applyAIPatch] onConfirm called, selectedIndexOrAcceptedItems:', selectedIndexOrAcceptedItems);
+      onConfirm: async (selectedIndexOrCheckedItems = 0) => {
+        console.log('[applyAIPatch] onConfirm called, selectedIndexOrCheckedItems:', selectedIndexOrCheckedItems);
         // User confirmed - take snapshot and apply
         if (snapshotScope === 'game') {
           undoManager.saveSnapshot(snapshotId, 'game', { gameData, selections });
@@ -127,11 +108,11 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
           const item = getCurrentItem(scope, gameData, selections);
           undoManager.saveSnapshot(snapshotId, 'single', { item, selections });
         }
-        // Pass accepted items if this is a categories-generate action
-        const acceptedItems = (typeof selectedIndexOrAcceptedItems === 'object' && selectedIndexOrAcceptedItems instanceof Set)
-          ? selectedIndexOrAcceptedItems
+        // Pass checked items if this is a categories-generate action (checked items are excluded from applying)
+        const checkedItems = (typeof selectedIndexOrCheckedItems === 'object' && selectedIndexOrCheckedItems instanceof Set)
+          ? selectedIndexOrCheckedItems
           : null;
-        applyResult(action, result, game, gameData, selections, selectedIndexOrAcceptedItems, acceptedItems);
+        applyResult(action, result, game, gameData, selections, selectedIndexOrCheckedItems, checkedItems);
         // Re-render the editor to show updated content
         // Use global renderEditor if available, otherwise use scoped version
         if (window.renderEditor) {
@@ -208,9 +189,15 @@ function getCurrentItem(scope, gameData, selections) {
 /**
  * Apply AI result to game data
  */
-function applyResult(action, result, game, gameData, selections, selectedIndex = 0, acceptedItems = null) {
+function applyResult(action, result, game, gameData, selections, selectedIndex = 0, checkedItems = null) {
+  console.log('[applyResult] action:', action, 'result:', result, 'selectedIndex:', selectedIndex, 'checkedItems:', checkedItems);
+
   switch (action) {
     case 'game-title':
+      if (!result || !result.titles || !result.titles[selectedIndex]) {
+        console.error('[applyResult] Invalid result for game-title:', result);
+        return;
+      }
       const titleIndex = selectedIndex ?? 0;
       game.title = result.titles[titleIndex].title;
       game.subtitle = result.titles[titleIndex].subtitle;
@@ -223,31 +210,35 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
       break;
 
     case 'categories-generate':
-      // Filter categories by accepted items if provided
+      if (!result || !result.categories || !Array.isArray(result.categories)) {
+        console.error('[applyResult] Invalid result for categories-generate:', result);
+        return;
+      }
+      // Filter categories by checked items if provided (checked items are excluded)
       let categoriesToApply = result.categories;
 
-      if (acceptedItems && acceptedItems instanceof Set) {
+      if (checkedItems && checkedItems instanceof Set) {
         categoriesToApply = result.categories.filter((cat, i) => {
           const catId = `cat-${i}`;
-          // Only filter out if the category itself is rejected
-          // (individual clue rejections are handled below)
-          return acceptedItems.has(catId);
+          // Exclude if the category itself is checked (marked for regeneration)
+          // (individual clue checks are handled below)
+          return !checkedItems.has(catId);
         }).map(cat => {
-          // Filter clues within each category
+          // Filter clues within each category (exclude checked clues)
           const catIdx = result.categories.indexOf(cat);
-          const acceptedClues = cat.clues.filter((clue, j) => {
+          const uncheckedClues = cat.clues.filter((clue, j) => {
             const clueId = `cat-${catIdx}-clue-${j}`;
-            return acceptedItems.has(clueId);
+            return !checkedItems.has(clueId);
           });
 
-          // If no clues are accepted, exclude the category entirely
-          if (acceptedClues.length === 0) {
+          // If no clues remain after filtering, exclude the category entirely
+          if (uncheckedClues.length === 0) {
             return null;
           }
 
           return {
             ...cat,
-            clues: acceptedClues
+            clues: uncheckedClues
           };
         }).filter(cat => cat !== null);
       }
@@ -636,4 +627,188 @@ function getCategoryForAI(catIdx) {
 
   const category = gameHeader._gameData.categories[catIdx];
   return category?.contentTopic || category?.title || '';
+}
+
+/**
+ * Handle regeneration of multiple selected items (categories and clues)
+ * @param {string} action - The original AI action
+ * @param {Set} checkedItems - Set of checked item IDs (items to regenerate)
+ * @param {object} result - The current result object to update
+ * @param {object} context - AI context (difficulty, theme, etc.)
+ */
+async function handleRegenerateSelectedItems(action, checkedItems, result, context) {
+  try {
+    const gameHeader = getGameHeader();
+    if (!gameHeader || !gameHeader._gameData) {
+      console.error('[handleRegenerateSelectedItems] No game loaded');
+      aiToast.show({ message: 'No game loaded', type: 'error', duration: 3000 });
+      return null;
+    }
+
+    const gameData = gameHeader._gameData;
+
+    // Separate checked items into categories and individual clues
+    const checkedCategories = [];
+    const checkedClues = [];
+
+    result.categories.forEach((cat, i) => {
+      const catId = `cat-${i}`;
+      if (checkedItems.has(catId)) {
+        checkedCategories.push({ index: i, category: cat });
+      } else {
+        // Category not checked - check for individual clues
+        cat.clues.forEach((clue, j) => {
+          const clueId = `cat-${i}-clue-${j}`;
+          if (checkedItems.has(clueId)) {
+            checkedClues.push({ catIndex: i, clueIndex: j, clue });
+          }
+        });
+      }
+    });
+
+    const totalItems = checkedCategories.length + checkedClues.length;
+    let completedItems = 0;
+
+    // Show loading toast
+    aiToast.show({ message: `Regenerating ${totalItems} item${totalItems > 1 ? 's' : ''}...`, type: 'info', duration: 0 });
+
+    // Regenerate checked categories
+    for (const { index: catIndex, category } of checkedCategories) {
+      console.log('[handleRegenerateSelectedItems] Regenerating category:', catIndex);
+
+      const promptType = 'category-replace-all';
+      const itemContext = {
+        categoryTitle: category.title,
+        contentTopic: category.contentTopic,
+        theme: category.contentTopic || category.title,
+        existingClues: category.clues
+      };
+
+      const rawResult = await generateAI(promptType, itemContext, context?.difficulty || 'normal');
+
+      console.log('[handleRegenerateSelectedItems] Category rawResult length:', rawResult.length);
+      console.log('[handleRegenerateSelectedItems] Category rawResult preview:', rawResult.substring(0, 300));
+
+      // Try to parse with validator first
+      let parsedResult = safeJsonParse(rawResult, window.validators[promptType]);
+
+      console.log('[handleRegenerateSelectedItems] Category parsedResult with validator:', parsedResult);
+
+      // If validator fails, try manual parse
+      if (!parsedResult) {
+        console.log('[handleRegenerateSelectedItems] Validator failed, trying manual parse...');
+        try {
+          // Strip markdown and parse manually
+          let cleaned = rawResult.trim();
+          cleaned = cleaned.replace(/^```json\s*/i, '');
+          cleaned = cleaned.replace(/^```\s*/i, '');
+          cleaned = cleaned.replace(/\s*```$/g, '');
+          cleaned = cleaned.trim();
+          parsedResult = JSON.parse(cleaned);
+          console.log('[handleRegenerateSelectedItems] Manual parse succeeded:', parsedResult);
+        } catch (e) {
+          console.error('[handleRegenerateSelectedItems] Manual parse also failed:', e);
+          completedItems++;
+          continue; // Skip this item
+        }
+      }
+
+      // Handle both wrapped and unwrapped responses
+      const categoryData = parsedResult?.category || parsedResult;
+      if (categoryData && categoryData.title && categoryData.clues) {
+        result.categories[catIndex] = categoryData;
+        const catId = `cat-${catIndex}`;
+        // Mark as regenerated (for visual highlighting)
+        console.log('[handleRegenerateSelectedItems] Adding catId to regeneratedItems:', catId);
+        window.aiPreview.regeneratedItems.add(catId);
+        console.log('[handleRegenerateSelectedItems] regeneratedItems size:', window.aiPreview.regeneratedItems.size);
+        // Uncheck this category (it's been regenerated and should be shown as fresh)
+        window.aiPreview.checkedItems.delete(catId);
+        // Also uncheck and mark all its clues as regenerated
+        categoryData.clues.forEach((_, j) => {
+          window.aiPreview.checkedItems.delete(`cat-${catIndex}-clue-${j}`);
+          const clueId = `cat-${catIndex}-clue-${j}`;
+          window.aiPreview.regeneratedItems.add(clueId);
+        });
+        console.log('[handleRegenerateSelectedItems] After adding clues, regeneratedItems size:', window.aiPreview.regeneratedItems.size);
+      } else {
+        console.log('[handleRegenerateSelectedItems] categoryData invalid:', categoryData);
+      }
+      completedItems++;
+    }
+
+    // Regenerate checked individual clues
+    for (const { catIndex, clueIndex, clue } of checkedClues) {
+      console.log('[handleRegenerateSelectedItems] Regenerating clue:', catIndex, clueIndex);
+
+      const category = result.categories[catIndex];
+      const promptType = 'question-generate-single';
+      const itemContext = {
+        categoryTitle: category.title,
+        contentTopic: category.contentTopic,
+        value: clue.value,
+        theme: category.contentTopic || category.title,
+        existingClues: category.clues
+      };
+
+      const rawResult = await generateAI(promptType, itemContext, context?.difficulty || 'normal');
+
+      console.log('[handleRegenerateSelectedItems] Clue rawResult length:', rawResult.length);
+
+      // Try to parse with validator first
+      let parsedResult = safeJsonParse(rawResult, window.validators[promptType]);
+
+      console.log('[handleRegenerateSelectedItems] Clue parsedResult with validator:', parsedResult);
+
+      // If validator fails, try manual parse
+      if (!parsedResult) {
+        console.log('[handleRegenerateSelectedItems] Validator failed for clue, trying manual parse...');
+        try {
+          // Strip markdown and parse manually
+          let cleaned = rawResult.trim();
+          cleaned = cleaned.replace(/^```json\s*/i, '');
+          cleaned = cleaned.replace(/^```\s*/i, '');
+          cleaned = cleaned.replace(/\s*```$/g, '');
+          cleaned = cleaned.trim();
+          parsedResult = JSON.parse(cleaned);
+          console.log('[handleRegenerateSelectedItems] Manual parse succeeded for clue:', parsedResult);
+        } catch (e) {
+          console.error('[handleRegenerateSelectedItems] Manual parse also failed for clue:', e);
+          completedItems++;
+          continue; // Skip this item
+        }
+      }
+
+      // Handle both wrapped and unwrapped responses
+      const clueData = parsedResult?.clue || parsedResult;
+      if (clueData && clueData.clue && clueData.response) {
+        result.categories[catIndex].clues[clueIndex] = clueData;
+        const clueId = `cat-${catIndex}-clue-${clueIndex}`;
+        // Mark as regenerated (for visual highlighting)
+        console.log('[handleRegenerateSelectedItems] Adding clueId to regeneratedItems:', clueId);
+        window.aiPreview.regeneratedItems.add(clueId);
+        console.log('[handleRegenerateSelectedItems] regeneratedItems size:', window.aiPreview.regeneratedItems.size);
+        // Uncheck this clue (it's been regenerated)
+        window.aiPreview.checkedItems.delete(clueId);
+      } else {
+        console.log('[handleRegenerateSelectedItems] clueData invalid:', clueData);
+      }
+      completedItems++;
+    }
+
+    // Show success toast
+    aiToast.show({ message: `Regenerated ${completedItems} item${completedItems > 1 ? 's' : ''}!`, type: 'success', duration: 2000 });
+
+    console.log('[handleRegenerateSelectedItems] Final regeneratedItems:', Array.from(window.aiPreview.regeneratedItems));
+    console.log('[handleRegenerateSelectedItems] Complete, updated result:', result);
+    return { success: true };
+  } catch (error) {
+    console.error('[handleRegenerateSelectedItems] Error:', error);
+    aiToast.show({
+      message: error.message || 'Regeneration failed',
+      type: 'error',
+      duration: 3000
+    });
+    return null;
+  }
 }
