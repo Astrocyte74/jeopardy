@@ -1111,10 +1111,26 @@ async function initMainMenu() {
       option.className = `themeOption${themeKey === menuSelectedTheme ? " selected" : ""}`;
       option.dataset.theme = themeKey;
       option.setAttribute("data-name", theme.name);
+
+      // Live preview on hover
+      option.addEventListener("mouseenter", () => {
+        if (themeKey !== menuSelectedTheme) {
+          applyTheme(themeKey);
+        }
+      });
+
+      // Restore selected theme on mouse leave
+      option.addEventListener("mouseleave", () => {
+        if (themeKey !== menuSelectedTheme) {
+          applyTheme(menuSelectedTheme);
+        }
+      });
+
       option.addEventListener("click", () => {
         menuSelectedTheme = themeKey;
         applyTheme(themeKey);
         renderThemeGrid();
+        renderTeamInputs(); // Refresh team colors
       });
       themeGrid.appendChild(option);
     }
@@ -1123,10 +1139,34 @@ async function initMainMenu() {
   // Render team inputs
   function renderTeamInputs() {
     teamsSetup.innerHTML = "";
+
+    // Get team colors from current theme
+    const currentTheme = themes[menuSelectedTheme] || themes.classic;
+    const teamColors = [
+      currentTheme.primary,
+      currentTheme.secondary,
+      currentTheme.accent,
+      currentTheme.gold,
+      currentTheme.success,
+      currentTheme.danger
+    ];
+
     menuTeams.forEach((team, index) => {
       const row = document.createElement("div");
       row.className = "team-input-row";
+
+      // Auto-assign color if not already set
+      if (!team.color) {
+        team.color = teamColors[index % teamColors.length];
+      }
+
+      // Update color when theme changes
+      const colorIndex = index % teamColors.length;
+      const currentColor = teamColors[colorIndex];
+      team.color = currentColor;
+
       row.innerHTML = `
+        <span class="team-color-chip" style="background: ${currentColor}"></span>
         <span class="team-number">${index + 1}</span>
         <input type="text" value="${team.name}" placeholder="Team name" data-index="${index}">
         <button class="remove-team-btn" data-index="${index}" ${menuTeams.length <= 1 ? 'disabled' : ''}>✕</button>

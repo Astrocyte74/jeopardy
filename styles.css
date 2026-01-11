@@ -449,6 +449,15 @@ body {
   align-items: center;
 }
 
+.team-color-chip {
+  width: 8px;
+  height: 24px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
+  transition: all 0.3s ease;
+}
+
 .team-input-row input {
   flex: 1;
   padding: 10px 14px;
@@ -603,7 +612,7 @@ body {
 #menuThemeGrid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 
 @media (max-width: 700px) {
@@ -620,12 +629,58 @@ body {
 
 /* Smaller theme options in main menu */
 #menuThemeGrid .themeOption {
-  border-radius: 10px;
-  font-size: 9px;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  font-size: 0;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
+}
+
+#menuThemeGrid .themeOption::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--theme-bg);
+  border-radius: 6px;
 }
 
 #menuThemeGrid .themeOption::after {
-  display: none;
+  content: attr(data-name);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 100;
+}
+
+#menuThemeGrid .themeOption:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+#menuThemeGrid .themeOption:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+#menuThemeGrid .themeOption.selected {
+  border-color: var(--theme-accent);
+  box-shadow: 0 0 16px rgba(255, 204, 0, 0.5);
+  transform: scale(1.1);
 }
 
 .btn-large {
