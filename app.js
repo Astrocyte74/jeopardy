@@ -2384,8 +2384,16 @@ async function generateGameWithAI(theme, difficulty, onCancel = null) {
 
       console.log('[generateGameWithAI] Title context:', titleContext);
 
-      // Generate title using the game-title action (direct mode, no preview)
-      const titleResult = await executeAIAction('game-title', titleContext, difficulty, null, null, null);
+      // Generate title using the game-title action with preview
+      // We need to handle the selected title from the preview dialog
+      const titleResult = await new Promise((resolve) => {
+        executeAIAction('game-title', titleContext, difficulty, null, null, null, async (selectedIndex) => {
+          console.log('[generateGameWithAI] Title selected, index:', selectedIndex);
+          // Title has already been applied by executeAIAction
+          // Just resolve the promise
+          resolve(true);
+        });
+      });
 
       if (titleResult) {
         console.log('[generateGameWithAI] Title generated successfully');
