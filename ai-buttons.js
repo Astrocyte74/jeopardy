@@ -145,11 +145,9 @@ function injectQuestionAIButtons(questionItem) {
   const clueIndex = questionItem.dataset.clueIndex;
   const menuId = `ai-menu-clue-${clueIndex}`;
 
+  // Removed question panel AI button - users can click question to edit and use editor panel buttons
   const aiMenuHTML = `
     <div class="ai-action-menu" data-menu-id="${menuId}">
-      <button class="row-action-btn ai-sparkle" data-ai-action="question-generate-single" aria-label="Generate new clue">
-        ✨
-      </button>
     </div>
   `;
 
@@ -161,21 +159,11 @@ function injectQuestionAIButtons(questionItem) {
  * Injects field-specific AI actions into each field's action area
  */
 function injectEditorAIButtons(editorPanel) {
-  console.log('[injectEditorAIButtons] Function called, editorPanel:', !!editorPanel);
-  if (!editorPanel) {
-    console.log('[injectEditorAIButtons] ERROR: No editorPanel provided!');
-    return;
-  }
-  console.log('[injectEditorAIButtons] editorPanel.innerHTML (first 300 chars):', editorPanel.innerHTML.substring(0, 300));
-  console.log('[injectEditorAIButtons] editorPanel children:', editorPanel.children.length);
-  console.log('[injectEditorAIButtons] editorPanel.children[0]:', editorPanel.children[0]?.className);
+  if (!editorPanel) return;
 
   // Check if form exists by ID
   const formById = document.getElementById('clueEditorForm');
-  console.log('[injectEditorAIButtons] Form by ID:', !!formById, 'location:', formById?.parentNode?.id);
-
   if (formById) {
-    // Form exists, use it directly
     injectButtonsIntoForm(formById);
     return;
   }
@@ -183,20 +171,14 @@ function injectEditorAIButtons(editorPanel) {
   // Try to find form by class as fallback
   const searchScope = editorPanel || document;
   const editorForm = searchScope.querySelector('.editor-form');
-  console.log('[injectEditorAIButtons] editorForm found by class:', !!editorForm);
-  if (!editorForm) {
-    console.log('[injectEditorAIButtons] WARNING: .editor-form not found in editorPanel');
-    return;
+  if (editorForm) {
+    injectButtonsIntoForm(editorForm);
   }
-  injectButtonsIntoForm(editorForm);
 }
 
 function injectButtonsIntoForm(editorForm) {
-  console.log('[injectButtonsIntoForm] Injecting buttons into form');
-
   // Question field actions (Generate new, Enhance current)
   const questionActions = editorForm.querySelector('.editor-field-actions[data-field="question"]');
-  console.log('[injectEditorAIButtons] questionActions found:', !!questionActions);
   if (questionActions) {
     questionActions.innerHTML = `
       <button class="field-action-btn" data-ai-action="editor-generate-clue" title="Generate new question (uses category topic, avoids duplicates)">
@@ -206,20 +188,17 @@ function injectButtonsIntoForm(editorForm) {
         🌟Enhance
       </button>
     `;
-    console.log('[injectEditorAIButtons] Question buttons injected');
-  } else {
-    console.log('[injectEditorAIButtons] WARNING: questionActions not found!');
   }
 
   // Answer field actions (Generate, Validate)
   const answerActions = editorForm.querySelector('.editor-field-actions[data-field="answer"]');
   if (answerActions) {
     answerActions.innerHTML = `
-      <button class="field-action-btn" data-ai-action="editor-generate-answer" title="Generate answer">
-        <span>✨</span>
+      <button class="field-action-btn" data-ai-action="editor-generate-answer" title="Generate answer for this question">
+        ✨Answer
       </button>
       <button class="field-action-btn" data-ai-action="editor-validate" title="Validate clue & answer">
-        <span>✓</span>
+        ✓
       </button>
     `;
   }

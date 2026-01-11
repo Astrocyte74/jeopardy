@@ -689,13 +689,8 @@
         window.GameCreatorUI.setupClueEditorListeners(editorPanel, categories, category, clue);
 
         // Inject AI buttons in editor panel
-        console.log('[editorPanel] Checking if injectEditorAIButtons exists:', typeof injectEditorAIButtons);
         if (typeof injectEditorAIButtons === 'function') {
-          console.log('[editorPanel] Calling injectEditorAIButtons with editorPanel...');
           injectEditorAIButtons(editorPanel);
-          console.log('[editorPanel] injectEditorAIButtons completed');
-        } else {
-          console.log('[editorPanel] ERROR: injectEditorAIButtons not found!');
         }
       },
     },
