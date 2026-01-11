@@ -200,7 +200,7 @@ function injectButtonsIntoForm(editorForm) {
   if (questionActions) {
     questionActions.innerHTML = `
       <button class="field-action-btn" data-ai-action="editor-generate-clue" title="✨ Generate new question (uses category topic, avoids duplicates)">
-        <span>🆕</span>
+        <span>New✨</span>
       </button>
       <button class="field-action-btn" data-ai-action="editor-rewrite-clue" title="✏️ Enhance current question (improves writing while keeping meaning)">
         <span>🌟</span>
