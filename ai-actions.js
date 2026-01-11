@@ -79,6 +79,7 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
       context: context,
       onRetry: onRetry,
       onConfirm: async () => {
+        console.log('[applyAIPatch] onConfirm called');
         // User confirmed - take snapshot and apply
         if (snapshotScope === 'game') {
           undoManager.saveSnapshot(snapshotId, 'game', { gameData, selections });
@@ -101,6 +102,15 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
           console.log('[applyAIPatch] Calling custom onConfirm callback');
           await onConfirm();
         }
+
+        // Call onPreviewDone to cleanup category AI dialog
+        console.log('[applyAIPatch] context:', context, 'has onPreviewDone:', !!context?.onPreviewDone);
+        if (context && context.onPreviewDone) {
+          console.log('[applyAIPatch] Calling onPreviewDone cleanup');
+          context.onPreviewDone();
+        } else {
+          console.log('[applyAIPatch] WARNING: onPreviewDone not available, cleanup may not happen!');
+        }
       },
       onCancel: () => {
         // Call cleanup callback if provided (e.g., for wizard cancel)
@@ -108,6 +118,12 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
           onCancel();
         }
         aiToast.show({ message: 'Cancelled', type: 'info', duration: 2000 });
+
+        // Call onPreviewDone to cleanup category AI dialog
+        if (context && context.onPreviewDone) {
+          console.log('[applyAIPatch] Calling onPreviewDone cleanup after cancel');
+          context.onPreviewDone();
+        }
       }
     });
   } else {
@@ -397,7 +413,7 @@ async function executeAIAction(action, context, difficulty, retryContext = null,
 
     // Apply via centralized function
     console.log('[executeAIAction] Calling applyAIPatch...');
-    applyAIPatch({ scope, action, result: finalResult, mode, context: retryContext, onRetry, onCancel, onConfirm });
+    applyAIPatch({ scope, action, result: finalResult, mode, context, retryContext, onRetry, onCancel, onConfirm });
     console.log('[executeAIAction] Done');
     return true; // Return true to indicate success
 

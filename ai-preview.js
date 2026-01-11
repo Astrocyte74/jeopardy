@@ -164,7 +164,10 @@ class AIPreviewDialog {
     const retryBtn = this.dialog.querySelector('[value="retry"]');
     const closeBtn = this.dialog.querySelector('.iconBtn');
 
+    let cleanupCalled = false;
+
     confirmBtn.addEventListener('click', () => {
+      cleanupCalled = true;
       this.dialog.close();
       if (this.onConfirm) this.onConfirm();
     });
@@ -172,12 +175,14 @@ class AIPreviewDialog {
     // Retry button - re-run wizard with same context
     if (retryBtn && this.onRetry) {
       retryBtn.addEventListener('click', () => {
+        cleanupCalled = true;
         this.dialog.close();
         if (this.onRetry) this.onRetry(this.context);
       });
     }
 
     const cancelHandler = () => {
+      cleanupCalled = true;
       this.dialog.close();
       if (this.onCancel) this.onCancel();
     };
@@ -186,6 +191,12 @@ class AIPreviewDialog {
     closeBtn.addEventListener('click', cancelHandler);
 
     this.dialog.addEventListener('close', () => {
+      // Call onCancel if not already called by button handlers
+      // This handles Escape key and programmatic close()
+      if (!cleanupCalled && this.onCancel) {
+        this.onCancel();
+      }
+
       setTimeout(() => {
         if (this.dialog && this.dialog.parentNode) {
           this.dialog.remove();

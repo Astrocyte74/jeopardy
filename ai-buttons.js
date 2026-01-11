@@ -560,9 +560,12 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
         // Build context for the chosen action with the theme
         const context = await buildContext(actualAction, explicitCategoryIndex, result.theme);
 
-        // Store cleanup callback for when preview is shown
+        // Store cleanup callbacks for when preview is shown/confirmed
         if (result.onClose) {
           context._onClose = result.onClose;
+        }
+        if (result.onPreviewDone) {
+          context.onPreviewDone = result.onPreviewDone;
         }
 
         return { action: actualAction, context };

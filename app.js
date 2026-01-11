@@ -1911,9 +1911,9 @@ function showCategoryAIDialog(currentTitle, currentContentTopic = null) {
     `;
     inputsContainer.appendChild(topicField);
 
-    // Get references to the new inputs
-    const titleInput = document.getElementById('aiDialogTitleInput');
-    const topicInput = document.getElementById('aiDialogTopicInput');
+    // Get references to the new inputs directly from the created HTML
+    const titleInput = inputsContainer.querySelector('#aiDialogTitleInput');
+    const topicInput = inputsContainer.querySelector('#aiDialogTopicInput');
 
     // Set initial values
     titleInput.value = currentTitle;
@@ -2042,11 +2042,20 @@ function showCategoryAIDialog(currentTitle, currentContentTopic = null) {
           </div>
         `;
 
-        // Trigger the action - dialog will close when preview is ready
+        // Trigger the action - hide overlay before preview, cleanup after preview is handled
         resolve({
           action,
           theme,
-          onClose: () => cleanup()
+          onClose: () => {
+            // Only hide the overlay before preview, don't remove containers yet
+            console.log('[showCategoryAIDialog] Hiding overlay before preview');
+            overlay.style.display = 'none';
+          },
+          onPreviewDone: () => {
+            // Full cleanup after preview is confirmed/cancelled
+            console.log('[showCategoryAIDialog] Full cleanup after preview');
+            cleanup();
+          }
         });
       }
     };
@@ -2122,6 +2131,7 @@ function showCategoryAIDialog(currentTitle, currentContentTopic = null) {
     };
 
     const cleanup = () => {
+      console.log('[showCategoryAIDialog] cleanup() called');
       overlay.style.display = 'none';
       inputsContainer.remove();
       actionsContainer.remove();
@@ -2131,6 +2141,7 @@ function showCategoryAIDialog(currentTitle, currentContentTopic = null) {
       cancelBtn.style.display = '';
       valueInput.style.display = '';
       valueInput.style.marginBottom = '';
+      console.log('[showCategoryAIDialog] cleanup() done, overlay display:', overlay.style.display);
     };
 
     // Insert containers - inputs first, then actions, then results
@@ -2146,7 +2157,7 @@ function showCategoryAIDialog(currentTitle, currentContentTopic = null) {
       if (!resolved && value !== null) {
         resolved = true;
         abortController.abort();
-        cleanup();
+        // Don't cleanup here - cleanup will be called after preview is confirmed/cancelled
         resolve(value);
       }
     };
