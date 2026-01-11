@@ -161,11 +161,14 @@ function injectQuestionAIButtons(questionItem) {
  * Injects field-specific AI actions into each field's action area
  */
 function injectEditorAIButtons() {
+  console.log('[injectEditorAIButtons] Function called');
   const editorForm = document.querySelector('.editor-form');
+  console.log('[injectEditorAIButtons] editorForm found:', !!editorForm);
   if (!editorForm) return;
 
   // Question field actions (Generate new, Enhance current)
   const questionActions = editorForm.querySelector('.editor-field-actions[data-field="question"]');
+  console.log('[injectEditorAIButtons] questionActions found:', !!questionActions);
   if (questionActions) {
     questionActions.innerHTML = `
       <button class="field-action-btn" data-ai-action="editor-generate-clue" title="Generate new question (uses category topic, avoids duplicates)">
@@ -175,6 +178,9 @@ function injectEditorAIButtons() {
         <span>✨ Enhance</span>
       </button>
     `;
+    console.log('[injectEditorAIButtons] Question buttons injected');
+  } else {
+    console.log('[injectEditorAIButtons] WARNING: questionActions not found!');
   }
 
   // Answer field actions (Generate, Validate)
