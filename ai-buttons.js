@@ -164,15 +164,15 @@ function injectEditorAIButtons() {
   const editorForm = document.querySelector('.editor-form');
   if (!editorForm) return;
 
-  // Question field actions (Generate, Rewrite)
+  // Question field actions (Generate new, Enhance current)
   const questionActions = editorForm.querySelector('.editor-field-actions[data-field="question"]');
   if (questionActions) {
     questionActions.innerHTML = `
-      <button class="field-action-btn" data-ai-action="editor-generate-clue" title="Generate question + answer">
-        <span>✨</span>
+      <button class="field-action-btn" data-ai-action="editor-generate-clue" title="Generate new question (uses category topic, avoids duplicates)">
+        <span>✨ New</span>
       </button>
-      <button class="field-action-btn" data-ai-action="editor-rewrite-clue" title="Rewrite question">
-        <span>✏️</span>
+      <button class="field-action-btn" data-ai-action="editor-rewrite-clue" title="Enhance current question (improves writing while keeping meaning)">
+        <span>✨ Enhance</span>
       </button>
     `;
   }
@@ -660,21 +660,27 @@ async function buildContext(action, explicitCategoryIndex = null, explicitTheme 
     case 'questions-generate-five':
       return {
         categoryTitle: gameData.categories[catIdx].title,
-        theme: game.title || getCategoryForAI(catIdx)
+        theme: getCategoryForAI(catIdx),
+        existingClues: gameData.categories[catIdx].clues
       };
 
     case 'question-generate-single':
+      const existingClues = gameData.categories[catIdx].clues;
       return {
         categoryTitle: gameData.categories[catIdx].title,
+        contentTopic: gameData.categories[catIdx].contentTopic,
         value: gameData.categories[catIdx].clues[clueIdx].value,
-        theme: game.title || getCategoryForAI(catIdx)
+        theme: getCategoryForAI(catIdx),
+        existingClues: existingClues
       };
 
     case 'editor-generate-clue':
       return {
         categoryTitle: getCategoryForAI(catIdx),
+        contentTopic: gameData.categories[catIdx].contentTopic,
         value: gameData.categories[catIdx].clues[clueIdx].value,
-        theme: game.title || getCategoryForAI(catIdx)
+        theme: getCategoryForAI(catIdx),
+        existingClues: gameData.categories[catIdx].clues
       };
 
     case 'editor-rewrite-clue':

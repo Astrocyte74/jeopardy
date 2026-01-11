@@ -173,10 +173,13 @@ Return JSON format:
     'questions-generate-five': {
       system: SYSTEM_INSTRUCTION,
       user: `Generate 5 clues for category: "${context.categoryTitle}"
-
+${context.contentTopic && context.contentTopic !== context.categoryTitle ? `Content Topic: "${context.contentTopic}"` : ''}
 Theme: ${context.theme || context.categoryTitle}
 ${difficultyText}
 ${valueGuidanceText}
+${context.existingClues && context.existingClues.length > 0 ? `IMPORTANT: Avoid duplicating these existing questions:
+${context.existingClues.filter(c => c.clue).map(c => `- ${c.clue}`).join('\n')}
+` : ''}
 
 Return JSON format:
 {
@@ -195,9 +198,13 @@ Return JSON format:
       user: `Generate 1 clue for value $${context.value}.
 
 Category: "${context.categoryTitle}"
+${context.contentTopic && context.contentTopic !== context.categoryTitle ? `Content Topic: "${context.contentTopic}"` : ''}
 Theme: ${context.theme || context.categoryTitle}
 ${difficultyText}
 ${difficulty === 'normal' ? `Value guidance: ${VALUE_GUIDANCE[context.value]}` : ''}
+${context.existingClues && context.existingClues.length > 0 ? `IMPORTANT: Avoid duplicating these existing questions:
+${context.existingClues.filter(c => c.clue).map(c => `- ${c.clue}`).join('\n')}
+` : ''}
 
 Return JSON format:
 {
@@ -213,13 +220,17 @@ Return JSON format:
 
     'editor-generate-clue': {
       system: SYSTEM_INSTRUCTION,
-      user: `Generate a question and answer for this slot.
+      user: `Generate a NEW question and answer for this slot.
 
 Category: "${context.categoryTitle}"
+${context.contentTopic && context.contentTopic !== context.categoryTitle ? `Content Topic: "${context.contentTopic}"` : ''}
 Value: $${context.value}
 Theme: ${context.theme || 'general'}
 ${difficultyText}
 ${difficulty === 'normal' ? `Value guidance: ${VALUE_GUIDANCE[context.value]}` : ''}
+${context.existingClues && context.existingClues.length > 0 ? `IMPORTANT: Avoid duplicating these existing questions:
+${context.existingClues.filter(c => c.clue).map(c => `- ${c.clue}`).join('\n')}
+` : ''}
 
 Return JSON format:
 {
@@ -230,11 +241,17 @@ Return JSON format:
 
     'editor-rewrite-clue': {
       system: SYSTEM_INSTRUCTION,
-      user: `Rewrite this question to be more engaging while keeping the same answer.
+      user: `Enhance this question to be more engaging, clearer, and better written while keeping the same meaning and answer.
 
 Original question: "${context.currentClue}"
 Category: "${context.categoryTitle}"
 Value: $${context.value}
+
+Focus on:
+- Making the question more interesting and engaging
+- Improving clarity and flow
+- Adding appropriate Jeopardy-style wording (e.g., "This is...", "What is...")
+- Keeping the same answer and core meaning
 
 Return JSON format:
 {
