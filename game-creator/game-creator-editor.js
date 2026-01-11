@@ -232,18 +232,6 @@
 
           gamesList.appendChild(item);
         });
-
-        // Show empty state
-        if (filteredGames.length === 0) {
-          gamesList.innerHTML = `
-            <div class="creator-empty-state">
-              <div class="creator-empty-icon">🎮</div>
-              <div class="creator-empty-text">
-                ${searchTerm ? "No games match your search" : "No games yet. Click + to add one!"}
-              </div>
-            </div>
-          `;
-        }
       },
 
       async editor() {
