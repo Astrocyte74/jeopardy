@@ -254,6 +254,12 @@ function setupAIButtonHandlers() {
       const menu = aiPillTrigger.closest('.ai-action-menu');
       const dropdown = menu?.querySelector('.ai-action-dropdown');
 
+      console.log('[AI Pill] menu found:', !!menu, 'dropdown found:', !!dropdown);
+      if (dropdown) {
+        console.log('[AI Pill] dropdown before toggle classes:', dropdown.className);
+        console.log('[AI Pill] dropdown computed display:', window.getComputedStyle(dropdown).display);
+      }
+
       // Close other dropdowns
       document.querySelectorAll('.ai-action-dropdown.show').forEach(d => {
         if (d !== dropdown) d.classList.remove('show');
@@ -263,6 +269,9 @@ function setupAIButtonHandlers() {
       if (dropdown) {
         dropdown.classList.toggle('show');
         console.log('[AI Event] Pill dropdown toggled:', dropdown.classList.contains('show'));
+        console.log('[AI Pill] dropdown after toggle classes:', dropdown.className);
+        console.log('[AI Pill] dropdown computed display after toggle:', window.getComputedStyle(dropdown).display);
+        console.log('[AI Pill] dropdown position:', dropdown.getBoundingClientRect());
       }
       return;
     }
