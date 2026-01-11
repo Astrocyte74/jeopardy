@@ -796,9 +796,9 @@
         window.GameCreatorState.state.selectedGameId = newGame.id;
 
         // Re-render
-        window.window.GameCreatorEditor.Render.categories();
-        window.window.GameCreatorEditor.Render.games();
-        window.window.GameCreatorEditor.Render.editor();
+        window.GameCreatorEditor.Render.categories();
+        window.GameCreatorEditor.Render.games();
+        window.GameCreatorEditor.Render.editor();
       },
 
       async deleteGame(game) {
