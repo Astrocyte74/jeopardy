@@ -10,6 +10,10 @@ class AIPreviewDialog {
     this.dialog = null;
     this.onConfirm = null;
     this.onCancel = null;
+    this.onRegenerateItem = null; // Callback for regenerating individual items
+    this.acceptedItems = new Set(); // Track accepted items by ID
+    this.rejectedItems = new Set(); // Track rejected items by ID
+    this.previewData = null; // Store preview data for regeneration
   }
 
   /**
@@ -21,17 +25,29 @@ class AIPreviewDialog {
    * @param {function} options.onConfirm - Callback when user clicks Apply
    * @param {function} options.onCancel - Callback when user clicks Cancel
    * @param {function} options.onRetry - Callback when user clicks Try Again (optional)
+   * @param {function} options.onRegenerateItem - Callback for regenerating individual items
    * @param {object} options.context - Context for retry (theme, difficulty, etc.)
    */
-  show(data, { type, data: previewData, onConfirm, onCancel, onRetry, context }) {
+  show(data, { type, data: previewData, onConfirm, onCancel, onRetry, onRegenerateItem, context }) {
     try {
       console.log('[aiPreview] show() called, type:', type, 'data:', data);
       this.onConfirm = onConfirm;
       this.onCancel = onCancel;
       this.onRetry = onRetry;
+      this.onRegenerateItem = onRegenerateItem;
       this.context = context;
       this.selectedOption = null; // Reset selection
       this.dialogType = type; // Store dialog type
+      this.previewData = previewData; // Store for regeneration
+      this.acceptedItems.clear(); // Reset accepted items
+      this.rejectedItems.clear(); // Reset rejected items
+
+      // Auto-accept all items by default for better UX
+      if (type === 'categories-generate') {
+        previewData.categories.forEach((cat, i) => {
+          this.acceptedItems.add(`cat-${i}`);
+        });
+      }
 
       // Remove existing dialog if present
       const existing = document.getElementById('aiPreviewDialog');
@@ -113,16 +129,43 @@ class AIPreviewDialog {
       const topicHtml = cat.contentTopic && cat.contentTopic !== cat.title
         ? ` <span class="preview-topic" title="Content topic for AI generation">📝 ${this.escapeHtml(cat.contentTopic)}</span>`
         : '';
+      const catId = `cat-${i}`;
+      const isAccepted = this.acceptedItems.has(catId);
+
       return `
-      <div class="preview-category">
-        <h4>${i + 1}. ${titleHtml}${topicHtml}</h4>
+      <div class="preview-category ${isAccepted ? 'accepted' : 'rejected'}" data-category-id="${catId}">
+        <div class="preview-category-header">
+          <h4>${i + 1}. ${titleHtml}${topicHtml}</h4>
+          <div class="preview-item-actions">
+            <button class="preview-action-btn preview-keep-btn" data-action="accept-category" data-category-index="${i}" title="Keep this category">
+              ✓ Keep
+            </button>
+            <button class="preview-action-btn preview-regen-btn" data-action="regenerate-category" data-category-index="${i}" title="Regenerate this category">
+              🔄 Regenerate
+            </button>
+          </div>
+        </div>
         <ul>
-          ${cat.clues.map(clue => `
-            <li>
-              <span class="clue-value">$${clue.value}</span>
-              <span class="clue-text">${this.escapeHtml(clue.clue)}</span>
-            </li>
-          `).join('')}
+          ${cat.clues.map((clue, j) => {
+            const clueId = `cat-${i}-clue-${j}`;
+            const isClueAccepted = this.acceptedItems.has(clueId);
+            return `
+              <li class="${isClueAccepted ? 'accepted' : 'rejected'}" data-clue-id="${clueId}">
+                <div class="preview-clue-content">
+                  <span class="clue-value">$${clue.value}</span>
+                  <span class="clue-text">${this.escapeHtml(clue.clue)}</span>
+                </div>
+                <div class="preview-clue-actions">
+                  <button class="preview-action-btn preview-keep-btn-sm" data-action="accept-clue" data-category-index="${i}" data-clue-index="${j}" title="Keep this question">
+                    ✓
+                  </button>
+                  <button class="preview-action-btn preview-regen-btn-sm" data-action="regenerate-clue" data-category-index="${i}" data-clue-index="${j}" title="Regenerate this question">
+                    🔄
+                  </button>
+                </div>
+              </li>
+            `;
+          }).join('')}
         </ul>
       </div>
     `;
@@ -207,10 +250,60 @@ class AIPreviewDialog {
       });
     });
 
+    // Handle category and clue action buttons
+    this.dialog.querySelectorAll('.preview-action-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const catIndex = parseInt(btn.dataset.categoryIndex);
+        const clueIndex = btn.dataset.clueIndex ? parseInt(btn.dataset.clueIndex) : null;
+
+        if (action === 'accept-category') {
+          const catId = `cat-${catIndex}`;
+          if (this.acceptedItems.has(catId)) {
+            this.acceptedItems.delete(catId);
+          } else {
+            this.acceptedItems.add(catId);
+          }
+          this.updateCategoryVisualState(catId);
+        } else if (action === 'accept-clue') {
+          const clueId = `cat-${catIndex}-clue-${clueIndex}`;
+          if (this.acceptedItems.has(clueId)) {
+            this.acceptedItems.delete(clueId);
+          } else {
+            this.acceptedItems.add(clueId);
+          }
+          this.updateClueVisualState(clueId);
+        } else if (action === 'regenerate-category') {
+          if (this.onRegenerateItem) {
+            btn.disabled = true;
+            btn.textContent = '⏳...';
+            await this.onRegenerateItem('category', catIndex, this.context);
+            // Dialog will be re-rendered by the callback
+          }
+        } else if (action === 'regenerate-clue') {
+          if (this.onRegenerateItem) {
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            await this.onRegenerateItem('clue', catIndex, clueIndex, this.context);
+            // Dialog will be re-rendered by the callback
+          }
+        }
+      });
+    });
+
     confirmBtn.addEventListener('click', () => {
       cleanupCalled = true;
       this.dialog.close();
-      if (this.onConfirm) this.onConfirm(this.selectedOption);
+      // For categories-generate, pass the accepted items set
+      // For game-title, pass the selected index
+      if (this.dialogType === 'categories-generate') {
+        if (this.onConfirm) this.onConfirm(this.acceptedItems);
+      } else if (this.dialogType === 'game-title') {
+        if (this.onConfirm) this.onConfirm(this.selectedOption);
+      } else {
+        if (this.onConfirm) this.onConfirm();
+      }
     });
 
     // Retry button - re-run wizard with same context
@@ -243,6 +336,113 @@ class AIPreviewDialog {
           this.dialog.remove();
         }
       }, 100);
+    });
+  }
+
+  /**
+   * Update visual state of a category (accepted/rejected)
+   */
+  updateCategoryVisualState(catId) {
+    const catEl = this.dialog.querySelector(`[data-category-id="${catId}"]`);
+    if (catEl) {
+      const isAccepted = this.acceptedItems.has(catId);
+      catEl.classList.toggle('accepted', isAccepted);
+      catEl.classList.toggle('rejected', !isAccepted);
+
+      // Update button text
+      const keepBtn = catEl.querySelector('[data-action="accept-category"]');
+      if (keepBtn) {
+        keepBtn.textContent = isAccepted ? '✓ Keep' : '✕ Reject';
+        keepBtn.classList.toggle('preview-keep-btn', isAccepted);
+        keepBtn.classList.toggle('preview-reject-btn', !isAccepted);
+      }
+    }
+  }
+
+  /**
+   * Update visual state of a clue (accepted/rejected)
+   */
+  updateClueVisualState(clueId) {
+    const clueEl = this.dialog.querySelector(`[data-clue-id="${clueId}"]`);
+    if (clueEl) {
+      const isAccepted = this.acceptedItems.has(clueId);
+      clueEl.classList.toggle('accepted', isAccepted);
+      clueEl.classList.toggle('rejected', !isAccepted);
+
+      // Update button icon
+      const keepBtn = clueEl.querySelector('[data-action="accept-clue"]');
+      if (keepBtn) {
+        keepBtn.textContent = isAccepted ? '✓' : '✕';
+        keepBtn.classList.toggle('preview-keep-btn-sm', isAccepted);
+        keepBtn.classList.toggle('preview-reject-btn-sm', !isAccepted);
+      }
+    }
+  }
+
+  /**
+   * Update the preview with new data (for regeneration)
+   */
+  updatePreview(newData) {
+    this.previewData = newData;
+    const contentEl = this.dialog.querySelector('.preview-content');
+    if (contentEl) {
+      contentEl.innerHTML = this.renderPreview(this.dialogType, newData);
+      // Re-attach event listeners for the new content
+      this.setupActionListeners();
+    }
+  }
+
+  /**
+   * Setup action listeners for dynamically added content
+   */
+  setupActionListeners() {
+    // Re-attach listeners for action buttons
+    this.dialog.querySelectorAll('.preview-action-btn').forEach(btn => {
+      // Remove existing listeners by cloning
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+    });
+
+    // Add fresh listeners
+    this.dialog.querySelectorAll('.preview-action-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const catIndex = parseInt(btn.dataset.categoryIndex);
+        const clueIndex = btn.dataset.clueIndex ? parseInt(btn.dataset.clueIndex) : null;
+
+        if (action === 'accept-category') {
+          const catId = `cat-${catIndex}`;
+          if (this.acceptedItems.has(catId)) {
+            this.acceptedItems.delete(catId);
+          } else {
+            this.acceptedItems.add(catId);
+          }
+          this.updateCategoryVisualState(catId);
+        } else if (action === 'accept-clue') {
+          const clueId = `cat-${catIndex}-clue-${clueIndex}`;
+          if (this.acceptedItems.has(clueId)) {
+            this.acceptedItems.delete(clueId);
+          } else {
+            this.acceptedItems.add(clueId);
+          }
+          this.updateClueVisualState(clueId);
+        } else if (action === 'regenerate-category') {
+          if (this.onRegenerateItem) {
+            btn.disabled = true;
+            btn.textContent = '⏳...';
+            await this.onRegenerateItem('category', catIndex, this.context);
+            // Dialog will be re-rendered by the callback
+          }
+        } else if (action === 'regenerate-clue') {
+          if (this.onRegenerateItem) {
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            await this.onRegenerateItem('clue', catIndex, clueIndex, this.context);
+            // Dialog will be re-rendered by the callback
+          }
+        }
+      });
     });
   }
 

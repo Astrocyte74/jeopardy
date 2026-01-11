@@ -85,8 +85,41 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
       data: result,
       context: context,
       onRetry: onRetry,
-      onConfirm: async (selectedIndex = 0) => {
-        console.log('[applyAIPatch] onConfirm called, selectedIndex:', selectedIndex);
+      onRegenerateItem: async (itemType, catIndex, clueIndexOrContext, itemContext) => {
+        console.log('[applyAIPatch] Regenerating item:', itemType, catIndex, clueIndexOrContext);
+        // Regenerate individual category or clue
+        const regenResult = await handleRegenerateItem(action, itemType, catIndex, clueIndexOrContext, itemContext || context);
+
+        if (regenResult) {
+          // Update the preview data with the regenerated item
+          if (itemType === 'category' && regenResult.result.category) {
+            // category-replace-all returns { category: { title, clues } }
+            result.categories[catIndex] = regenResult.result.category;
+            // Update preview
+            window.aiPreview.updatePreview(result);
+            // Keep this category and all its clues accepted
+            const catId = `cat-${catIndex}`;
+            window.aiPreview.acceptedItems.add(catId);
+            regenResult.result.category.clues.forEach((_, j) => {
+              window.aiPreview.acceptedItems.add(`cat-${catIndex}-clue-${j}`);
+            });
+          } else if (itemType === 'clue' && regenResult.result.clue) {
+            // question-generate-single returns { clue: {...} }
+            result.categories[catIndex].clues[clueIndexOrContext] = regenResult.result.clue;
+            // Update preview
+            window.aiPreview.updatePreview(result);
+            // Keep this clue accepted
+            const clueId = `cat-${catIndex}-clue-${clueIndexOrContext}`;
+            window.aiPreview.acceptedItems.add(clueId);
+            // Also make sure the parent category is accepted
+            window.aiPreview.acceptedItems.add(`cat-${catIndex}`);
+          }
+        }
+
+        return regenResult;
+      },
+      onConfirm: async (selectedIndexOrAcceptedItems = 0) => {
+        console.log('[applyAIPatch] onConfirm called, selectedIndexOrAcceptedItems:', selectedIndexOrAcceptedItems);
         // User confirmed - take snapshot and apply
         if (snapshotScope === 'game') {
           undoManager.saveSnapshot(snapshotId, 'game', { gameData, selections });
@@ -94,7 +127,11 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
           const item = getCurrentItem(scope, gameData, selections);
           undoManager.saveSnapshot(snapshotId, 'single', { item, selections });
         }
-        applyResult(action, result, game, gameData, selections, selectedIndex);
+        // Pass accepted items if this is a categories-generate action
+        const acceptedItems = (typeof selectedIndexOrAcceptedItems === 'object' && selectedIndexOrAcceptedItems instanceof Set)
+          ? selectedIndexOrAcceptedItems
+          : null;
+        applyResult(action, result, game, gameData, selections, selectedIndexOrAcceptedItems, acceptedItems);
         // Re-render the editor to show updated content
         // Use global renderEditor if available, otherwise use scoped version
         if (window.renderEditor) {
@@ -171,7 +208,7 @@ function getCurrentItem(scope, gameData, selections) {
 /**
  * Apply AI result to game data
  */
-function applyResult(action, result, game, gameData, selections, selectedIndex = 0) {
+function applyResult(action, result, game, gameData, selections, selectedIndex = 0, acceptedItems = null) {
   switch (action) {
     case 'game-title':
       const titleIndex = selectedIndex ?? 0;
@@ -186,17 +223,45 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
       break;
 
     case 'categories-generate':
+      // Filter categories by accepted items if provided
+      let categoriesToApply = result.categories;
+
+      if (acceptedItems && acceptedItems instanceof Set) {
+        categoriesToApply = result.categories.filter((cat, i) => {
+          const catId = `cat-${i}`;
+          // Check if category is accepted
+          if (!acceptedItems.has(catId)) return false;
+
+          // Check if any clues are accepted
+          const catClues = cat.clues || [];
+          return catClues.some((clue, j) => {
+            const clueId = `cat-${i}-clue-${j}`;
+            return acceptedItems.has(clueId);
+          });
+        }).map(cat => {
+          // Filter clues within each category
+          const catIdx = result.categories.indexOf(cat);
+          return {
+            ...cat,
+            clues: cat.clues.filter((clue, j) => {
+              const clueId = `cat-${catIdx}-clue-${j}`;
+              return acceptedItems.has(clueId);
+            })
+          };
+        });
+      }
+
       // Ensure each category has contentTopic (use AI-provided or fallback to title)
-      result.categories.forEach(cat => {
+      categoriesToApply.forEach(cat => {
         if (!cat.contentTopic || cat.contentTopic === '') {
           cat.contentTopic = cat.title;
         }
       });
-      gameData.categories = result.categories;
+      gameData.categories = categoriesToApply;
       game.gameData = gameData;
       // Also explicitly update nested game.categories if exists (for safety)
       if (game.game) {
-        game.game.categories = result.categories;
+        game.game.categories = categoriesToApply;
       }
       // Reset selections to first items
       window.selectedCategoryIndex = 0;
@@ -492,4 +557,82 @@ function getScope(action) {
   if (action.startsWith('question-')) return 'clue';
   if (action.startsWith('editor-')) return 'editor';
   return 'editor';
+}
+
+/**
+ * Handle regeneration of individual category or clue
+ */
+async function handleRegenerateItem(action, itemType, catIndex, clueIndex, context) {
+  try {
+    const gameHeader = getGameHeader();
+    if (!gameHeader || !gameHeader._gameData) {
+      console.error('[handleRegenerateItem] No game loaded');
+      aiToast.show({ message: 'No game loaded', type: 'error', duration: 3000 });
+      return null;
+    }
+
+    const gameData = gameHeader._gameData;
+    const category = gameData.categories[catIndex];
+
+    let promptType;
+    let itemContext;
+    let result;
+
+    if (itemType === 'category') {
+      // Regenerate entire category - use category-replace-all to get all 5 clues
+      promptType = 'category-replace-all';
+      itemContext = {
+        categoryTitle: category.title,
+        contentTopic: category.contentTopic,
+        theme: getCategoryForAI(catIndex),
+        existingClues: category.clues
+      };
+    } else if (itemType === 'clue') {
+      // Regenerate single clue
+      promptType = 'question-generate-single';
+      itemContext = {
+        categoryTitle: category.title,
+        contentTopic: category.contentTopic,
+        value: category.clues[clueIndex].value,
+        theme: getCategoryForAI(catIndex),
+        existingClues: category.clues
+      };
+    }
+
+    if (!promptType) {
+      console.error('[handleRegenerateItem] Unknown item type:', itemType);
+      return null;
+    }
+
+    // Call AI service
+    const rawResult = await generateAI(promptType, itemContext, context?.difficulty || 'normal');
+    const parsedResult = safeJsonParse(rawResult, window.validators[promptType]);
+
+    if (!parsedResult) {
+      console.error('[handleRegenerateItem] Failed to parse AI result');
+      aiToast.show({ message: 'Failed to generate. Please try again.', type: 'error', duration: 3000 });
+      return null;
+    }
+
+    return { itemType, catIndex, clueIndex, result: parsedResult };
+  } catch (error) {
+    console.error('[handleRegenerateItem] Error:', error);
+    aiToast.show({
+      message: error.message || 'Regeneration failed',
+      type: 'error',
+      duration: 3000
+    });
+    return null;
+  }
+}
+
+/**
+ * Get category for AI (using contentTopic or title)
+ */
+function getCategoryForAI(catIdx) {
+  const gameHeader = getGameHeader();
+  if (!gameHeader || !gameHeader._gameData) return '';
+
+  const category = gameHeader._gameData.categories[catIdx];
+  return category?.contentTopic || category?.title || '';
 }
