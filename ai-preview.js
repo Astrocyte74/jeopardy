@@ -30,6 +30,8 @@ class AIPreviewDialog {
       this.onCancel = onCancel;
       this.onRetry = onRetry;
       this.context = context;
+      this.selectedOption = null; // Reset selection
+      this.dialogType = type; // Store dialog type
 
       // Remove existing dialog if present
       const existing = document.getElementById('aiPreviewDialog');
@@ -54,7 +56,7 @@ class AIPreviewDialog {
             <div class="dialogActions">
               <button class="btn btnSecondary" value="cancel" type="button">Cancel</button>
               ${this.onRetry ? '<button class="btn btnSecondary" value="retry" type="button">Try Again</button>' : ''}
-              <button class="btn btnPrimary" value="confirm" type="button">Apply</button>
+              <button class="btn btnPrimary" value="confirm" type="button" ${type === 'game-title' ? 'disabled' : ''}>Apply</button>
             </div>
           </form>
         </dialog>
@@ -132,7 +134,7 @@ class AIPreviewDialog {
       <div class="preview-titles">
         <div style="margin-bottom: 16px; color: var(--muted); font-size: 14px;">Choose a title for your game:</div>
         ${titles.map((titleOption, i) => `
-          <div class="preview-title-option">
+          <div class="preview-title-option" data-title-index="${i}">
             <div style="font-size: 18px; font-weight: 600; margin-bottom: 4px;">
               ${this.escapeHtml(titleOption.title)}
             </div>
@@ -185,13 +187,30 @@ class AIPreviewDialog {
     const cancelBtn = this.dialog.querySelector('[value="cancel"]');
     const retryBtn = this.dialog.querySelector('[value="retry"]');
     const closeBtn = this.dialog.querySelector('.iconBtn');
+    const titleOptions = this.dialog.querySelectorAll('.preview-title-option');
 
     let cleanupCalled = false;
+
+    // Handle title option selection
+    titleOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        // Remove selected class from all options
+        titleOptions.forEach(opt => opt.classList.remove('selected'));
+        // Add selected class to clicked option
+        option.classList.add('selected');
+        // Store the selected index
+        this.selectedOption = parseInt(option.dataset.titleIndex);
+        // Enable confirm button when a title is selected
+        if (confirmBtn) {
+          confirmBtn.disabled = false;
+        }
+      });
+    });
 
     confirmBtn.addEventListener('click', () => {
       cleanupCalled = true;
       this.dialog.close();
-      if (this.onConfirm) this.onConfirm();
+      if (this.onConfirm) this.onConfirm(this.selectedOption);
     });
 
     // Retry button - re-run wizard with same context

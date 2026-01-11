@@ -4852,6 +4852,32 @@ input[type="text"]:focus {
   margin: 16px 0;
 }
 
+.preview-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-title-option {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preview-title-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.preview-title-option.selected {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
 .preview-category {
   margin-bottom: 16px;
   padding-bottom: 16px;

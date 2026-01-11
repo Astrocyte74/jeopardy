@@ -85,8 +85,8 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
       data: result,
       context: context,
       onRetry: onRetry,
-      onConfirm: async () => {
-        console.log('[applyAIPatch] onConfirm called');
+      onConfirm: async (selectedIndex = 0) => {
+        console.log('[applyAIPatch] onConfirm called, selectedIndex:', selectedIndex);
         // User confirmed - take snapshot and apply
         if (snapshotScope === 'game') {
           undoManager.saveSnapshot(snapshotId, 'game', { gameData, selections });
@@ -94,7 +94,7 @@ function applyAIPatch({ scope, action, result, mode, context = null, onRetry = n
           const item = getCurrentItem(scope, gameData, selections);
           undoManager.saveSnapshot(snapshotId, 'single', { item, selections });
         }
-        applyResult(action, result, game, gameData, selections);
+        applyResult(action, result, game, gameData, selections, selectedIndex);
         // Re-render the editor to show updated content
         // Use global renderEditor if available, otherwise use scoped version
         if (window.renderEditor) {
@@ -171,15 +171,16 @@ function getCurrentItem(scope, gameData, selections) {
 /**
  * Apply AI result to game data
  */
-function applyResult(action, result, game, gameData, selections) {
+function applyResult(action, result, game, gameData, selections, selectedIndex = 0) {
   switch (action) {
     case 'game-title':
-      game.title = result.titles[0].title;
-      game.subtitle = result.titles[0].subtitle;
+      const titleIndex = selectedIndex ?? 0;
+      game.title = result.titles[titleIndex].title;
+      game.subtitle = result.titles[titleIndex].subtitle;
       // Also update nested game.title/subtitle if exists
       if (game.game) {
-        game.game.title = result.titles[0].title;
-        game.game.subtitle = result.titles[0].subtitle;
+        game.game.title = result.titles[titleIndex].title;
+        game.game.subtitle = result.titles[titleIndex].subtitle;
       }
       game.gameData = gameData;
       break;
