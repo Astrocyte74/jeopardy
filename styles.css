@@ -2948,8 +2948,9 @@ input[type="text"]:focus {
 }
 
 .field-action-btn {
-  width: 28px;
+  min-width: 28px;
   height: 28px;
+  padding: 0 8px;
   display: grid;
   place-items: center;
   border-radius: var(--r6);
@@ -2957,9 +2958,9 @@ input[type="text"]:focus {
   background: transparent;
   color: var(--muted);
   font-size: 13px;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.15s ease;
-  padding: 0;
 }
 
 .field-action-btn:hover {
