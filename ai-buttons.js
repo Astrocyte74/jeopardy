@@ -745,5 +745,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 30000); // Every 30 seconds
 });
 
-// Expose updateAIDifficulty globally for app.js to call
+// Expose functions globally for other modules to call
 window.updateAIDifficulty = updateAIDifficulty;
+window.injectEditorAIButtons = injectEditorAIButtons;
