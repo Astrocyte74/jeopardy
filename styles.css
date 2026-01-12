@@ -326,6 +326,48 @@ body {
   background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.3), transparent);
 }
 
+/* Teams header with AI buttons */
+.teams-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.teams-header .section-title {
+  margin-bottom: 0;
+}
+
+.teams-ai-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.teams-ai-buttons .icon-btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.teams-ai-buttons .icon-btn-small:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--theme-accent);
+}
+
+.teams-ai-buttons .icon-btn-small.sparkle:hover {
+  background: rgba(168, 85, 247, 0.2);
+  border-color: rgba(168, 85, 247, 0.5);
+}
+
 /* Section states for visual hierarchy */
 .menu-section.inactive {
   opacity: 0.4;
@@ -345,7 +387,8 @@ body {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: var(--muted);
+  color: var(--text);
+  opacity: 0.85;
   margin: 0 0 8px;
 }
 
@@ -1022,11 +1065,12 @@ body {
   user-select: none;
   padding: 8px 0;
   margin: -8px 0;
+  opacity: 0.85;
   transition: opacity 0.2s ease;
 }
 
 .collapsible-header:hover {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .collapsible-icon {
@@ -1124,24 +1168,7 @@ body {
   position: relative;
 }
 
-.game-option.selected::before {
-  content: '✓';
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: var(--theme-accent);
-  color: #000;
-  font-size: 10px;
-  font-weight: 900;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
+/* ::before checkmark removed - was causing duplicate checkmark */
 
 .game-card-icon {
   font-size: 20px;

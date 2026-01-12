@@ -1307,6 +1307,122 @@ async function initMainMenu() {
     updateStartButton();
   });
 
+  // AI Generate All Teams button
+  const teamsGenerateAllBtn = document.getElementById("teamsGenerateAllBtn");
+  if (teamsGenerateAllBtn) {
+    teamsGenerateAllBtn.addEventListener("click", async () => {
+      // Get other team names to avoid duplicates (empty since we're generating all)
+      const otherTeamNames = [];
+      // Get game theme/topic if a game is selected
+      const gameTopic = menuSelectedGame?.title || menuSelectedGame?.subtitle || null;
+
+      // Show loading state
+      teamsGenerateAllBtn.disabled = true;
+      teamsGenerateAllBtn.style.opacity = "0.5";
+
+      try {
+        // Generate names for all teams
+        for (let i = 0; i < menuTeams.length; i++) {
+          const rawResult = await window.generateAI('team-name-random', {
+            count: 1,
+            existingNames: otherTeamNames,
+            gameTopic: gameTopic
+          }, 'normal');
+
+          // Parse the result
+          const cleaned = rawResult?.trim() || '';
+          let result = cleaned;
+
+          if (cleaned.includes('```')) {
+            const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+            try {
+              const parsed = JSON.parse(stripped);
+              result = parsed.names && parsed.names[0] ? parsed.names[0] : result;
+            } catch (e) {
+              result = stripped;
+            }
+          }
+
+          result = result.replace(/^["']|["']$/g, '').trim();
+
+          if (result && result.length > 0) {
+            menuTeams[i].name = result;
+            otherTeamNames.push(result); // Add to list to avoid duplicates
+          }
+        }
+
+        // Re-render with new names
+        renderTeamInputs();
+      } catch (error) {
+        console.error("AI team name error:", error);
+        alert("Could not generate team names. Please try again.");
+      } finally {
+        // Restore button state
+        teamsGenerateAllBtn.disabled = false;
+        teamsGenerateAllBtn.style.opacity = "1";
+      }
+    });
+  }
+
+  // AI Enhance All Teams button
+  const teamsEnhanceAllBtn = document.getElementById("teamsEnhanceAllBtn");
+  if (teamsEnhanceAllBtn) {
+    teamsEnhanceAllBtn.addEventListener("click", async () => {
+      // Get game theme/topic if a game is selected
+      const gameTopic = menuSelectedGame?.title || menuSelectedGame?.subtitle || null;
+
+      // Show loading state
+      teamsEnhanceAllBtn.disabled = true;
+      teamsEnhanceAllBtn.style.opacity = "0.5";
+
+      try {
+        // Enhance all team names
+        for (let i = 0; i < menuTeams.length; i++) {
+          const currentName = menuTeams[i].name;
+          const otherTeamNames = menuTeams
+            .map((t, idx) => idx === i ? null : t.name)
+            .filter(n => n && n.trim());
+
+          const rawResult = await window.generateAI('team-name-enhance', {
+            currentName: currentName,
+            existingNames: otherTeamNames,
+            gameTopic: gameTopic
+          }, 'normal');
+
+          // Parse the result
+          const cleaned = rawResult?.trim() || '';
+          let result = cleaned;
+
+          if (cleaned.includes('```')) {
+            const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+            try {
+              const parsed = JSON.parse(stripped);
+              result = parsed.name || result;
+            } catch (e) {
+              result = stripped;
+            }
+          }
+
+          result = result.replace(/^["']|["']$/g, '').trim();
+
+          if (result && result.length > 0) {
+            menuTeams[i].name = result;
+          }
+        }
+
+        // Re-render with enhanced names
+        renderTeamInputs();
+      } catch (error) {
+        console.error("AI team name error:", error);
+        alert("Could not enhance team names. Please try again.");
+      } finally {
+        // Restore button state
+        teamsEnhanceAllBtn.disabled = false;
+        teamsEnhanceAllBtn.style.opacity = "1";
+      }
+    });
+  }
+
   // Collapsible theme section
   themeToggle.addEventListener("click", () => {
     const isCollapsed = themeContent.classList.toggle("collapsed");
