@@ -968,14 +968,23 @@ async function initMainMenu() {
   const teamsSetup = document.getElementById("teamsSetup");
   const addTeamBtn = document.getElementById("menuAddTeamBtn");
   const startBtn = document.getElementById("startGameBtn");
-  const gameSettingsToggle = document.getElementById("gameSettingsToggle");
-  const gameSettingsContent = document.getElementById("gameSettingsContent");
+  const themeToggle = document.getElementById("themeToggle");
+  const themeContent = document.getElementById("themeContent");
+  const advancedToggle = document.getElementById("advancedToggle");
+  const advancedContent = document.getElementById("advancedContent");
   const menuGameTitle = document.getElementById("menuGameTitle");
   const menuGameSubtitle = document.getElementById("menuGameSubtitle");
+  const menuGameTitleDisplay = document.getElementById("menuGameTitleDisplay");
+  const menuGameSubtitleDisplay = document.getElementById("menuGameSubtitleDisplay");
+  const menuGameTitleEditBtn = document.getElementById("menuGameTitleEditBtn");
+  const menuGameSubtitleEditBtn = document.getElementById("menuGameSubtitleEditBtn");
   const categorySelect = document.getElementById("menuCategorySelect");
   const gameSearch = document.getElementById("menuGameSearch");
   const searchCount = document.getElementById("menuGameSearchCount");
   const menuCreateGameBtn = document.getElementById("menuCreateGameBtn");
+  const startStatus = document.getElementById("startStatus");
+  const teamsStatus = document.getElementById("teamsStatus");
+  const teamsCount = document.getElementById("teamsCount");
 
   // Teams data - start with 2 teams
   let menuTeams = [
@@ -1077,16 +1086,17 @@ async function initMainMenu() {
       const option = document.createElement("div");
       option.className = `game-option${menuSelectedGame && game.id === menuSelectedGame.id ? " selected" : ""}`;
 
-      // Choose icon based on source
-      const icon = game.source === "creator" ? "✏️" :
-                   game.source === "custom" ? "📤" :
-                   game.source === "embedded" ? "📦" : "🎮";
+      // Choose icon based on source - more descriptive icons
+      const icon = game.source === "creator" ? "✨" :  // AI-generated
+                   game.source === "custom" ? "📁" :   // Custom uploaded
+                   game.source === "embedded" ? "🎮" :  // Built-in
+                   "🧠";                                 // Trivia/default
 
       option.innerHTML = `
-        <span class="game-option-icon">${icon}</span>
+        <span class="game-card-icon">${icon}</span>
         <div class="game-option-info">
-          <div class="game-option-title">${game.title}</div>
-          <div class="game-option-subtitle">${game.subtitle || game.source}</div>
+          <div class="game-card-title">${game.title}</div>
+          <div class="game-card-subtitle">${game.subtitle || game.source}</div>
         </div>
       `;
       option.addEventListener("click", () => {
@@ -1094,6 +1104,19 @@ async function initMainMenu() {
         // Auto-populate game settings from the selected game
         menuGameTitle.value = game.title || "";
         menuGameSubtitle.value = game.subtitle || "";
+
+        // Update display fields
+        menuGameTitleDisplay.textContent = game.title || "Default";
+        menuGameTitleDisplay.classList.remove("field-value-empty");
+
+        if (game.subtitle) {
+          menuGameSubtitleDisplay.textContent = game.subtitle;
+          menuGameSubtitleDisplay.classList.remove("field-value-empty");
+        } else {
+          menuGameSubtitleDisplay.textContent = "No custom subtitle";
+          menuGameSubtitleDisplay.classList.add("field-value-empty");
+        }
+
         menuGameSettings.title = "";
         menuGameSettings.subtitle = "";
         renderGameList();
@@ -1284,13 +1307,72 @@ async function initMainMenu() {
     updateStartButton();
   });
 
-  // Collapsible game settings
-  gameSettingsToggle.addEventListener("click", () => {
-    const isCollapsed = gameSettingsContent.classList.toggle("collapsed");
-    gameSettingsToggle.classList.toggle("collapsed", isCollapsed);
+  // Collapsible theme section
+  themeToggle.addEventListener("click", () => {
+    const isCollapsed = themeContent.classList.toggle("collapsed");
+    themeToggle.classList.toggle("collapsed", isCollapsed);
   });
 
-  // Game settings inputs
+  // Collapsible advanced section
+  advancedToggle.addEventListener("click", () => {
+    const isCollapsed = advancedContent.classList.toggle("collapsed");
+    advancedToggle.classList.toggle("collapsed", isCollapsed);
+  });
+
+  // Edit mode functions for title/subtitle
+  const enableEditMode = (input, display, editBtn) => {
+    input.style.display = "block";
+    display.style.display = "none";
+    editBtn.style.display = "none";
+    input.focus();
+  };
+
+  const disableEditMode = (input, display, editBtn, value) => {
+    input.style.display = "none";
+    display.style.display = "inline";
+    editBtn.style.display = "inline";
+    if (value) {
+      display.textContent = value;
+      display.classList.remove("field-value-empty");
+    } else {
+      display.textContent = "No custom subtitle";
+      display.classList.add("field-value-empty");
+    }
+  };
+
+  // Title edit button
+  menuGameTitleEditBtn.addEventListener("click", () => {
+    enableEditMode(menuGameTitle, menuGameTitleDisplay, menuGameTitleEditBtn);
+  });
+
+  menuGameTitle.addEventListener("blur", () => {
+    menuGameSettings.title = menuGameTitle.value;
+    disableEditMode(menuGameTitle, menuGameTitleDisplay, menuGameTitleEditBtn, menuGameTitle.value);
+  });
+
+  menuGameTitle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      menuGameTitle.blur();
+    }
+  });
+
+  // Subtitle edit button
+  menuGameSubtitleEditBtn.addEventListener("click", () => {
+    enableEditMode(menuGameSubtitle, menuGameSubtitleDisplay, menuGameSubtitleEditBtn);
+  });
+
+  menuGameSubtitle.addEventListener("blur", () => {
+    menuGameSettings.subtitle = menuGameSubtitle.value;
+    disableEditMode(menuGameSubtitle, menuGameSubtitleDisplay, menuGameSubtitleEditBtn, menuGameSubtitle.value);
+  });
+
+  menuGameSubtitle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      menuGameSubtitle.blur();
+    }
+  });
+
+  // Game settings inputs (for hidden inputs that still work)
   menuGameTitle.addEventListener("input", () => {
     menuGameSettings.title = menuGameTitle.value;
   });
@@ -1383,6 +1465,7 @@ async function initMainMenu() {
     const ready = isReadyToStart();
     const btn = document.getElementById('startGameBtn');
 
+    // Update button
     if (!ready.hasGame) {
       btn.textContent = '▶ Select a Game';
       btn.disabled = true;
@@ -1395,6 +1478,12 @@ async function initMainMenu() {
       btn.textContent = '▶ Start Game';
       btn.disabled = false;
       btn.classList.add('ready');
+    }
+
+    // Update start status display in footer
+    if (startStatus) {
+      teamsStatus.classList.toggle('valid', ready.hasTeams);
+      teamsCount.textContent = menuTeams.length;
     }
   }
 

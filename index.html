@@ -23,69 +23,96 @@
         <h1 class="menu-title">JEOPARDY</h1>
         <div class="menu-subtitle">Choose Your Game</div>
 
-        <!-- Game Selection -->
-        <div class="menu-section">
-          <h3 class="section-title">📁 Select Game</h3>
-          <div class="game-selection-header">
-            <div class="game-category-selector">
-              <select id="menuCategorySelect">
-                <option value="all">All Games</option>
-              </select>
+        <!-- Scrollable Content Area -->
+        <div class="menu-scrollable-content">
+          <!-- Game Selection -->
+          <div class="menu-section">
+            <div class="game-selection-header">
+              <h3 class="section-title">📁 Select Game</h3>
+              <button id="menuCreateGameBtn" class="icon-btn" title="Manage Games">⚙️</button>
             </div>
-            <button id="menuCreateGameBtn" class="btn btn-secondary btn-sm">⚙️ Manage</button>
-          </div>
-          <div class="game-search">
-            <input type="text" id="menuGameSearch" placeholder="Search games..." autocomplete="off" />
-            <span class="game-search-count" id="menuGameSearchCount">0</span>
-          </div>
-          <div class="game-list" id="menuGameList">
-            <!-- Games will be populated by JS -->
-          </div>
-        </div>
-
-        <!-- Game Settings (Collapsible) -->
-        <div class="menu-section">
-          <div class="collapsible-header collapsed" id="gameSettingsToggle">
-            <h3 class="section-title">🎨 Game Settings</h3>
-            <span class="collapsible-icon">▼</span>
-          </div>
-          <div class="collapsible-content collapsed" id="gameSettingsContent">
-            <div class="game-settings-fields">
-              <label class="field">
-                <div class="label">Game Title</div>
-                <input id="menuGameTitle" type="text" placeholder="Custom title..." autocomplete="off" />
-              </label>
-              <label class="field">
-                <div class="label">Subtitle</div>
-                <input id="menuGameSubtitle" type="text" placeholder="Custom subtitle..." autocomplete="off" />
-              </label>
+            <div class="game-search-container">
+              <div class="game-search">
+                <input type="text" id="menuGameSearch" placeholder="Search games..." autocomplete="off" />
+                <span class="game-search-count" id="menuGameSearchCount">0</span>
+              </div>
+              <div class="game-category-selector">
+                <select id="menuCategorySelect">
+                  <option value="all">All Games</option>
+                </select>
+              </div>
+            </div>
+            <div class="game-list" id="menuGameList">
+              <!-- Games will be populated by JS -->
             </div>
           </div>
-        </div>
 
-        <!-- Theme Selection -->
-        <div class="menu-section">
-          <h3 class="section-title">🎨 Select Theme</h3>
-          <div class="theme-grid" id="menuThemeGrid">
-            <!-- Themes will be populated by JS -->
+          <!-- Divider -->
+          <div class="menu-divider"></div>
+
+          <!-- Teams Setup -->
+          <div class="menu-section menu-section-teams">
+            <h3 class="section-title">👥 Teams</h3>
+            <div class="teams-setup" id="teamsSetup">
+              <!-- Team inputs will be populated by JS -->
+            </div>
+            <button id="menuAddTeamBtn" class="btn btn-secondary btn-sm">+ Add Team</button>
+          </div>
+
+          <!-- Theme Selection (Collapsible by default) -->
+          <div class="menu-section">
+            <div class="collapsible-header collapsed" id="themeToggle">
+              <h3 class="section-title">🎨 Appearance</h3>
+              <span class="collapsible-icon">▸</span>
+            </div>
+            <div class="collapsible-content collapsed" id="themeContent">
+              <div class="theme-grid" id="menuThemeGrid">
+                <!-- Themes will be populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced Settings (Collapsible by default) -->
+          <div class="menu-section">
+            <div class="collapsible-header collapsed" id="advancedToggle">
+              <h3 class="section-title">⚙️ Advanced</h3>
+              <span class="collapsible-icon">▸</span>
+            </div>
+            <div class="collapsible-content collapsed" id="advancedContent">
+              <div class="game-settings-fields">
+                <div class="field-display">
+                  <div class="field-label">Game Title</div>
+                  <div class="field-value-row">
+                    <span id="menuGameTitleDisplay" class="field-value">Default</span>
+                    <button id="menuGameTitleEditBtn" class="icon-btn-small" title="Edit title">✏️</button>
+                  </div>
+                  <input id="menuGameTitle" type="text" placeholder="Custom title..." autocomplete="off" class="field-input-edit" style="display: none;" />
+                </div>
+                <div class="field-display">
+                  <div class="field-label">Subtitle</div>
+                  <div class="field-value-row">
+                    <span id="menuGameSubtitleDisplay" class="field-value field-value-empty">No custom subtitle</span>
+                    <button id="menuGameSubtitleEditBtn" class="icon-btn-small" title="Edit subtitle">✏️</button>
+                  </div>
+                  <input id="menuGameSubtitle" type="text" placeholder="Custom subtitle..." autocomplete="off" class="field-input-edit" style="display: none;" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Teams Setup -->
-        <div class="menu-section">
-          <h3 class="section-title">👥 Teams</h3>
-          <div class="teams-setup" id="teamsSetup">
-            <!-- Team inputs will be populated by JS -->
+        <!-- Sticky Footer with Start Button (inside card) -->
+        <div class="menu-footer">
+          <div class="start-status" id="startStatus">
+            <span class="status-check">✓</span> Game selected
+            <span class="status-check" id="teamsStatus">✓</span> <span id="teamsCount">2</span> teams
           </div>
-          <button id="menuAddTeamBtn" class="btn btn-secondary btn-sm">+ Add Team</button>
+          <button id="startGameBtn" class="btn btn-primary btn-large">▶ Start Game</button>
         </div>
-
-        <!-- Start Button -->
-        <button id="startGameBtn" class="btn btn-primary btn-large">▶ Start Game</button>
-
-        <!-- Create Game Button (hidden, triggered by menuCreateGameBtn) -->
-        <button id="createGameBtn" style="display: none;"></button>
       </div>
+
+      <!-- Create Game Button (hidden, triggered by menuCreateGameBtn) -->
+      <button id="createGameBtn" style="display: none;"></button>
     </div>
 
     <!-- Game Container (hidden initially) -->
