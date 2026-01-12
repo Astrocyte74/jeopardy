@@ -459,9 +459,9 @@ body {
 
 .team-ai-buttons {
   display: flex;
-  gap: 2px;
+  gap: 8px;
   position: absolute;
-  right: 4px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   opacity: 0;
@@ -475,25 +475,25 @@ body {
 }
 
 .team-ai-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: none;
-  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(168, 85, 247, 0.3);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .team-ai-btn:hover {
-  background: rgba(168, 85, 247, 0.25);
-  opacity: 1;
-  transform: scale(1.05);
+  background: rgba(168, 85, 247, 0.45);
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
 }
 
 .team-ai-btn:disabled {
@@ -503,12 +503,13 @@ body {
 }
 
 .team-ai-btn.sparkle {
-  background: rgba(168, 85, 247, 0.2);
+  background: rgba(168, 85, 247, 0.35);
+  border-color: rgba(168, 85, 247, 0.4);
 }
 
 .team-ai-btn.sparkle:hover {
-  background: rgba(168, 85, 247, 0.35);
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+  background: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
 }
 
 .team-color-chip {
