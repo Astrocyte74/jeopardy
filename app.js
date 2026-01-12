@@ -982,7 +982,8 @@ async function initMainMenu() {
   const categorySelect = document.getElementById("menuCategorySelect");
   const gameSearch = document.getElementById("menuGameSearch");
   const searchCount = document.getElementById("menuGameSearchCount");
-  const menuCreateGameBtn = document.getElementById("menuCreateGameBtn");
+  const menuNewGameBtn = document.getElementById("menuNewGameBtn");
+  const viewToggleBtn = document.getElementById("menuViewToggle");
   const startStatus = document.getElementById("startStatus");
   const teamsStatus = document.getElementById("teamsStatus");
   const teamsCount = document.getElementById("teamsCount");
@@ -1056,11 +1057,6 @@ async function initMainMenu() {
     option.value = cat.id;
     option.textContent = cat.name;
     categorySelect.appendChild(option);
-  });
-
-  // Create game button triggers the hidden createGameBtn (opens Game Creator)
-  menuCreateGameBtn.addEventListener("click", () => {
-    document.getElementById("createGameBtn").click();
   });
 
   function renderGameList() {
@@ -1644,6 +1640,41 @@ async function initMainMenu() {
     selectedCategory = categorySelect.value;
     renderGameList();
   });
+
+  // ==================== VIEW TOGGLE FUNCTIONALITY ====================
+  // View mode state - DEFAULT TO LIST VIEW
+  const MENU_VIEW_KEY = 'jeop2:menuViewMode';
+  let menuViewMode = localStorage.getItem(MENU_VIEW_KEY) || 'list';
+
+  function initViewToggle() {
+    if (!viewToggleBtn || !gameList) return;
+
+    // Apply saved view mode (default list)
+    gameList.classList.add(`${menuViewMode}-view`);
+    viewToggleBtn.textContent = menuViewMode === 'list' ? '☰' : '▦';
+    viewToggleBtn.title = menuViewMode === 'list' ? 'Switch to grid view' : 'Switch to list view';
+
+    // Toggle handler
+    viewToggleBtn.addEventListener("click", () => {
+      menuViewMode = menuViewMode === 'list' ? 'grid' : 'list';
+      gameList.classList.remove('grid-view', 'list-view');
+      gameList.classList.add(`${menuViewMode}-view`);
+      viewToggleBtn.textContent = menuViewMode === 'list' ? '☰' : '▦';
+      viewToggleBtn.title = menuViewMode === 'list' ? 'Switch to grid view' : 'Switch to list view';
+      localStorage.setItem(MENU_VIEW_KEY, menuViewMode);
+    });
+  }
+
+  // Initialize view toggle
+  initViewToggle();
+
+  // New Game button handler
+  if (menuNewGameBtn) {
+    menuNewGameBtn.addEventListener("click", () => {
+      // Trigger the existing create game button
+      document.getElementById('createGameBtn')?.click();
+    });
+  }
 
   // Search input
   gameSearch.addEventListener("input", () => {
