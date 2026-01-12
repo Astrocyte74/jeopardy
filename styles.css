@@ -1056,6 +1056,30 @@ body {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* Footer buttons container */
+.footer-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Medium-sized buttons (slightly smaller than large) */
+.btn-medium {
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.btn-medium.ready {
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+
+.btn-medium:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
 /* Collapsible sections */
 .collapsible-header {
   display: flex;

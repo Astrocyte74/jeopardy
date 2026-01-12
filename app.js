@@ -968,6 +968,7 @@ async function initMainMenu() {
   const teamsSetup = document.getElementById("teamsSetup");
   const addTeamBtn = document.getElementById("menuAddTeamBtn");
   const startBtn = document.getElementById("startGameBtn");
+  const resumeBtn = document.getElementById("resumeGameBtn");
   const themeToggle = document.getElementById("themeToggle");
   const themeContent = document.getElementById("themeContent");
   const advancedToggle = document.getElementById("advancedToggle");
@@ -1570,6 +1571,31 @@ async function initMainMenu() {
     startGame(menuSelectedGame, menuTeams, menuGameSettings);
   });
 
+  // Resume button - resume saved game state
+  if (resumeBtn) {
+    resumeBtn.addEventListener("click", async () => {
+      if (!menuSelectedGame) {
+        alert("Please select a game first!");
+        return;
+      }
+
+      // Check if there's saved state
+      const savedState = localStorage.getItem(stateKey(menuSelectedGame.id));
+      if (!savedState) {
+        alert("No saved game found!");
+        return;
+      }
+
+      // Resume the game with saved state
+      try {
+        await setCurrentGame(menuSelectedGame);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        alert(message);
+      }
+    });
+  }
+
   // Function to check if ready to start and update button
   function isReadyToStart() {
     const hasGame = !!menuSelectedGame;
@@ -1600,6 +1626,16 @@ async function initMainMenu() {
     if (startStatus) {
       teamsStatus.classList.toggle('valid', ready.hasTeams);
       teamsCount.textContent = menuTeams.length;
+    }
+
+    // Show/hide resume button based on saved state
+    if (resumeBtn) {
+      const hasSavedState = menuSelectedGame && localStorage.getItem(stateKey(menuSelectedGame.id));
+      if (hasSavedState) {
+        resumeBtn.style.display = 'inline-block';
+      } else {
+        resumeBtn.style.display = 'none';
+      }
     }
   }
 
@@ -2094,20 +2130,8 @@ async function main() {
 
   // Initialize main menu
   initMainMenu().then(() => {
-    // Check if there's a saved game preference AND actual saved state
-    const preferred = localStorage.getItem(SELECTED_GAME_KEY);
-    if (preferred) {
-      // Only show resume dialog if there's actual saved state for this game
-      const savedState = localStorage.getItem(stateKey(preferred));
-      if (savedState) {
-        getAvailableGames().then(({ games }) => {
-          const saved = games.find((g) => g.id === preferred);
-          if (saved) {
-            showResumeDialog(saved);
-          }
-        });
-      }
-    }
+    // No resume dialog - always go to main menu
+    // Resume button will appear in footer if saved state exists
   });
 }
 
