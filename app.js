@@ -1118,6 +1118,7 @@ async function initMainMenu() {
         menuGameSettings.subtitle = "";
         renderGameList();
         updateStartButton();
+        updateSelectedGameCard();
       });
       gameList.appendChild(option);
     });
@@ -1635,6 +1636,33 @@ async function initMainMenu() {
     }
   }
 
+  // Update selected game overview card
+  function updateSelectedGameCard() {
+    const selectedGameCard = document.getElementById('selectedGameCard');
+    const selectedGameTitle = document.getElementById('selectedGameTitle');
+    const selectedGameSubtitle = document.getElementById('selectedGameSubtitle');
+    const selectedGameCategories = document.getElementById('selectedGameCategories');
+    const selectedGameQuestions = document.getElementById('selectedGameQuestions');
+
+    if (!selectedGameCard) return;
+
+    if (menuSelectedGame) {
+      selectedGameCard.style.display = 'block';
+      selectedGameTitle.textContent = menuSelectedGame.title;
+      selectedGameSubtitle.textContent = menuSelectedGame.subtitle || '';
+
+      // Get game data for metadata
+      const gameData = menuSelectedGame.game;
+      const categories = gameData?.categories || [];
+      const questionCount = categories.reduce((sum, cat) => sum + (cat.clues?.length || 0), 0);
+
+      selectedGameCategories.textContent = `${categories.length} categories`;
+      selectedGameQuestions.textContent = `${questionCount} questions`;
+    } else {
+      selectedGameCard.style.display = 'none';
+    }
+  }
+
   // Category select change
   categorySelect.addEventListener("change", () => {
     selectedCategory = categorySelect.value;
@@ -1651,7 +1679,8 @@ async function initMainMenu() {
 
     // Apply saved view mode (default list)
     gameList.classList.add(`${menuViewMode}-view`);
-    viewToggleBtn.textContent = menuViewMode === 'list' ? '☰' : '▦';
+    // Use proper list/grid icons: ☷ for list, ⯃ for grid
+    viewToggleBtn.textContent = menuViewMode === 'list' ? '☷' : '⯃';
     viewToggleBtn.title = menuViewMode === 'list' ? 'Switch to grid view' : 'Switch to list view';
 
     // Toggle handler
@@ -1659,7 +1688,7 @@ async function initMainMenu() {
       menuViewMode = menuViewMode === 'list' ? 'grid' : 'list';
       gameList.classList.remove('grid-view', 'list-view');
       gameList.classList.add(`${menuViewMode}-view`);
-      viewToggleBtn.textContent = menuViewMode === 'list' ? '☰' : '▦';
+      viewToggleBtn.textContent = menuViewMode === 'list' ? '☷' : '⯃';
       viewToggleBtn.title = menuViewMode === 'list' ? 'Switch to grid view' : 'Switch to list view';
       localStorage.setItem(MENU_VIEW_KEY, menuViewMode);
     });

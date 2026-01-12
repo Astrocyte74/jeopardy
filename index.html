@@ -26,7 +26,7 @@
           <div class="sidebar-header">
             <h2 class="sidebar-title">Games</h2>
             <div class="sidebar-actions">
-              <button id="menuViewToggle" class="view-toggle-btn" title="Switch to grid view">☰</button>
+              <button id="menuViewToggle" class="view-toggle-btn" title="Switch to grid view">☷</button>
               <button id="menuNewGameBtn" class="new-game-btn" title="Create new game">+ New Game</button>
             </div>
           </div>
@@ -50,18 +50,36 @@
         <!-- RIGHT MAIN: Teams & Settings -->
         <main class="menu-main">
           <div class="main-header">
-            <h1 class="menu-title">JEOPARDY</h1>
-            <div class="menu-subtitle">Choose Your Game</div>
+            <div class="header-left">
+              <h1 class="menu-title">JEOPARDY</h1>
+              <div class="menu-subtitle">Choose Your Game</div>
+            </div>
+            <!-- Selected game info will go here -->
           </div>
 
           <div class="main-scrollable">
+            <!-- Selected Game Overview Card -->
+            <div class="selected-game-card" id="selectedGameCard" style="display: none;">
+              <div class="selected-game-header">
+                <span class="selected-game-label">SELECTED</span>
+              </div>
+              <div class="selected-game-content">
+                <h4 class="selected-game-title" id="selectedGameTitle">No game selected</h4>
+                <p class="selected-game-subtitle" id="selectedGameSubtitle"></p>
+                <div class="selected-game-meta">
+                  <span class="selected-game-meta-item" id="selectedGameCategories"></span>
+                  <span class="selected-game-meta-item" id="selectedGameQuestions"></span>
+                </div>
+              </div>
+            </div>
+
             <!-- Teams Setup -->
             <div class="menu-section menu-section-teams">
               <div class="teams-header">
                 <h3 class="section-title">👥 Teams</h3>
                 <div class="teams-ai-buttons">
-                  <button id="teamsGenerateAllBtn" class="icon-btn-small" title="Generate all team names">🎲 AI Generate Names</button>
-                  <button id="teamsEnhanceAllBtn" class="icon-btn-small sparkle" title="Enhance all team names">✨ Enhance</button>
+                  <button id="teamsGenerateAllBtn" class="teams-action-btn" title="Generate all team names">🎲 AI Generate Names</button>
+                  <button id="teamsEnhanceAllBtn" class="teams-action-btn sparkle" title="Enhance all team names">✨ Enhance</button>
                 </div>
               </div>
               <div class="teams-setup" id="teamsSetup">
