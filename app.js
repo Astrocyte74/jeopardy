@@ -1192,6 +1192,14 @@ async function initMainMenu() {
           const currentName = menuTeams[teamIndex].name;
           const inputField = row.querySelector("input");
 
+          // Get other team names to avoid duplicates
+          const otherTeamNames = menuTeams
+            .map((t, i) => i === teamIndex ? null : t.name)
+            .filter(n => n && n.trim());
+
+          // Get game theme/topic if a game is selected
+          const gameTopic = menuSelectedGame?.title || menuSelectedGame?.subtitle || null;
+
           // Show loading state
           btn.disabled = true;
           btn.style.opacity = "0.5";
@@ -1201,10 +1209,18 @@ async function initMainMenu() {
 
             if (action === "random") {
               promptType = 'team-name-random';
-              context = { count: 1 };
+              context = {
+                count: 1,
+                existingNames: otherTeamNames,
+                gameTopic: gameTopic
+              };
             } else {
               promptType = 'team-name-enhance';
-              context = { currentName: currentName };
+              context = {
+                currentName: currentName,
+                existingNames: otherTeamNames,
+                gameTopic: gameTopic
+              };
             }
 
             const rawResult = await window.generateAI(promptType, context, 'normal');

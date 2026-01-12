@@ -403,26 +403,50 @@ Return JSON format:
 
     'team-name-random': {
       system: `You are a creative team name generator. Always respond with valid JSON only, no prose.`,
-      user: `Generate ${context.count || 1} creative and fun team name(s) for a trivia game.
+      user: (() => {
+        let prompt = `Generate ${context.count || 1} creative and fun team name(s) for a trivia game.
 
-Make them memorable, clever, and fun. Use wordplay, puns, or creative concepts related to knowledge, trivia, or competition.
+Make them memorable, clever, and fun. Use wordplay, puns, or creative concepts related to knowledge, trivia, or competition.`;
 
-Return JSON format:
+        if (context.gameTopic) {
+          prompt += `\n\nGame theme/topic: "${context.gameTopic}"\nConsider making the team names thematically related to this game topic.`;
+        }
+
+        if (context.existingNames && context.existingNames.length > 0) {
+          prompt += `\n\nIMPORTANT: Do NOT use these existing team names: ${context.existingNames.map(n => `"${n}"`).join(', ')}`;
+        }
+
+        prompt += `\n\nReturn JSON format:
 {
   "names": ["Team Name 1"${context.count && context.count > 1 ? ', "Team Name 2", "Team Name 3"' : ''}]
-}`
+}`;
+
+        return prompt;
+      })()
     },
 
     'team-name-enhance': {
       system: `You are a creative team name enhancer. Always respond with valid JSON only, no prose.`,
-      user: `Make this team name more creative and fun for a trivia game: "${context.currentName}"
+      user: (() => {
+        let prompt = `Make this team name more creative and fun for a trivia game: "${context.currentName}"
 
-Transform it into something more memorable, clever, or humorous. Keep the spirit of the original but make it better.
+Transform it into something more memorable, clever, or humorous. Keep the spirit of the original but make it better.`;
 
-Return JSON format:
+        if (context.gameTopic) {
+          prompt += `\n\nGame theme/topic: "${context.gameTopic}"\nConsider enhancing the name to be thematically related to this game topic.`;
+        }
+
+        if (context.existingNames && context.existingNames.length > 0) {
+          prompt += `\n\nIMPORTANT: The enhanced name should not conflict with these existing team names: ${context.existingNames.map(n => `"${n}"`).join(', ')}`;
+        }
+
+        prompt += `\n\nReturn JSON format:
 {
   "name": "Enhanced Team Name"
-}`
+}`;
+
+        return prompt;
+      })()
     },
   };
 
