@@ -67,6 +67,8 @@ const ALLOWED_PROMPT_TYPES = new Set([
   'editor-rewrite-clue',
   'editor-generate-answer',
   'editor-validate',
+  'team-name-random',
+  'team-name-enhance',
 ]);
 
 // Health check endpoint
@@ -398,6 +400,30 @@ Return JSON format:
   "suggestions": ["..."]
 }`
     },
+
+    'team-name-random': {
+      system: `You are a creative team name generator. Always respond with valid JSON only, no prose.`,
+      user: `Generate ${context.count || 1} creative and fun team name(s) for a trivia game.
+
+Make them memorable, clever, and fun. Use wordplay, puns, or creative concepts related to knowledge, trivia, or competition.
+
+Return JSON format:
+{
+  "names": ["Team Name 1"${context.count && context.count > 1 ? ', "Team Name 2", "Team Name 3"' : ''}]
+}`
+    },
+
+    'team-name-enhance': {
+      system: `You are a creative team name enhancer. Always respond with valid JSON only, no prose.`,
+      user: `Make this team name more creative and fun for a trivia game: "${context.currentName}"
+
+Transform it into something more memorable, clever, or humorous. Keep the spirit of the original but make it better.
+
+Return JSON format:
+{
+  "name": "Enhanced Team Name"
+}`
+    },
   };
 
   return prompts[type] || { system: SYSTEM_INSTRUCTION, user: 'Generate Jeopardy content.' };
@@ -411,6 +437,8 @@ function getMaxTokens(promptType) {
     'questions-generate-five': 3000, // 5 clues
     'category-generate-clues': 3000, // Fill missing clues
     'game-title': 500, // Title options
+    'team-name-random': 200, // Short team names
+    'team-name-enhance': 200, // Enhanced team name
     'default': 2000, // Single clue operations
   };
   return tokenLimits[promptType] || tokenLimits['default'];
