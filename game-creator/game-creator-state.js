@@ -70,8 +70,12 @@
       creatorData.games.forEach(game => {
         // game.game should have proper structure: {title, subtitle, categories: [...]}
         const gameData = game.game || { categories: [] };
-        // Extract just the categories part for gameData (used internally by Game Creator)
-        const categoriesData = { categories: gameData.categories || [] };
+        // gameData should include title/subtitle along with categories for proper saving
+        const categoriesData = {
+          title: gameData.title || game.title || "",
+          subtitle: gameData.subtitle || game.subtitle || "",
+          categories: gameData.categories || []
+        };
 
         this.state.allCreatorGames.push({
           id: game.id,
@@ -79,7 +83,7 @@
           subtitle: game.subtitle,
           categoryId: game.categoryId,
           game, // Store reference to original game object for updates
-          gameData: categoriesData, // Internal format: {categories: [...]}
+          gameData: categoriesData, // Internal format: {title, subtitle, categories: [...]}
           editable: true,
           source: "creator"
         });

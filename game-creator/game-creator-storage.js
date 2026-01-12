@@ -56,15 +56,16 @@
         categories: data.categories || [],
         games: (data.games || []).map(game => {
           // Only save the essential properties, avoid circular references
+          // Use outer title/subtitle as the authoritative source (game.game may be stale)
           return {
             id: game.id,
             title: game.title,
             subtitle: game.subtitle,
             categoryId: game.categoryId,
-            // Save the nested game object with categories
+            // Save the nested game object with categories - use outer title/subtitle as source of truth
             game: {
-              title: game.game?.title || game.title,
-              subtitle: game.game?.subtitle || game.subtitle,
+              title: game.title,  // Always use outer title (may have been updated by AI)
+              subtitle: game.subtitle,  // Always use outer subtitle
               categories: game.game?.categories || []
             }
           };
@@ -75,98 +76,110 @@
 
     /**
      * Create an auto-save function with debouncing
-     * @returns {Function} Auto-save function that can be called
+     * @returns {Function} Auto-save function that can be called with optional immediate parameter
      */
     createAutoSaveFunction() {
       let saveTimeout = null;
       let isSaving = false;
 
-      return async () => {
+      // Actual save logic - extracted to be reusable
+      const performSave = async () => {
+        if (isSaving) return; // Prevent concurrent saves
+
+        const gameHeader = document.getElementById("creatorGameHeader");
+        if (!gameHeader || !gameHeader._game || !gameHeader._gameData) return;
+
+        isSaving = true;
+        const game = gameHeader._game;
+        const gameData = gameHeader._gameData;
+
+        // Update the game's data
+        game.gameData = gameData;
+
+        // Build proper game structure for saving (categories at top level)
+        // Spread gameData first, then explicitly set title/subtitle to ensure they take precedence
+        const gameToSave = {
+          ...gameData,  // This spreads {title, subtitle, categories: [...]}
+          title: game.title,  // Override with current game title
+          subtitle: game.subtitle  // Override with current game subtitle
+        };
+
+        // Save to appropriate storage
+        if (game.source === "creator") {
+          const creatorData = this.loadCreatorData();
+          // Update in creatorData.games
+          const creatorGame = creatorData.games.find(g => g.id === game.id);
+          if (creatorGame) {
+            creatorGame.game = gameToSave;
+            creatorGame.gameData = gameData;
+            creatorGame.title = game.title;
+            creatorGame.subtitle = game.subtitle;
+            creatorGame.categoryId = game.categoryId;
+          }
+          this.saveCreatorData(creatorData);
+
+          // Also save to customGames so it appears in main menu
+          const custom = window.loadCustomGames();
+          const existingIndex = custom.findIndex(g => g.id === game.id);
+          const customGame = {
+            id: game.id,
+            title: game.title,
+            subtitle: game.subtitle,
+            categoryId: game.categoryId,
+            game: gameToSave,
+            source: "creator"
+          };
+
+          if (existingIndex >= 0) {
+            custom[existingIndex] = customGame;
+          } else {
+            custom.unshift(customGame);
+          }
+          window.saveCustomGames(custom);
+        } else if (game.source === "custom") {
+          // Update in custom games
+          const custom = window.loadCustomGames();
+          const customGame = custom.find(g => g.id === game.id);
+          if (customGame) {
+            customGame.game = gameToSave;
+            customGame.title = game.title;
+            customGame.subtitle = game.subtitle;
+            if (game.categoryId) {
+              customGame.categoryId = game.categoryId;
+            }
+            window.saveCustomGames(custom);
+          }
+        }
+
+        isSaving = false;
+
+        // Show subtle "Saved" indicator
+        const saveIndicator = document.getElementById("creatorSaveIndicator");
+        if (saveIndicator) {
+          saveIndicator.textContent = "✓ Saved";
+          saveIndicator.style.opacity = "1";
+          setTimeout(() => {
+            saveIndicator.style.opacity = "0.5";
+          }, 1000);
+        }
+      };
+
+      return async (immediate = false) => {
         // Clear any pending save
         if (saveTimeout) {
           clearTimeout(saveTimeout);
+          saveTimeout = null;
         }
 
-        // Debounce: wait 500ms after last change before saving
-        saveTimeout = setTimeout(async () => {
-          if (isSaving) return; // Prevent concurrent saves
-
-          const gameHeader = document.getElementById("creatorGameHeader");
-          if (!gameHeader || !gameHeader._game || !gameHeader._gameData) return;
-
-          isSaving = true;
-          const game = gameHeader._game;
-          const gameData = gameHeader._gameData;
-
-          // Update the game's data
-          game.gameData = gameData;
-
-          // Build proper game structure for saving (categories at top level)
-          const gameToSave = {
-            title: game.title,
-            subtitle: game.subtitle,
-            ...gameData  // This spreads {categories: [...]}
-          };
-
-          // Save to appropriate storage
-          if (game.source === "creator") {
-            const creatorData = this.loadCreatorData();
-            // Update in creatorData.games
-            const creatorGame = creatorData.games.find(g => g.id === game.id);
-            if (creatorGame) {
-              creatorGame.game = gameToSave;
-              creatorGame.gameData = gameData;
-              creatorGame.title = game.title;
-              creatorGame.subtitle = game.subtitle;
-              creatorGame.categoryId = game.categoryId;
-            }
-            this.saveCreatorData(creatorData);
-
-            // Also save to customGames so it appears in main menu
-            const custom = window.loadCustomGames();
-            const existingIndex = custom.findIndex(g => g.id === game.id);
-            const customGame = {
-              id: game.id,
-              title: game.title,
-              subtitle: game.subtitle,
-              categoryId: game.categoryId,
-              game: gameToSave,
-              source: "creator"
-            };
-
-            if (existingIndex >= 0) {
-              custom[existingIndex] = customGame;
-            } else {
-              custom.unshift(customGame);
-            }
-            window.saveCustomGames(custom);
-          } else if (game.source === "custom") {
-            // Update in custom games
-            const custom = window.loadCustomGames();
-            const customGame = custom.find(g => g.id === game.id);
-            if (customGame) {
-              customGame.game = gameToSave;
-              customGame.title = game.title;
-              customGame.subtitle = game.subtitle;
-              if (game.categoryId) {
-                customGame.categoryId = game.categoryId;
-              }
-              window.saveCustomGames(custom);
-            }
-          }
-
-          isSaving = false;
-
-          // Show subtle "Saved" indicator
-          const saveIndicator = document.getElementById("creatorSaveIndicator");
-          if (saveIndicator) {
-            saveIndicator.textContent = "✓ Saved";
-            saveIndicator.style.opacity = "1";
-            setTimeout(() => {
-              saveIndicator.style.opacity = "0.5";
-            }, 1000);
-          }
-        }, 500);
+        if (immediate) {
+          // Save immediately without debounce
+          await performSave();
+        } else {
+          // Debounce: wait 500ms after last change before saving
+          saveTimeout = setTimeout(async () => {
+            await performSave();
+          }, 500);
+        }
       };
     }
   };

@@ -1613,6 +1613,113 @@ async function main() {
           nameInput.addEventListener("input", () => {
             team.name = nameInput.value;
           });
+
+          // Create AI buttons container
+          const aiButtons = el("div", { class: "settingsTeamAIBtns" });
+
+          // Random button
+          const randomBtn = el("button", {
+            class: "team-ai-btn",
+            type: "button",
+            title: "Generate random team name"
+          }, "🎲");
+          randomBtn.addEventListener("click", async () => {
+            const currentName = team.name;
+            const otherNames = app.state.teams.filter((_, i) => i !== index).map(t => t.name);
+            const gameTopic = app.game?.title || app.game?.subtitle || null;
+
+            randomBtn.disabled = true;
+            randomBtn.style.opacity = "0.5";
+
+            try {
+              const rawResult = await window.generateAI('team-name-random', {
+                count: 1,
+                existingNames: otherNames,
+                gameTopic: gameTopic
+              }, 'normal');
+
+              const cleaned = rawResult?.trim() || '';
+              let result = cleaned;
+
+              if (cleaned.includes('```')) {
+                const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+                try {
+                  const parsed = JSON.parse(stripped);
+                  result = parsed.names && parsed.names[0] ? parsed.names[0] : result;
+                } catch (e) {
+                  result = stripped;
+                }
+              }
+
+              result = result.replace(/^["']|["']$/g, '').trim();
+
+              if (result && result.length > 0) {
+                team.name = result;
+                // Re-render settings
+                document.querySelector("[data-action=\"settings\"]")?.click();
+              }
+            } catch (error) {
+              console.error("AI team name error:", error);
+              alert("Could not generate team name. Please try again.");
+            } finally {
+              randomBtn.disabled = false;
+              randomBtn.style.opacity = "1";
+            }
+          });
+
+          // Enhance button
+          const enhanceBtn = el("button", {
+            class: "team-ai-btn sparkle",
+            type: "button",
+            title: "Enhance this team name"
+          }, "✨");
+          enhanceBtn.addEventListener("click", async () => {
+            const currentName = team.name;
+            const otherNames = app.state.teams.filter((_, i) => i !== index).map(t => t.name);
+            const gameTopic = app.game?.title || app.game?.subtitle || null;
+
+            enhanceBtn.disabled = true;
+            enhanceBtn.style.opacity = "0.5";
+
+            try {
+              const rawResult = await window.generateAI('team-name-enhance', {
+                currentName: currentName,
+                existingNames: otherNames,
+                gameTopic: gameTopic
+              }, 'normal');
+
+              const cleaned = rawResult?.trim() || '';
+              let result = cleaned;
+
+              if (cleaned.includes('```')) {
+                const stripped = cleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+                try {
+                  const parsed = JSON.parse(stripped);
+                  result = parsed.name || result;
+                } catch (e) {
+                  result = stripped;
+                }
+              }
+
+              result = result.replace(/^["']|["']$/g, '').trim();
+
+              if (result && result.length > 0) {
+                team.name = result;
+                // Re-render settings
+                document.querySelector("[data-action=\"settings\"]")?.click();
+              }
+            } catch (error) {
+              console.error("AI team name error:", error);
+              alert("Could not generate team name. Please try again.");
+            } finally {
+              enhanceBtn.disabled = false;
+              enhanceBtn.style.opacity = "1";
+            }
+          });
+
+          aiButtons.appendChild(randomBtn);
+          aiButtons.appendChild(enhanceBtn);
+
           const scoreInput = el("input", {
             type: "text",
             value: String(team.score),
@@ -1642,6 +1749,101 @@ async function main() {
                 const n = Number.parseInt(si.value.replace(/[^\d-]/g, ""), 10);
                 t.score = Number.isFinite(n) ? n : 0;
               });
+
+              // Create AI buttons for this team
+              const tAiButtons = el("div", { class: "settingsTeamAIBtns" });
+
+              const tRandomBtn = el("button", { class: "team-ai-btn", type: "button", title: "Generate random team name" }, "🎲");
+              tRandomBtn.addEventListener("click", async () => {
+                const tCurrentName = t.name;
+                const tOtherNames = app.state.teams.filter((_, ti) => ti !== i).map((tm) => tm.name);
+                const tGameTopic = app.game?.title || app.game?.subtitle || null;
+
+                tRandomBtn.disabled = true;
+                tRandomBtn.style.opacity = "0.5";
+
+                try {
+                  const tRawResult = await window.generateAI('team-name-random', {
+                    count: 1,
+                    existingNames: tOtherNames,
+                    gameTopic: tGameTopic
+                  }, 'normal');
+
+                  const tCleaned = tRawResult?.trim() || '';
+                  let tResult = tCleaned;
+
+                  if (tCleaned.includes('```')) {
+                    const tStripped = tCleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+                    try {
+                      const tParsed = JSON.parse(tStripped);
+                      tResult = tParsed.names && tParsed.names[0] ? tParsed.names[0] : tResult;
+                    } catch (e) {
+                      tResult = tStripped;
+                    }
+                  }
+
+                  tResult = tResult.replace(/^["']|["']$/g, '').trim();
+
+                  if (tResult && tResult.length > 0) {
+                    t.name = tResult;
+                    document.querySelector("[data-action=\"settings\"]")?.click();
+                  }
+                } catch (error) {
+                  console.error("AI team name error:", error);
+                  alert("Could not generate team name. Please try again.");
+                } finally {
+                  tRandomBtn.disabled = false;
+                  tRandomBtn.style.opacity = "1";
+                }
+              });
+
+              const tEnhanceBtn = el("button", { class: "team-ai-btn sparkle", type: "button", title: "Enhance this team name" }, "✨");
+              tEnhanceBtn.addEventListener("click", async () => {
+                const tCurrentName = t.name;
+                const tOtherNames = app.state.teams.filter((_, ti) => ti !== i).map((tm) => tm.name);
+                const tGameTopic = app.game?.title || app.game?.subtitle || null;
+
+                tEnhanceBtn.disabled = true;
+                tEnhanceBtn.style.opacity = "0.5";
+
+                try {
+                  const tRawResult = await window.generateAI('team-name-enhance', {
+                    currentName: tCurrentName,
+                    existingNames: tOtherNames,
+                    gameTopic: tGameTopic
+                  }, 'normal');
+
+                  const tCleaned = tRawResult?.trim() || '';
+                  let tResult = tCleaned;
+
+                  if (tCleaned.includes('```')) {
+                    const tStripped = tCleaned.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/g, '').trim();
+                    try {
+                      const tParsed = JSON.parse(tStripped);
+                      tResult = tParsed.name || tResult;
+                    } catch (e) {
+                      tResult = tStripped;
+                    }
+                  }
+
+                  tResult = tResult.replace(/^["']|["']$/g, '').trim();
+
+                  if (tResult && tResult.length > 0) {
+                    t.name = tResult;
+                    document.querySelector("[data-action=\"settings\"]")?.click();
+                  }
+                } catch (error) {
+                  console.error("AI team name error:", error);
+                  alert("Could not generate team name. Please try again.");
+                } finally {
+                  tEnhanceBtn.disabled = false;
+                  tEnhanceBtn.style.opacity = "1";
+                }
+              });
+
+              tAiButtons.appendChild(tRandomBtn);
+              tAiButtons.appendChild(tEnhanceBtn);
+
               const rb = el("button", { class: "iconBtn removeTeamBtn", type: "button" }, "🗑");
               rb.disabled = app.state.teams.length <= 1;
               rb.addEventListener("click", () => {
@@ -1649,11 +1851,17 @@ async function main() {
                 // Trigger re-render by clicking settings again
                 document.querySelector("[data-action=\"settings\"]")?.click();
               });
-              newList.appendChild(el("div", { class: "settingsTeamRow" }, ni, si, rb));
+              newList.appendChild(el("div", { class: "settingsTeamRow" }, ni, tAiButtons, si, rb));
             });
             settingsTeams.appendChild(newList);
           });
-          list.appendChild(el("div", { class: "settingsTeamRow" }, nameInput, scoreInput, removeBtn));
+
+          // Create wrapper for name input and AI buttons
+          const nameWrapper = el("div", { class: "settingsTeamNameWrapper" });
+          nameWrapper.appendChild(nameInput);
+          nameWrapper.appendChild(aiButtons);
+
+          list.appendChild(el("div", { class: "settingsTeamRow" }, nameWrapper, scoreInput, removeBtn));
         });
         settingsTeams.appendChild(list);
         settingsDialog.showModal();
@@ -2565,6 +2773,11 @@ async function generateGameWithAI(theme, difficulty, onCancel = null) {
 
       if (titleResult) {
         console.log('[generateGameWithAI] Title generated successfully');
+        // Explicitly save the game immediately to ensure title/subtitle are persisted
+        if (window.autoSave) {
+          console.log('[generateGameWithAI] Triggering immediate save...');
+          await window.autoSave(true); // Pass true for immediate save
+        }
         // Refresh game list to show updated title
         await window.loadAllGames();
         aiToast.show({

@@ -199,14 +199,27 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
         return;
       }
       const titleIndex = selectedIndex ?? 0;
-      game.title = result.titles[titleIndex].title;
-      game.subtitle = result.titles[titleIndex].subtitle;
+      const newTitle = result.titles[titleIndex].title;
+      const newSubtitle = result.titles[titleIndex].subtitle;
+
+      // Update game object title/subtitle
+      game.title = newTitle;
+      game.subtitle = newSubtitle;
+
       // Also update nested game.title/subtitle if exists
       if (game.game) {
-        game.game.title = result.titles[titleIndex].title;
-        game.game.subtitle = result.titles[titleIndex].subtitle;
+        game.game.title = newTitle;
+        game.game.subtitle = newSubtitle;
       }
-      game.gameData = gameData;
+
+      // Update gameData to include title/subtitle along with categories
+      game.gameData = {
+        title: newTitle,
+        subtitle: newSubtitle,
+        ...gameData  // This spreads {categories: [...]}
+      };
+
+      console.log('[applyResult] game-title applied:', { newTitle, newSubtitle, gameTitle: game.title, gameSubtitle: game.subtitle });
       break;
 
     case 'categories-generate':
@@ -250,10 +263,18 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
         }
       });
       gameData.categories = categoriesToApply;
-      game.gameData = gameData;
+      // Preserve title/subtitle when updating gameData
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: categoriesToApply
+      };
       // Also explicitly update nested game.categories if exists (for safety)
       if (game.game) {
         game.game.categories = categoriesToApply;
+        // Ensure nested game has title/subtitle too
+        if (!game.game.title) game.game.title = game.title;
+        if (!game.game.subtitle) game.game.subtitle = game.subtitle;
       }
       // Reset selections to first items
       window.selectedCategoryIndex = 0;
@@ -262,7 +283,11 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
 
     case 'category-rename':
       gameData.categories[selections.categoryIndex].title = result.names[0];
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       break;
 
     case 'category-generate-clues':
@@ -290,12 +315,20 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
         // Sort by value
         existingClues.sort((a, b) => a.value - b.value);
       }
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       break;
 
     case 'questions-generate-five':
       gameData.categories[selections.categoryIndex].clues = result.clues;
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       window.selectedClueIndex = 0;
       break;
 
@@ -303,7 +336,11 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
       const qCatIdx = selections.categoryIndex;
       const qClueIdx = selections.clueIndex;
       gameData.categories[qCatIdx].clues[qClueIdx] = result.clue;
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       break;
 
     case 'editor-generate-clue':
@@ -311,17 +348,29 @@ function applyResult(action, result, game, gameData, selections, selectedIndex =
       const eClueIdx = selections.clueIndex;
       gameData.categories[eCatIdx].clues[eClueIdx].clue = result.clue;
       gameData.categories[eCatIdx].clues[eClueIdx].response = result.response;
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       break;
 
     case 'editor-rewrite-clue':
       gameData.categories[selections.categoryIndex].clues[selections.clueIndex].clue = result.clue;
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       break;
 
     case 'editor-generate-answer':
       gameData.categories[selections.categoryIndex].clues[selections.clueIndex].response = result.response;
-      game.gameData = gameData;
+      game.gameData = {
+        title: game.title || gameData.title || "",
+        subtitle: game.subtitle || gameData.subtitle || "",
+        categories: gameData.categories
+      };
       break;
 
     case 'editor-validate':

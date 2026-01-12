@@ -1955,6 +1955,63 @@ input[type="text"]:focus {
   height: 48px;
 }
 
+/* Settings dialog team name AI buttons */
+.settingsTeamNameWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.settingsTeamNameWrapper input[type="text"] {
+  flex: 1;
+  min-width: 0;
+}
+
+.settingsTeamAIBtns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.settingsTeamNameWrapper .team-ai-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  background: rgba(168, 85, 247, 0.3);
+  color: #a855f7;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.settingsTeamNameWrapper .team-ai-btn:hover {
+  background: rgba(168, 85, 247, 0.45);
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+}
+
+.settingsTeamNameWrapper .team-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.settingsTeamNameWrapper .team-ai-btn.sparkle {
+  background: rgba(168, 85, 247, 0.35);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.settingsTeamNameWrapper .team-ai-btn.sparkle:hover {
+  background: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
+}
+
 /* ==================== THEME DIALOG ==================== */
 .themeGrid {
   display: grid;
