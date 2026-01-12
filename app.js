@@ -2094,15 +2094,19 @@ async function main() {
 
   // Initialize main menu
   initMainMenu().then(() => {
-    // Check if there's a saved game preference
+    // Check if there's a saved game preference AND actual saved state
     const preferred = localStorage.getItem(SELECTED_GAME_KEY);
     if (preferred) {
-      getAvailableGames().then(({ games }) => {
-        const saved = games.find((g) => g.id === preferred);
-        if (saved) {
-          showResumeDialog(saved);
-        }
-      });
+      // Only show resume dialog if there's actual saved state for this game
+      const savedState = localStorage.getItem(stateKey(preferred));
+      if (savedState) {
+        getAvailableGames().then(({ games }) => {
+          const saved = games.find((g) => g.id === preferred);
+          if (saved) {
+            showResumeDialog(saved);
+          }
+        });
+      }
     }
   });
 }
